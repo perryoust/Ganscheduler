@@ -1905,7 +1905,7 @@ function renderNormalWeek(evs, ws, f){
         border-bottom:1px solid rgba(255,255,255,.2);position:sticky;right:0;z-index:10">
         <div style="display:flex; justify-content:space-between; align-items:center;">
           <span>🏙️ ${city} <span style="font-weight:400;font-size:.75rem;opacity:.85;margin-right:8px">${byCity[city].pairs.length} ${groupLabel} · ${byCity[city].solos.length} צהרונים בודדים</span></span>
-          <div style="display:flex;align-items:center;gap:10px;"><button type="button" onclick="event.stopPropagation();window.openGridExportModal({city:this.closest('tr').dataset.city})" style="background:rgba(255,255,255,.22);border:1px solid rgba(255,255,255,.45);border-radius:5px;color:#fff;font-size:.72rem;font-weight:700;padding:2px 9px;cursor:pointer;white-space:nowrap;">▦ ייצוא גריד</button><span style="font-size:0.7rem; font-weight:400; opacity:0.8;">לחץ לכיווץ/הרחבה ↕️</span></div>
+          <span style="font-size:0.7rem; font-weight:400; opacity:0.8;">לחץ לכיווץ/הרחבה ↕️</span>
         </div>
       </td>
     </tr>`;
@@ -1985,7 +1985,6 @@ function renderNormalWeek(evs, ws, f){
             <button onclick="event.stopPropagation();window._exportPairWA([${pairGidList}])"
               style="background:rgba(255,255,255,.22);border:none;border-radius:5px;color:#fff;
                 font-size:.72rem;padding:3px 10px;cursor:pointer;white-space:nowrap;flex-shrink:0">📋 הודעה</button>
-            <button type="button" data-city="${city.replace(/"/g,'&quot;')}" data-grpid="${String(pair.id).replace(/"/g,'&quot;')}" onclick="event.stopPropagation();window.openGridExportModal({city:this.dataset.city,clusterId:this.dataset.grpid,groupMode:window._listGroupMode})" style="background:rgba(255,255,255,.22);border:1px solid rgba(255,255,255,.4);border-radius:5px;color:#fff;font-size:.72rem;font-weight:700;padding:3px 9px;cursor:pointer;white-space:nowrap;flex-shrink:0" title="ייצוא גריד לאשכול/זוג זה">▦ ייצוא</button>
             ${!window.isReadOnly && pGids.length ? `<button onclick="event.stopPropagation();${isClusterMode ? `window.openNewSched(null, {grpId:'cl_${pair.id}', date:'${window.d2s(days[0])}'})` : `window.openNewSched(${pGids[0]}, {date:'${window.d2s(days[0])}', partnerGids:[${pairGidList}]})`}" style="background:rgba(255,255,255,.25);border:1px solid rgba(255,255,255,.45);border-radius:5px;color:#fff;font-size:.72rem;font-weight:700;padding:3px 10px;cursor:pointer;white-space:nowrap;flex-shrink:0">${isClusterMode ? '➕ שיבוץ לאשכול' : '➕ שיבוץ לזוג'}</button>` : ''}
             <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">🔗 ${pair.name}</span>
           </div>

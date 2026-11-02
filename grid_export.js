@@ -284,7 +284,7 @@
     return days;
   }
 
-  let _activeTab = 'grid'; // 'grid' | 'instructors'
+  let _activeTab = 'grid'; // 'grid' | 'instructors' | 'gaps'
 
   function _ensureModalDOM() {
     let modal = document.getElementById('grid-export-m');
@@ -295,66 +295,65 @@
     modal.className = 'modal';
     modal.style.zIndex = '10020';
     modal.innerHTML = `
-      <div class="mb" style="max-width:860px; width:96%; padding:0; border-radius:14px; overflow:hidden; box-shadow:0 16px 48px rgba(15,23,42,0.28);">
-        <div style="background:linear-gradient(135deg, #1a237e 0%, #3949ab 100%); color:#fff; padding:13px 20px; display:flex; justify-content:space-between; align-items:center;">
+      <div class="mb" style="max-width:900px; width:96%; padding:0; border-radius:14px; overflow:hidden; box-shadow:0 18px 50px rgba(15,23,42,0.3);">
+        <!-- Top Header -->
+        <div style="background:linear-gradient(135deg, #1a237e 0%, #3949ab 100%); color:#fff; padding:12px 20px; display:flex; justify-content:space-between; align-items:center;">
           <div style="display:flex; align-items:center; gap:10px;">
-            <span id="gexp-hdr-icon" style="font-size:1.35rem;">▦</span>
+            <span id="gexp-hdr-icon" style="font-size:1.3rem;">▦</span>
             <div>
-              <h3 id="gexp-hdr-title" style="margin:0; font-size:1.08rem; font-weight:800; color:#fff;">ייצוא גריד שבועי / יומי והיערכות מדריכים</h3>
-              <div id="gexp-open-hint" style="font-size:0.74rem; opacity:0.88; margin-top:1px;">טבלת שיבוצים מרוכזת ובקרת מדריכים לספקים</div>
+              <h3 id="gexp-hdr-title" style="margin:0; font-size:1.05rem; font-weight:800; color:#fff;">מרכז ייצוא גריד והיערכות מדריכים</h3>
+              <div id="gexp-open-hint" style="font-size:0.73rem; opacity:0.88; margin-top:1px;">טבלת שיבוצים, מדריכים לספקים ובקרת שלמות אשכולות</div>
             </div>
           </div>
           <button onclick="window.CM('grid-export-m')" style="background:rgba(255,255,255,0.18); border:none; color:#fff; width:30px; height:30px; border-radius:50%; cursor:pointer; font-size:1rem; font-weight:700;">✕</button>
         </div>
 
-        <!-- Mode Tabs -->
-        <div style="display:grid; grid-template-columns:1fr 1fr; background:#eef2ff; border-bottom:1px solid #c7d2fe; direction:rtl;">
-          <button type="button" id="gexp-tab-btn-grid" onclick="window.setGridExportTab('grid')" style="padding:10px 12px; border:none; border-bottom:3px solid #1a237e; background:#ffffff; color:#1a237e; font-weight:800; font-size:0.86rem; cursor:pointer; transition:all 0.15s;">
-            ▦ טבלת שיבוצים (גנים / אשכולות)
+        <!-- Clean 3-Tab Navigation -->
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; background:#eef2ff; border-bottom:1px solid #c7d2fe; direction:rtl;">
+          <button type="button" id="gexp-tab-btn-grid" onclick="window.setGridExportTab('grid')" style="padding:10px 10px; border:none; border-bottom:3px solid #1a237e; background:#ffffff; color:#1a237e; font-weight:800; font-size:0.84rem; cursor:pointer; transition:all 0.15s;">
+            ▦ גריד שיבוצים (יומי / שבועי)
           </button>
-          <button type="button" id="gexp-tab-btn-instructors" onclick="window.setGridExportTab('instructors')" style="padding:10px 12px; border:none; border-bottom:3px solid transparent; background:transparent; color:#475569; font-weight:800; font-size:0.86rem; cursor:pointer; transition:all 0.15s;">
-            🧑‍🏫 היערכות מדריכים לספק ובקרת שיבוץ
+          <button type="button" id="gexp-tab-btn-instructors" onclick="window.setGridExportTab('instructors')" style="padding:10px 10px; border:none; border-bottom:3px solid transparent; background:transparent; color:#475569; font-weight:800; font-size:0.84rem; cursor:pointer; transition:all 0.15s;">
+            🧑‍🏫 מדריכים לספקים ועומסים
+          </button>
+          <button type="button" id="gexp-tab-btn-gaps" onclick="window.setGridExportTab('gaps')" style="padding:10px 10px; border:none; border-bottom:3px solid transparent; background:transparent; color:#475569; font-weight:800; font-size:0.84rem; cursor:pointer; transition:all 0.15s; display:inline-flex; align-items:center; justify-content:center; gap:5px;">
+            <span>🔍 בקרת אשכולות וחוסרים</span>
+            <span id="gexp-gaps-badge"></span>
           </button>
         </div>
 
-        <div style="padding:14px 18px; max-height:76vh; overflow-y:auto; direction:rtl;">
-          <!-- Shared Date Range Picker -->
-          <div style="background:#f8fafc; border:1px solid #cbd5e1; border-radius:10px; padding:10px 14px; margin-bottom:12px;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:7px; flex-wrap:wrap; gap:6px;">
-              <label style="font-weight:800; color:#1e293b; font-size:0.86rem;">📅 טווח תאריכים:</label>
-              <span id="gexp-days-badge" style="background:#e0e7ff; color:#1e40af; font-weight:700; font-size:0.75rem; padding:2px 9px; border-radius:999px;">5 ימים</span>
-            </div>
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:8px;">
-              <div>
-                <label style="display:block; font-size:0.75rem; color:#475569; font-weight:700; margin-bottom:2px;">מתאריך:</label>
-                <input type="date" id="gexp-from" onchange="window.onGridExpDateChange('from')" style="width:100%; padding:6px 10px; border:1px solid #94a3b8; border-radius:7px; font-size:0.86rem; font-weight:600; box-sizing:border-box;">
-              </div>
-              <div>
-                <label style="display:block; font-size:0.75rem; color:#475569; font-weight:700; margin-bottom:2px;">עד תאריך:</label>
-                <input type="date" id="gexp-to" onchange="window.onGridExpDateChange('to')" style="width:100%; padding:6px 10px; border:1px solid #94a3b8; border-radius:7px; font-size:0.86rem; font-weight:600; box-sizing:border-box;">
-              </div>
-            </div>
-            <div id="gexp-date-presets" style="display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin-bottom:5px;"></div>
-            <label style="display:inline-flex; align-items:center; gap:6px; font-size:0.77rem; color:#334155; cursor:pointer;">
+        <!-- Compact Pinned Date Strip (Shared across all 3 tabs) -->
+        <div style="background:#f8fafc; border-bottom:1px solid #e2e8f0; padding:9px 18px; direction:rtl;">
+          <div style="display:flex; flex-wrap:wrap; align-items:center; gap:8px;">
+            <span style="font-weight:800; color:#1e293b; font-size:0.82rem;">📅 תאריכים:</span>
+            <input type="date" id="gexp-from" onchange="window.onGridExpDateChange('from')" style="padding:4px 8px; border:1px solid #94a3b8; border-radius:6px; font-size:0.82rem; font-weight:700; background:#fff;">
+            <span style="font-size:0.78rem; color:#64748b; font-weight:700;">עד</span>
+            <input type="date" id="gexp-to" onchange="window.onGridExpDateChange('to')" style="padding:4px 8px; border:1px solid #94a3b8; border-radius:6px; font-size:0.82rem; font-weight:700; background:#fff;">
+            <label style="display:inline-flex; align-items:center; gap:5px; font-size:0.76rem; color:#334155; font-weight:600; cursor:pointer; margin-right:4px;">
               <input type="checkbox" id="gexp-inc-fri" onchange="window.updateGridExportSummary()">
-              <span>כלול ימי שישי בטווח התאריכים</span>
+              <span>כלול שישי</span>
             </label>
+            <span id="gexp-days-badge" style="margin-right:auto; background:#e0e7ff; color:#1e40af; font-weight:800; font-size:0.74rem; padding:2px 10px; border-radius:999px;">5 ימי פעילות</span>
           </div>
+          <div id="gexp-date-presets" style="display:flex; flex-wrap:wrap; gap:5px; align-items:center; margin-top:6px;"></div>
+        </div>
 
+        <!-- Tab Panes Body -->
+        <div style="padding:14px 18px; max-height:64vh; overflow-y:auto; direction:rtl;">
           <!-- ═══ TAB 1: GARDEN / CLUSTER MATRIX GRID ═══ -->
           <div id="gexp-pane-grid">
             <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:10px; padding:12px 14px; margin-bottom:12px;">
               <div style="display:grid; grid-template-columns:1.25fr 1fr; gap:12px; margin-bottom:10px;">
                 <div>
-                  <label style="display:block; font-weight:800; color:#1e293b; font-size:0.84rem; margin-bottom:5px;">🎯 אילו גנים / ערים לייצא?</label>
-                  <select id="gexp-scope" onchange="window.onGridExpScopeChange()" style="width:100%; padding:7px 10px; border:1px solid #94a3b8; border-radius:7px; font-size:0.84rem; font-weight:700; color:#1e293b; background:#fff;">
+                  <label style="display:block; font-weight:800; color:#1e293b; font-size:0.83rem; margin-bottom:4px;">🎯 אילו גנים / ערים לייצא?</label>
+                  <select id="gexp-scope" onchange="window.onGridExpScopeChange()" style="width:100%; padding:7px 10px; border:1px solid #94a3b8; border-radius:7px; font-size:0.83rem; font-weight:700; color:#1e293b; background:#fff;">
                     <option value="open">🖥️ מה שפתוח / מסונן כרגע בטבלה</option>
                     <option value="city">🏙️ בחירת עיר / כל הערים</option>
                   </select>
                 </div>
                 <div>
-                  <label style="display:block; font-weight:800; color:#1e293b; font-size:0.84rem; margin-bottom:5px;">📦 חלוקת שורות בטבלה:</label>
-                  <select id="gexp-group-mode" onchange="window.onGridExpGroupModeChange()" style="width:100%; padding:7px 10px; border:1px solid #94a3b8; border-radius:7px; font-size:0.84rem; font-weight:700; color:#1e293b; background:#fff;">
+                  <label style="display:block; font-weight:800; color:#1e293b; font-size:0.83rem; margin-bottom:4px;">📦 חלוקת שורות בטבלה:</label>
+                  <select id="gexp-group-mode" onchange="window.onGridExpGroupModeChange()" style="width:100%; padding:7px 10px; border:1px solid #94a3b8; border-radius:7px; font-size:0.83rem; font-weight:700; color:#1e293b; background:#fff;">
                     <option value="clusters">📦 לפי אשכולות</option>
                     <option value="pairs">⚖️ לפי זוגות</option>
                     <option value="flat">📋 רשימה לפי עיר (ללא קבוצות)</option>
@@ -429,20 +428,19 @@
 
           <!-- ═══ TAB 2: INSTRUCTORS PER DAY & SUPPLIER LOAD CONTROL ═══ -->
           <div id="gexp-pane-instructors" style="display:none;">
-            <!-- Filters Bar -->
-            <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:10px; padding:11px 14px; margin-bottom:10px;">
-              <div style="display:grid; grid-template-columns:1.5fr 1fr 1fr; gap:10px; margin-bottom:8px;">
+            <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:10px; padding:10px 14px; margin-bottom:9px;">
+              <div style="display:grid; grid-template-columns:1.5fr 1fr 1fr; gap:10px; margin-bottom:7px;">
                 <div>
-                  <label style="display:block; font-size:0.76rem; font-weight:800; color:#1e293b; margin-bottom:3px;">🎯 בחירת ספק (לייצוא או בקרת כלל הספקים):</label>
-                  <select id="gexp-inst-sup" onchange="window.onInstFilterChange()" style="width:100%; padding:6px 9px; border:1.5px solid #6366f1; border-radius:7px; font-size:0.83rem; font-weight:700; color:#1e293b; background:#fff;"></select>
+                  <label style="display:block; font-size:0.75rem; font-weight:800; color:#1e293b; margin-bottom:3px;">🎯 ספק (לייצוא או בקרת כלל הספקים):</label>
+                  <select id="gexp-inst-sup" onchange="window.onInstFilterChange()" style="width:100%; padding:6px 9px; border:1.5px solid #6366f1; border-radius:7px; font-size:0.82rem; font-weight:700; color:#1e293b; background:#fff;"></select>
                 </div>
                 <div>
-                  <label style="display:block; font-size:0.76rem; font-weight:800; color:#1e293b; margin-bottom:3px;">🏙️ סינון עיר:</label>
-                  <select id="gexp-inst-city" onchange="window.onInstFilterChange()" style="width:100%; padding:6px 9px; border:1px solid #cbd5e1; border-radius:7px; font-size:0.83rem; font-weight:600; background:#fff;"></select>
+                  <label style="display:block; font-size:0.75rem; font-weight:800; color:#1e293b; margin-bottom:3px;">🏙️ סינון עיר:</label>
+                  <select id="gexp-inst-city" onchange="window.onInstCityChange(this.value)" style="width:100%; padding:6px 9px; border:1px solid #cbd5e1; border-radius:7px; font-size:0.82rem; font-weight:600; background:#fff;"></select>
                 </div>
                 <div id="gexp-inst-status-wrap">
-                  <label style="display:block; font-size:0.76rem; font-weight:800; color:#1e293b; margin-bottom:3px;">⚖️ סינון עומס / חוסרים:</label>
-                  <select id="gexp-inst-status" onchange="window.onInstFilterChange(true)" style="width:100%; padding:6px 9px; border:1px solid #cbd5e1; border-radius:7px; font-size:0.82rem; font-weight:700; background:#fff;">
+                  <label style="display:block; font-size:0.75rem; font-weight:800; color:#1e293b; margin-bottom:3px;">⚖️ סינון עומס / חוסרים:</label>
+                  <select id="gexp-inst-status" onchange="window.onInstFilterChange(true)" style="width:100%; padding:6px 9px; border:1px solid #cbd5e1; border-radius:7px; font-size:0.81rem; font-weight:700; background:#fff;">
                     <option value="all">📋 כל הספקים (כולל 0 שיבוצים)</option>
                     <option value="active">🟢 ספקים עם שיבוץ בלבד</option>
                     <option value="zero">🔴 ללא שיבוץ כלל (0)</option>
@@ -451,7 +449,7 @@
                   </select>
                 </div>
               </div>
-              <div style="display:flex; flex-wrap:wrap; gap:14px; font-size:0.78rem; color:#334155; padding-top:3px; border-top:1px dashed #e2e8f0;">
+              <div style="display:flex; flex-wrap:wrap; gap:14px; font-size:0.77rem; color:#334155; padding-top:4px; border-top:1px dashed #e2e8f0;">
                 <label style="display:inline-flex; align-items:center; gap:5px; cursor:pointer;">
                   <input type="checkbox" id="gexp-inst-inc-daily-tot" checked onchange="window.onInstFilterChange(true)">
                   <span>הצג סיכום סה"כ מדריכים ליום (כל הערים יחד)</span>
@@ -463,15 +461,27 @@
               </div>
             </div>
 
-            <!-- Sanity Check Alerts: 1) Unclustered Scheduled Gardens  2) Missed Gardens in Clusters -->
-            <div id="gexp-inst-alerts"></div>
+            <!-- Compact 1-Line Callout (only shown if unclustered or missed cluster gardens exist) -->
+            <div id="gexp-inst-gap-banner" style="display:none; margin-bottom:9px;"></div>
 
-            <!-- Live Preview: Per-Supplier Schedule OR All-Suppliers Balance Dashboard -->
+            <!-- Spacious Live Preview: Per-Supplier Schedule OR All-Suppliers Balance Table -->
             <div id="gexp-inst-preview"></div>
+          </div>
+
+          <!-- ═══ TAB 3: CLUSTER COMPLETENESS & UNCLUSTERED GARDENS CONTROL ═══ -->
+          <div id="gexp-pane-gaps" style="display:none;">
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; background:#ffffff; border:1px solid #e2e8f0; border-radius:10px; padding:9px 14px; margin-bottom:10px;">
+              <div style="display:flex; align-items:center; gap:8px; flex:1; min-width:200px;">
+                <label style="font-size:0.8rem; font-weight:800; color:#1e293b; white-space:nowrap;">🏙️ סינון עיר לבקרה:</label>
+                <select id="gexp-gaps-city" onchange="window.onInstCityChange(this.value)" style="padding:5px 10px; border:1px solid #cbd5e1; border-radius:7px; font-size:0.82rem; font-weight:700; background:#fff; min-width:170px;"></select>
+              </div>
+              <button type="button" onclick="window.instOpenClustersMgmt()" style="background:#eef2ff; border:1px solid #a5b4fc; color:#1e3a8a; border-radius:7px; padding:6px 12px; font-size:0.78rem; font-weight:800; cursor:pointer;">🔗 פתיחת מסך ניהול אשכולות</button>
+            </div>
+            <div id="gexp-gaps-body"></div>
           </div>
         </div>
 
-        <!-- Footer Export Actions (Grid Tab) -->
+        <!-- Footer Export Actions (Tab 1: Grid) -->
         <div id="gexp-footer-grid" style="background:#f8fafc; border-top:1px solid #e2e8f0; padding:11px 18px; display:flex; flex-wrap:wrap; gap:8px; justify-content:space-between; align-items:center; direction:rtl;">
           <div style="display:flex; flex-wrap:wrap; gap:8px; flex:1;">
             <button type="button" class="btn bg" onclick="window.doGridExportExcel()" style="background:#15803d; border-color:#166534; color:#fff; font-weight:800; padding:8px 14px; font-size:0.84rem;">📊 אקסל (Excel)</button>
@@ -482,7 +492,7 @@
           <button type="button" class="btn bo" onclick="window.CM('grid-export-m')" style="padding:8px 14px; font-size:0.82rem;">סגור</button>
         </div>
 
-        <!-- Footer Export Actions (Instructors Tab) -->
+        <!-- Footer Export Actions (Tab 2: Instructors) -->
         <div id="gexp-footer-instructors" style="display:none; background:#f8fafc; border-top:1px solid #e2e8f0; padding:11px 18px; flex-wrap:wrap; gap:8px; justify-content:space-between; align-items:center; direction:rtl;">
           <div style="display:flex; flex-wrap:wrap; gap:7px; flex:1;">
             <button type="button" class="btn bg" onclick="window.doInstExportWhatsAppText()" style="background:#16a34a; border-color:#15803d; color:#fff; font-weight:800; padding:8px 13px; font-size:0.83rem;">💬 העתק הודעה לוואטסאפ</button>
@@ -490,6 +500,15 @@
             <button type="button" class="btn bp" onclick="window.doInstExportPDF()" style="background:#1d4ed8; border-color:#1e40af; color:#fff; font-weight:800; padding:8px 13px; font-size:0.83rem;">🖨️ PDF / הדפסה</button>
             <button type="button" class="btn bo" onclick="window.doInstExportImage('download')" style="background:#fdf2f8; border:1px solid #f472b6; color:#9d174d; font-weight:800; padding:8px 11px; font-size:0.81rem;">🖼️ תמונה (JPG)</button>
             <button type="button" class="btn bo" onclick="window.doInstExportImage('copy')" style="background:#ecfdf5; border:1px solid #34d399; color:#065f46; font-weight:800; padding:8px 11px; font-size:0.81rem;" title="מעתיק כרטיס היערכות מדריכים כתמונה ללוח (Ctrl+V בוואטסאפ)">📋 העתק תמונה לוואטסאפ</button>
+          </div>
+          <button type="button" class="btn bo" onclick="window.CM('grid-export-m')" style="padding:8px 14px; font-size:0.82rem;">סגור</button>
+        </div>
+
+        <!-- Footer Export Actions (Tab 3: Clusters & Gaps Control) -->
+        <div id="gexp-footer-gaps" style="display:none; background:#f8fafc; border-top:1px solid #e2e8f0; padding:11px 18px; flex-wrap:wrap; gap:8px; justify-content:space-between; align-items:center; direction:rtl;">
+          <div style="display:flex; flex-wrap:wrap; gap:8px; flex:1;">
+            <button type="button" class="btn bg" onclick="window.doInstExportExcel()" style="background:#15803d; border-color:#166534; color:#fff; font-weight:800; padding:8px 14px; font-size:0.83rem;">📊 ייצוא דוח בקרה וחוסרים (Excel)</button>
+            <button type="button" class="btn bo" onclick="window.setGridExportTab('instructors')" style="background:#eef2ff; border:1px solid #a5b4fc; color:#1e3a8a; font-weight:800; padding:8px 13px; font-size:0.82rem;">🧑‍🏫 מעבר למדריכים לספקים</button>
           </div>
           <button type="button" class="btn bo" onclick="window.CM('grid-export-m')" style="padding:8px 14px; font-size:0.82rem;">סגור</button>
         </div>
@@ -522,16 +541,22 @@
     });
     incFriEl.checked = (initFrom === initTo && window.s2d(initFrom).getDay() === 5) || hasFriEvs;
 
-    // Populate cities dropdowns (Grid + Instructors)
+    // Populate cities dropdowns (Grid + Instructors + Gaps)
     const citySel = document.getElementById('gexp-city');
     const instCitySel = document.getElementById('gexp-inst-city');
+    const gapsCitySel = document.getElementById('gexp-gaps-city');
     const allCities = typeof window.cities === 'function' ? window.cities() : [];
     const citiesOptsHtml = '<option value="">-- כל הערים --</option>' +
       allCities.map(c => `<option value="${_esc(c)}">${_esc(c)}</option>`).join('');
     citySel.innerHTML = citiesOptsHtml;
+    const defaultInstCity = opts.city || (viewState.calFilter?.cities?.length === 1 ? viewState.calFilter.cities[0] : '');
     if (instCitySel) {
       instCitySel.innerHTML = citiesOptsHtml;
-      instCitySel.value = opts.city || (viewState.calFilter?.cities?.length === 1 ? viewState.calFilter.cities[0] : '');
+      instCitySel.value = defaultInstCity;
+    }
+    if (gapsCitySel) {
+      gapsCitySel.innerHTML = citiesOptsHtml;
+      gapsCitySel.value = defaultInstCity;
     }
 
     // Group mode defaults to current open calendar toggle
@@ -581,43 +606,33 @@
     window.onGridExpScopeChange(opts.clusterId || null);
 
     // Pre-populate supplier filter in Instructors tab if passed or single supplier filtered on calendar
-    const instSupSel = document.getElementById('gexp-inst-sup');
     const preSup = opts.supplier || (viewState.calFilter?.sups?.length === 1 ? viewState.calFilter.sups[0] : '');
     _refreshInstructorsTab(false, preSup);
 
-    const targetTab = opts.tab === 'instructors' ? 'instructors' : (_activeTab || 'grid');
-    window.setGridExportTab(opts.tab ? targetTab : 'grid');
+    const reqTab = (opts.tab === 'instructors' || opts.tab === 'gaps') ? opts.tab : 'grid';
+    window.setGridExportTab(reqTab);
     modal.classList.add('open');
   };
 
   window.setGridExportTab = function (tab) {
-    _activeTab = tab === 'instructors' ? 'instructors' : 'grid';
-    const isInst = _activeTab === 'instructors';
+    _activeTab = (tab === 'instructors' || tab === 'gaps') ? tab : 'grid';
 
-    const paneGrid = document.getElementById('gexp-pane-grid');
-    const paneInst = document.getElementById('gexp-pane-instructors');
-    const ftrGrid = document.getElementById('gexp-footer-grid');
-    const ftrInst = document.getElementById('gexp-footer-instructors');
-    const btnGrid = document.getElementById('gexp-tab-btn-grid');
-    const btnInst = document.getElementById('gexp-tab-btn-instructors');
+    const tabs = ['grid', 'instructors', 'gaps'];
+    tabs.forEach(t => {
+      const isCur = _activeTab === t;
+      const pane = document.getElementById('gexp-pane-' + t);
+      const ftr = document.getElementById('gexp-footer-' + t);
+      const btn = document.getElementById('gexp-tab-btn-' + t);
+      if (pane) pane.style.display = isCur ? 'block' : 'none';
+      if (ftr) ftr.style.display = isCur ? 'flex' : 'none';
+      if (btn) {
+        btn.style.background = isCur ? '#ffffff' : 'transparent';
+        btn.style.color = isCur ? '#1a237e' : '#475569';
+        btn.style.borderBottom = isCur ? '3px solid #1a237e' : '3px solid transparent';
+      }
+    });
 
-    if (paneGrid) paneGrid.style.display = isInst ? 'none' : 'block';
-    if (paneInst) paneInst.style.display = isInst ? 'block' : 'none';
-    if (ftrGrid) ftrGrid.style.display = isInst ? 'none' : 'flex';
-    if (ftrInst) ftrInst.style.display = isInst ? 'flex' : 'none';
-
-    if (btnGrid) {
-      btnGrid.style.background = isInst ? 'transparent' : '#ffffff';
-      btnGrid.style.color = isInst ? '#475569' : '#1a237e';
-      btnGrid.style.borderBottom = isInst ? '3px solid transparent' : '3px solid #1a237e';
-    }
-    if (btnInst) {
-      btnInst.style.background = isInst ? '#ffffff' : 'transparent';
-      btnInst.style.color = isInst ? '#1a237e' : '#475569';
-      btnInst.style.borderBottom = isInst ? '3px solid #1a237e' : '3px solid transparent';
-    }
-
-    if (isInst) {
+    if (_activeTab === 'instructors' || _activeTab === 'gaps') {
       _refreshInstructorsTab(true);
     } else {
       window.updateGridExportSummary();
@@ -1010,8 +1025,10 @@
     if (daysBadge) {
       daysBadge.textContent = data.days.length === 1 ? 'גריד יומי (יום אחד)' : `${data.days.length} ימי פעילות`;
     }
-    if (_activeTab === 'instructors') {
+    if (_activeTab === 'instructors' || _activeTab === 'gaps') {
       _refreshInstructorsTab(true);
+    } else {
+      _updateGapsBadge(_collectInstructorsData(''));
     }
 
     const splitWrap = document.getElementById('gexp-split-sheets-wrap');
@@ -2238,10 +2255,20 @@
     const activeSupVal = sel ? sel.value : '';
     if (statusWrap) statusWrap.style.opacity = activeSupVal ? '0.45' : '1';
 
-    const viewData = activeSupVal ? _collectInstructorsData(activeSupVal) : _collectInstructorsData('');
-    _renderInstructorsAlerts(viewData);
+    const viewData = activeSupVal ? _collectInstructorsData(activeSupVal) : fullData;
+    _updateGapsBadge(fullData);
+    _renderInstructorsGapBanner(viewData);
     _renderInstructorsPreview(viewData);
+    _renderGapsTab(fullData);
   }
+
+  window.onInstCityChange = function (cityVal) {
+    const c1 = document.getElementById('gexp-inst-city');
+    const c2 = document.getElementById('gexp-gaps-city');
+    if (c1 && c1.value !== cityVal) c1.value = cityVal;
+    if (c2 && c2.value !== cityVal) c2.value = cityVal;
+    _refreshInstructorsTab(true);
+  };
 
   window.onInstFilterChange = function () {
     _refreshInstructorsTab(true);
@@ -2288,86 +2315,171 @@
     }
   };
 
-  function _renderInstructorsAlerts(data) {
-    const box = document.getElementById('gexp-inst-alerts');
-    if (!box) return;
+  function _countGapIssues(data) {
+    const unclusteredCnt = data.unclusteredGardens.length;
+    const partialCnt = data.partiallyMissed.length;
+    const zeroActiveGidCnt = data.zeroInActiveClusters.reduce((s, x) => s + x.missedGardens.length, 0);
+    return {
+      unclusteredCnt,
+      partialCnt,
+      zeroActiveGidCnt,
+      emptyClCnt: data.emptyClusters.length,
+      urgentTotal: unclusteredCnt + partialCnt + zeroActiveGidCnt
+    };
+  }
 
-    let html = '';
+  function _updateGapsBadge(data) {
+    const badge = document.getElementById('gexp-gaps-badge');
+    if (!badge || !data) return;
+    const counts = _countGapIssues(data);
+    if (counts.urgentTotal > 0) {
+      badge.innerHTML = `<span style="background:#dc2626; color:#fff; border-radius:999px; padding:1px 7px; font-size:0.71rem; font-weight:800;">${counts.urgentTotal}</span>`;
+    } else {
+      badge.innerHTML = `<span style="background:#dcfce7; color:#166534; border-radius:999px; padding:1px 7px; font-size:0.7rem; font-weight:800;">✓</span>`;
+    }
+  }
 
-    // BOX 1: Scheduled Kindergartens NOT in any Cluster ("גנים שאינם באשכול")
+  function _renderInstructorsGapBanner(data) {
+    const banner = document.getElementById('gexp-inst-gap-banner');
+    if (!banner) return;
+    const counts = _countGapIssues(data);
+    if (counts.urgentTotal === 0) {
+      banner.style.display = 'none';
+      banner.innerHTML = '';
+      return;
+    }
+
+    const parts = [];
+    if (counts.unclusteredCnt > 0) parts.push(`${counts.unclusteredCnt} גנים ללא אשכול`);
+    if (counts.partialCnt > 0) parts.push(`${counts.partialCnt} פספוסים ביום פעיל`);
+    if (counts.zeroActiveGidCnt > 0) parts.push(`${counts.zeroActiveGidCnt} גנים ללא שיבוץ באשכול פעיל`);
+
+    banner.style.display = 'block';
+    banner.innerHTML = `
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; background:#fffbeb; border:1px solid #f59e0b; border-right:4px solid #d97706; border-radius:8px; padding:7px 12px; font-size:0.79rem;">
+        <span style="color:#92400e; font-weight:800;">⚠️ שימו לב בבקרת האשכולות: ${parts.join(' · ')}</span>
+        <button type="button" onclick="window.setGridExportTab('gaps')" style="background:#d97706; color:#fff; border:none; border-radius:6px; padding:4px 11px; font-size:0.74rem; font-weight:800; cursor:pointer; white-space:nowrap;">🔍 מעבר לבדיקה וטיפול ⬅️</button>
+      </div>`;
+  }
+
+  function _renderGapsTab(data) {
+    const wrap = document.getElementById('gexp-gaps-body');
+    if (!wrap) return;
+
+    if (!data.days.length) {
+      wrap.innerHTML = `<div style="background:#fef2f2; border:1px solid #fecaca; color:#991b1b; padding:12px; border-radius:8px; font-weight:700; font-size:0.82rem;">⚠️ אין ימי פעילות בטווח התאריכים שנבחר.</div>`;
+      return;
+    }
+
+    const counts = _countGapIssues(data);
+    const kpisHtml = `
+      <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:8px; margin-bottom:12px;">
+        <div style="background:${counts.unclusteredCnt > 0 ? '#fffbeb' : '#f8fafc'}; border:1px solid ${counts.unclusteredCnt > 0 ? '#fde68a' : '#e2e8f0'}; border-radius:8px; padding:8px; text-align:center;">
+          <div style="font-size:1.1rem; font-weight:800; color:${counts.unclusteredCnt > 0 ? '#b45309' : '#64748b'};">${counts.unclusteredCnt}</div>
+          <div style="font-size:0.72rem; font-weight:700; color:#475569;">גנים משובצים ללא אשכול</div>
+        </div>
+        <div style="background:${counts.partialCnt > 0 ? '#fef2f2' : '#f8fafc'}; border:1px solid ${counts.partialCnt > 0 ? '#fecaca' : '#e2e8f0'}; border-radius:8px; padding:8px; text-align:center;">
+          <div style="font-size:1.1rem; font-weight:800; color:${counts.partialCnt > 0 ? '#dc2626' : '#64748b'};">${counts.partialCnt}</div>
+          <div style="font-size:0.72rem; font-weight:700; color:#475569;">פספוס ביום פעיל של אשכול</div>
+        </div>
+        <div style="background:${counts.zeroActiveGidCnt > 0 ? '#fff7ed' : '#f8fafc'}; border:1px solid ${counts.zeroActiveGidCnt > 0 ? '#fed7aa' : '#e2e8f0'}; border-radius:8px; padding:8px; text-align:center;">
+          <div style="font-size:1.1rem; font-weight:800; color:${counts.zeroActiveGidCnt > 0 ? '#ea580c' : '#64748b'};">${counts.zeroActiveGidCnt}</div>
+          <div style="font-size:0.72rem; font-weight:700; color:#475569;">גנים ללא שיבוץ באשכול פעיל</div>
+        </div>
+        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:8px; text-align:center;">
+          <div style="font-size:1.1rem; font-weight:800; color:#475569;">${counts.emptyClCnt}</div>
+          <div style="font-size:0.72rem; font-weight:700; color:#64748b;">אשכולות ללא שיבוץ בטווח</div>
+        </div>
+      </div>`;
+
+    let sectionsHtml = '';
+
+    // 1. Unclustered Scheduled Gardens
     if (data.unclusteredGardens.length > 0) {
-      html += `
-        <details open style="background:#fffbeb; border:1.5px solid #f59e0b; border-radius:9px; padding:8px 12px; margin-bottom:9px;">
-          <summary style="cursor:pointer; font-weight:800; color:#b45309; font-size:0.83rem; display:flex; justify-content:space-between; align-items:center;">
-            <span>⚠️ גנים משובצים שאינם משויכים לאשכול (${data.unclusteredGardens.length} גנים – לא נספרו במדריכים עד לשיוך)</span>
-            <button type="button" onclick="event.stopPropagation(); window.instOpenClustersMgmt()" style="background:#d97706; color:#fff; border:none; border-radius:6px; padding:3px 9px; font-size:0.73rem; font-weight:700; cursor:pointer;">🔗 עבור לניהול אשכולות</button>
-          </summary>
-          <div style="margin-top:7px; display:flex; flex-direction:column; gap:5px; max-height:130px; overflow-y:auto;">
+      sectionsHtml += `
+        <div style="background:#fffbeb; border:1px solid #f59e0b; border-radius:10px; padding:10px 14px; margin-bottom:10px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:6px;">
+            <span style="font-weight:800; color:#b45309; font-size:0.85rem;">⚠️ גנים משובצים שאינם משויכים לאשכול (${data.unclusteredGardens.length} גנים – לא נספרו במדריכים עד לשיוך)</span>
+            <button type="button" onclick="window.instOpenClustersMgmt()" style="background:#d97706; color:#fff; border:none; border-radius:6px; padding:4px 10px; font-size:0.74rem; font-weight:800; cursor:pointer;">🔗 שייך בניהול אשכולות</button>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:6px;">
             ${data.unclusteredGardens.map(u => {
               const datesSummary = u.items.map(it => `${_shortDate(it.ds)} (${_esc(it.supDisp)}${it.t ? ' ' + _esc(it.t.slice(0, 5)) : ''})`).join(' · ');
               const firstDs = u.items[0]?.ds || data.minDs;
-              return `<div style="display:flex; justify-content:space-between; align-items:center; gap:8px; background:#ffffff; border:1px solid #fde68a; border-radius:6px; padding:4px 8px; font-size:0.77rem;">
+              return `<div style="display:flex; justify-content:space-between; align-items:center; gap:8px; background:#ffffff; border:1px solid #fde68a; border-radius:7px; padding:6px 10px; font-size:0.79rem;">
                 <div>
                   <b style="color:#92400e;">${_esc(u.city)} – ${_esc(u.g.name)}</b>
                   <span style="color:#475569; margin-right:6px;">${datesSummary}</span>
                 </div>
-                <button type="button" onclick="window.instJumpToGarden(${u.gid}, '${firstDs}')" style="background:#fef3c7; border:1px solid #f59e0b; color:#92400e; border-radius:5px; padding:2px 8px; font-size:0.72rem; font-weight:700; cursor:pointer; white-space:nowrap;">📅 הצג בלוח</button>
+                <button type="button" onclick="window.instJumpToGarden(${u.gid}, '${firstDs}')" style="background:#fef3c7; border:1px solid #f59e0b; color:#92400e; border-radius:5px; padding:3px 9px; font-size:0.73rem; font-weight:700; cursor:pointer; white-space:nowrap;">📅 הצג בלוח</button>
               </div>`;
             }).join('')}
           </div>
-        </details>`;
+        </div>`;
     }
 
-    // BOX 2: Missed / Unscheduled Gardens inside Clusters ("גנים באשכול שלא שובצו והתפספסו")
-    const totalMissedIssues = data.partiallyMissed.length + data.zeroInActiveClusters.length;
-    if (totalMissedIssues > 0 || data.emptyClusters.length > 0) {
-      const hasUrgent = data.partiallyMissed.length > 0;
-      const borderCol = hasUrgent ? '#ef4444' : '#fb923c';
-      const bgCol = hasUrgent ? '#fef2f2' : '#fff7ed';
-      const hdrCol = hasUrgent ? '#b91c1c' : '#c2410c';
-
-      html += `
-        <details ${hasUrgent ? 'open' : ''} style="background:${bgCol}; border:1.5px solid ${borderCol}; border-radius:9px; padding:8px 12px; margin-bottom:10px;">
-          <summary style="cursor:pointer; font-weight:800; color:${hdrCol}; font-size:0.83rem; display:flex; justify-content:space-between; align-items:center;">
-            <span>🔍 בקרת פספוסים באשכולות: ${data.partiallyMissed.length ? `${data.partiallyMissed.length} חסרים ביום פעילות · ` : ''}${data.zeroInActiveClusters.length ? `${data.zeroInActiveClusters.reduce((s, x) => s + x.missedGardens.length, 0)} גנים באשכול פעיל ללא שיבוץ` : (data.emptyClusters.length ? `${data.emptyClusters.length} אשכולות ללא שיבוץ כלל` : '')}</span>
-            <span style="font-size:0.72rem; opacity:0.85;">לחץ לפירוט ושיבוץ מהיר ▾</span>
-          </summary>
-          <div style="margin-top:8px; display:flex; flex-direction:column; gap:6px; max-height:165px; overflow-y:auto;">
+    // 2. Partially Missed Gardens on Active Cluster Days
+    if (data.partiallyMissed.length > 0) {
+      sectionsHtml += `
+        <div style="background:#fef2f2; border:1px solid #fca5a5; border-radius:10px; padding:10px 14px; margin-bottom:10px;">
+          <div style="font-weight:800; color:#b91c1c; font-size:0.85rem; margin-bottom:8px;">🔴 גנים באשכול שהתפספסו ביום פעילות של שאר האשכול (${data.partiallyMissed.length})</div>
+          <div style="display:flex; flex-direction:column; gap:6px;">
             ${data.partiallyMissed.map(pm => `
-              <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; background:#ffffff; border:1px solid #fecaca; border-right:4px solid #dc2626; border-radius:6px; padding:5px 9px; font-size:0.77rem;">
+              <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; background:#ffffff; border:1px solid #fecaca; border-right:4px solid #dc2626; border-radius:7px; padding:6px 10px; font-size:0.79rem;">
                 <div>
-                  <span style="background:#fee2e2; color:#991b1b; font-weight:800; padding:1px 6px; border-radius:4px; font-size:0.7rem; margin-left:5px;">פספוס ביום פעיל</span>
                   <b>${_esc(pm.city)} · ${_esc(pm.clName)} · ${_esc(pm.gardenName)}</b>
-                  <span style="color:#b91c1c; font-weight:700; margin-right:6px;">חסר ב-${_shortDate(pm.ds)} (${_shortDay(pm.ds)})</span>
-                  ${pm.peerSups ? `<span style="color:#64748b; font-size:0.72rem;"> [שאר האשכול: ${_esc(pm.peerSups)}]</span>` : ''}
+                  <span style="color:#b91c1c; font-weight:800; margin-right:6px;">חסר ב-${_shortDate(pm.ds)} (${_shortDay(pm.ds)})</span>
+                  ${pm.peerSups ? `<span style="color:#64748b; font-size:0.74rem;"> [שאר האשכול: ${_esc(pm.peerSups)}]</span>` : ''}
                 </div>
-                <button type="button" data-clid="${_esc(pm.clId)}" onclick="window.instScheduleMissed(this.dataset.clid, ${pm.gid}, '${pm.ds}')" style="background:#dc2626; color:#fff; border:none; border-radius:5px; padding:3px 9px; font-size:0.72rem; font-weight:700; cursor:pointer; white-space:nowrap;">➕ שבץ לתאריך</button>
+                <button type="button" data-clid="${_esc(pm.clId)}" onclick="window.instScheduleMissed(this.dataset.clid, ${pm.gid}, '${pm.ds}')" style="background:#dc2626; color:#fff; border:none; border-radius:6px; padding:4px 10px; font-size:0.73rem; font-weight:800; cursor:pointer; white-space:nowrap;">➕ שבץ לתאריך</button>
               </div>
             `).join('')}
-
-            ${data.zeroInActiveClusters.map(zc => `
-              <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; background:#ffffff; border:1px solid #fed7aa; border-right:4px solid #ea580c; border-radius:6px; padding:5px 9px; font-size:0.76rem;">
-                <div>
-                  <span style="background:#ffedd5; color:#9a3412; font-weight:800; padding:1px 6px; border-radius:4px; font-size:0.7rem; margin-left:5px;">0 שיבוצים בטווח</span>
-                  <b>${_esc(zc.city)} · ${_esc(zc.clName)}:</b>
-                  <span style="color:#334155;"> ${zc.missedGardens.map(g => _esc(g.name)).join(', ')}</span>
-                  <span style="color:#64748b; font-size:0.71rem;"> (${zc.scheduledCount}/${zc.totalMembers} גנים אחרים באשכול שובצו)</span>
-                </div>
-                <button type="button" data-clid="${_esc(zc.clId)}" onclick="window.instScheduleMissed(this.dataset.clid, ${zc.missedGardens[0].id}, '${zc.firstActiveDs}')" style="background:#ea580c; color:#fff; border:none; border-radius:5px; padding:3px 9px; font-size:0.72rem; font-weight:700; cursor:pointer; white-space:nowrap;">➕ שבץ לאשכול</button>
-              </div>
-            `).join('')}
-
-            ${data.emptyClusters.length > 0 ? `
-              <div style="background:#f8fafc; border:1px solid #cbd5e1; border-radius:6px; padding:5px 9px; font-size:0.74rem; color:#475569;">
-                <b>⚪ אשכולות ללא אף שיבוץ בטווח (${data.emptyClusters.length}):</b>
-                ${data.emptyClusters.map(ec => `${_esc(ec.city)} – ${_esc(ec.cl.name)}`).join(' · ')}
-              </div>
-            ` : ''}
           </div>
-        </details>`;
+        </div>`;
     }
 
-    box.innerHTML = html;
+    // 3. Gardens with 0 Schedules inside an Otherwise Active Cluster
+    if (data.zeroInActiveClusters.length > 0) {
+      sectionsHtml += `
+        <div style="background:#fff7ed; border:1px solid #fdba74; border-radius:10px; padding:10px 14px; margin-bottom:10px;">
+          <div style="font-weight:800; color:#c2410c; font-size:0.85rem; margin-bottom:8px;">🟠 גנים ללא אף שיבוץ בטווח בתוך אשכול פעיל</div>
+          <div style="display:flex; flex-direction:column; gap:6px;">
+            ${data.zeroInActiveClusters.map(zc => `
+              <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; background:#ffffff; border:1px solid #fed7aa; border-right:4px solid #ea580c; border-radius:7px; padding:6px 10px; font-size:0.79rem;">
+                <div>
+                  <b>${_esc(zc.city)} · ${_esc(zc.clName)}:</b>
+                  <span style="color:#1e293b; font-weight:700;"> ${zc.missedGardens.map(g => _esc(g.name)).join(', ')}</span>
+                  <span style="color:#64748b; font-size:0.73rem;"> (${zc.scheduledCount}/${zc.totalMembers} גנים אחרים באשכול שובצו)</span>
+                </div>
+                <button type="button" data-clid="${_esc(zc.clId)}" onclick="window.instScheduleMissed(this.dataset.clid, ${zc.missedGardens[0].id}, '${zc.firstActiveDs}')" style="background:#ea580c; color:#fff; border:none; border-radius:6px; padding:4px 10px; font-size:0.73rem; font-weight:800; cursor:pointer; white-space:nowrap;">➕ שבץ לאשכול</button>
+              </div>
+            `).join('')}
+          </div>
+        </div>`;
+    }
+
+    // Healthy state banner when urgentTotal === 0
+    if (counts.urgentTotal === 0) {
+      sectionsHtml += `
+        <div style="background:#f0fdf4; border:1px solid #86efac; border-radius:10px; padding:16px; text-align:center; margin-bottom:10px;">
+          <div style="font-size:1.3rem; margin-bottom:4px;">✅</div>
+          <div style="font-weight:800; color:#166534; font-size:0.9rem;">בקרת האשכולות תקינה לחלוטין בטווח זה!</div>
+          <div style="font-size:0.78rem; color:#15803d; margin-top:2px;">כל הגנים המשובצים משויכים לאשכולות, ולא נמצאו פספוסי שיבוץ בתוך האשכולות הפעילים.</div>
+        </div>`;
+    }
+
+    // 4. Empty Clusters Info Box
+    if (data.emptyClusters.length > 0) {
+      sectionsHtml += `
+        <div style="background:#f8fafc; border:1px solid #cbd5e1; border-radius:9px; padding:9px 12px; font-size:0.77rem; color:#475569;">
+          <div style="font-weight:800; color:#334155; margin-bottom:5px;">⚪ אשכולות ללא שיבוץ כלל בטווח (${data.emptyClusters.length}):</div>
+          <div style="display:flex; flex-wrap:wrap; gap:5px;">
+            ${data.emptyClusters.map(ec => `<span style="background:#ffffff; border:1px solid #cbd5e1; border-radius:999px; padding:2px 9px; font-size:0.73rem; font-weight:600;">${_esc(ec.city)} – ${_esc(ec.cl.name)}</span>`).join('')}
+          </div>
+        </div>`;
+    }
+
+    wrap.innerHTML = kpisHtml + sectionsHtml;
   }
 
   function _renderInstructorsPreview(data) {
@@ -2430,7 +2542,7 @@
             </div>
             <button type="button" onclick="window.instResetToAllSups()" style="background:#f1f5f9; border:1px solid #cbd5e1; color:#334155; border-radius:6px; padding:4px 10px; font-size:0.75rem; font-weight:700; cursor:pointer;">⬅️ חזרה לבקרת כל הספקים</button>
           </div>
-          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(250px, 1fr)); gap:8px; max-height:260px; overflow-y:auto;">
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(250px, 1fr)); gap:8px; max-height:330px; overflow-y:auto;">
             ${citiesHtml}
           </div>
           ${dailySummaryHtml}
@@ -2446,7 +2558,7 @@
 
     const kpisHtml = `
       <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:8px; margin-bottom:9px;">
-        <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; padding:6px 8px; text-align:center;">
+        <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; padding:6px 8px; text-align:center; cursor:pointer;" onclick="document.getElementById('gexp-inst-status').value = document.getElementById('gexp-inst-status').value==='active'?'all':'active'; window.onInstFilterChange();">
           <div style="font-size:1.05rem; font-weight:800; color:#15803d;">${activeCount}</div>
           <div style="font-size:0.71rem; color:#166534; font-weight:700;">ספקים משובצים</div>
         </div>
@@ -2495,7 +2607,7 @@
       return `<tr style="background:${rowBg}; border-bottom:1px solid #e2e8f0;">
         <td style="padding:6px 8px; font-weight:800; color:#0f172a; font-size:0.81rem;">
           ${_esc(sup.dispName)}
-          ${sup.unclusteredCount > 0 ? `<div style="font-size:0.68rem; color:#b45309; font-weight:700;">⚠️ +${sup.unclusteredCount} גנים ללא אשכול</div>` : ''}
+          ${sup.unclusteredCount > 0 ? `<div onclick="window.setGridExportTab('gaps')" style="font-size:0.68rem; color:#b45309; font-weight:700; cursor:pointer; text-decoration:underline;">⚠️ +${sup.unclusteredCount} גנים ללא אשכול</div>` : ''}
         </td>
         <td style="padding:6px 6px; text-align:center; font-weight:800; font-size:0.84rem; color:${isZero ? '#dc2626' : '#15803d'};">${sup.totalInstructorDays}</td>
         <td style="padding:6px 6px; text-align:center;">${peakBadge}</td>
@@ -2507,7 +2619,7 @@
     wrap.innerHTML = `
       ${kpisHtml}
       <div style="border:1px solid #cbd5e1; border-radius:9px; overflow:hidden; background:#fff;">
-        <div style="max-height:245px; overflow-y:auto;">
+        <div style="max-height:345px; overflow-y:auto;">
           <table style="width:100%; border-collapse:collapse;">
             <thead>
               <tr style="background:#e8eaf6; color:#1e3a8a; position:sticky; top:0; z-index:2; font-size:0.76rem;">
