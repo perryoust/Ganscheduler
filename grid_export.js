@@ -354,7 +354,8 @@
                 <div>
                   <label style="display:block; font-weight:800; color:#1e293b; font-size:0.83rem; margin-bottom:4px;">📦 חלוקת שורות בטבלה:</label>
                   <select id="gexp-group-mode" onchange="window.onGridExpGroupModeChange()" style="width:100%; padding:7px 10px; border:1px solid #94a3b8; border-radius:7px; font-size:0.83rem; font-weight:700; color:#1e293b; background:#fff;">
-                    <option value="clusters">📦 לפי אשכולות</option>
+                    <option value="clusters">📦 לפי אשכולות (מפורט לפי גנים)</option>
+                    <option value="cluster_matrix">🏢 מרוכז לפי אשכולות (מס' מדריכים ליום)</option>
                     <option value="pairs">⚖️ לפי זוגות</option>
                     <option value="flat">📋 רשימה לפי עיר (ללא קבוצות)</option>
                   </select>
@@ -484,6 +485,7 @@
         <!-- Footer Export Actions (Tab 1: Grid) -->
         <div id="gexp-footer-grid" style="background:#f8fafc; border-top:1px solid #e2e8f0; padding:11px 18px; display:flex; flex-wrap:wrap; gap:8px; justify-content:space-between; align-items:center; direction:rtl;">
           <div style="display:flex; flex-wrap:wrap; gap:8px; flex:1;">
+            <button type="button" class="btn bg" data-tip="הורד דוח שבועי מרוכז של אשכולות ומדריכים (בדיוק כמו בתמונה: מס' מדריכים ליום)" onclick="window.doClusterMatrixExportExcel()" style="background:#0284c7; border-color:#0369a1; color:#fff; font-weight:800; padding:8px 14px; font-size:0.84rem;">📑 מס' מדריכים ליום (אשכולות)</button>
             <button type="button" class="btn bg" data-tip="הורד קובץ אקסל מעוצב (RTL) של טבלת השיבוצים בטווח שנבחר" onclick="window.doGridExportExcel()" style="background:#15803d; border-color:#166534; color:#fff; font-weight:800; padding:8px 14px; font-size:0.84rem;">📊 אקסל (Excel)</button>
             <button type="button" class="btn bp" data-tip="פתח תצוגת הדפסה ושמירה ל-PDF מותאמת לרוחב עמוד A4" onclick="window.doGridExportPDF()" style="background:#1d4ed8; border-color:#1e40af; color:#fff; font-weight:800; padding:8px 14px; font-size:0.84rem;">🖨️ PDF / הדפסה</button>
             <button type="button" class="btn bo" data-tip="הורד את טבלת השיבוצים כתמונת JPG (או קובץ ZIP למספר ערים)" onclick="window.doGridExportImage('download')" style="background:#fdf2f8; border:1px solid #f472b6; color:#9d174d; font-weight:800; padding:8px 12px; font-size:0.82rem;">🖼️ תמונה (JPG)</button>
@@ -495,6 +497,7 @@
         <!-- Footer Export Actions (Tab 2: Instructors) -->
         <div id="gexp-footer-instructors" style="display:none; background:#f8fafc; border-top:1px solid #e2e8f0; padding:11px 18px; flex-wrap:wrap; gap:8px; justify-content:space-between; align-items:center; direction:rtl;">
           <div style="display:flex; flex-wrap:wrap; gap:7px; flex:1;">
+            <button type="button" class="btn bg" data-tip="הורד דוח שבועי מרוכז של אשכולות ומדריכים (בדיוק כמו בתמונה: מס' מדריכים ליום)" onclick="window.doClusterMatrixExportExcel()" style="background:#0284c7; border-color:#0369a1; color:#fff; font-weight:800; padding:8px 13px; font-size:0.83rem;">📑 מס' מדריכים ליום (אשכולות)</button>
             <button type="button" class="btn bg" data-tip="העתק הודעת טקסט מוכנה לוואטסאפ עם כמות המדריכים ליום" onclick="window.doInstExportWhatsAppText()" style="background:#16a34a; border-color:#15803d; color:#fff; font-weight:800; padding:8px 13px; font-size:0.83rem;">💬 העתק הודעה לוואטסאפ</button>
             <button type="button" class="btn bg" data-tip="הורד קובץ אקסל מלא (3 גיליונות: מדריכים לפי ערים, בקרת עומסים וחוסרים)" onclick="window.doInstExportExcel()" style="background:#15803d; border-color:#166534; color:#fff; font-weight:800; padding:8px 13px; font-size:0.83rem;">📊 אקסל מדריכים ובקרה</button>
             <button type="button" class="btn bp" data-tip="פתח דוח היערכות מדריכים להדפסה או שמירה כ-PDF" onclick="window.doInstExportPDF()" style="background:#1d4ed8; border-color:#1e40af; color:#fff; font-weight:800; padding:8px 13px; font-size:0.83rem;">🖨️ PDF / הדפסה</button>
@@ -1105,6 +1108,9 @@
   // 1. EXCEL MATRIX EXPORT (.xlsx via ExcelJS + CSV Fallback)
   // ════════════════════════════════════════════════════════════════════
   window.doGridExportExcel = async function () {
+    if (document.getElementById('gexp-group-mode')?.value === 'cluster_matrix') {
+      return window.doClusterMatrixExportExcel();
+    }
     const data = _collectGridData();
     if (!data.days.length || !data.totalGardens) {
       window.spAlert('לא נמצאו נתונים לייצוא בטווח שנבחר.');
@@ -3316,4 +3322,261 @@
       if (container.parentNode) container.parentNode.removeChild(container);
     }
   }
+
+  // ── EXPORT CLUSTER INSTRUCTORS MATRIX (מס' מדריכים ליום) ──
+  window.doClusterMatrixExportExcel = async function () {
+    const fromEl = document.getElementById('gexp-from');
+    const toEl = document.getElementById('gexp-to');
+    const baseD = (window.calD instanceof Date && !isNaN(window.calD)) ? new Date(window.calD) : new Date();
+    const fromDs = fromEl?.value || window.d2s(baseD);
+    const toDs = toEl?.value || fromDs;
+
+    const minDs = fromDs <= toDs ? fromDs : toDs;
+    const maxDs = fromDs <= toDs ? toDs : fromDs;
+
+    // Build list of days
+    const days = [];
+    const incFri = !!document.getElementById('gexp-inc-fri')?.checked;
+    let curr = window.s2d(minDs);
+    const end = window.s2d(maxDs);
+    while (curr <= end) {
+      const dow = curr.getDay();
+      if (dow !== 6 && (incFri || dow !== 5)) {
+        days.push(window.d2s(curr));
+      }
+      curr = window.addD(curr, 1);
+    }
+    if (!days.length) {
+      window.spAlert('נא לבחור טווח תאריכים תקין.');
+      return;
+    }
+
+    if (typeof window.ExcelJS === 'undefined') {
+      try {
+        await new Promise((resolve, reject) => {
+          const s = document.createElement('script');
+          s.src = 'https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js';
+          s.onload = resolve;
+          s.onerror = reject;
+          document.head.appendChild(s);
+        });
+      } catch (e) {
+        window.spAlert('שגיאה בטעינת ExcelJS');
+        return;
+      }
+    }
+
+    try {
+      const wb = new window.ExcelJS.Workbook();
+      wb.creator = 'טומשין קידס';
+      wb.created = new Date();
+
+      const ws = wb.addWorksheet("מס' מדריכים ליום", {
+        views: [{ rightToLeft: true, state: 'frozen', ySplit: 2, xSplit: 1 }],
+        pageSetup: {
+          paperSize: 9,
+          orientation: 'landscape',
+          fitToPage: true,
+          fitToWidth: 1,
+          fitToHeight: 0
+        }
+      });
+
+      const totalCols = 1 + days.length + 1; // אשכול | ימים... | הערות
+      ws.getColumn(1).width = 22; // אשכול
+      days.forEach((_, i) => { ws.getColumn(2 + i).width = 26; });
+      ws.getColumn(totalCols).width = 22; // הערות
+
+      const thinBorder = {
+        top: { style: 'thin', color: { argb: 'FF000000' } },
+        bottom: { style: 'thin', color: { argb: 'FF000000' } },
+        left: { style: 'thin', color: { argb: 'FF000000' } },
+        right: { style: 'thin', color: { argb: 'FF000000' } }
+      };
+
+      // Row 1: Title (מס' מדריכים ליום')
+      const tRow = ws.addRow(["מס' מדריכים ליום'"]);
+      tRow.height = 28;
+      ws.mergeCells(1, 1, 1, totalCols);
+      const tCell = tRow.getCell(1);
+      tCell.font = { name: 'Arial', size: 12, bold: true, color: { argb: 'FF000000' } };
+      tCell.alignment = { horizontal: 'center', vertical: 'middle', readingOrder: 'rightToLeft' };
+      tCell.border = thinBorder;
+
+      // Row 2: Headers (אשכול | יום א' D/M ... | הערות)
+      const dayHeaders = days.map(ds => {
+        const dObj = window.s2d(ds);
+        const dayLetter = ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ש'][dObj.getDay()] || '';
+        const dayOfMonth = dObj.getDate();
+        const monthNum = dObj.getMonth() + 1;
+        return `יום ${dayLetter}' ${dayOfMonth}/${monthNum}`;
+      });
+      const hRow = ws.addRow(['אשכול', ...dayHeaders, 'הערות']);
+      hRow.height = 24;
+      for (let c = 1; c <= totalCols; c++) {
+        const cell = hRow.getCell(c);
+        cell.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FF000000' } };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF2F2F2' } };
+        cell.alignment = { horizontal: 'center', vertical: 'middle', readingOrder: 'rightToLeft' };
+        cell.border = thinBorder;
+      }
+
+      // Collect all clusters in the system
+      const allClusters = typeof window.getClusters === 'function' ? window.getClusters(minDs, maxDs) : Object.values(window.clusters || {});
+
+      // Group clusters by City
+      const cityOrder = ['גבעתיים', 'פתח תקווה', 'ראש העין', 'באר יעקב', 'נס ציונה'];
+      const clustersByCity = new Map();
+      allClusters.forEach(cl => {
+        const cCity = cl.city || (cl.gardenIds && cl.gardenIds[0] ? (window.G(cl.gardenIds[0])||{}).city : '') || 'אחר';
+        if (!clustersByCity.has(cCity)) clustersByCity.set(cCity, []);
+        clustersByCity.get(cCity).push(cl);
+      });
+
+      // Sort cities by cityOrder, then alphabetically
+      const sortedCities = Array.from(clustersByCity.keys()).sort((a, b) => {
+        const idxA = cityOrder.indexOf(a);
+        const idxB = cityOrder.indexOf(b);
+        if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+        if (idxA !== -1) return -1;
+        if (idxB !== -1) return 1;
+        return a.localeCompare(b, 'he');
+      });
+
+      let lastRowIndex = 2;
+
+      sortedCities.forEach((city, cityIdx) => {
+        const cList = clustersByCity.get(city) || [];
+        cList.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'he', { numeric: true }));
+
+        cList.forEach(cl => {
+          const rowVals = [cl.name || ''];
+          const cellStyles = [];
+
+          days.forEach(ds => {
+            const gids = (cl.gardenIds || []).map(Number);
+            const evs = (window.SCH || []).filter(s => gids.includes(Number(s.g)) && s.d === ds && s.st !== 'can');
+
+            if (!evs.length) {
+              rowVals.push('');
+              cellStyles.push({ type: 'empty' });
+              return;
+            }
+
+            const ev = evs[0];
+            const rawSup = ev.a ? String(ev.a).trim() : '';
+            const rawNt = ev.nt ? String(ev.nt).trim() : '';
+            const rawTp = ev.tp ? String(ev.tp).trim() : '';
+
+            // Check if this is a tentative idea (רעיון לשיבוץ)
+            const isIdea = !rawSup || 
+              rawSup === 'בוקר' || rawSup === '* בוקר' || 
+              rawSup === 'צהריים' || rawSup === '* צהריים' || rawSup === 'צהרון' ||
+              rawSup.startsWith('*') || 
+              /רעיון|הצעה|\*/i.test(rawNt);
+
+            if (isIdea) {
+              const isMorningIdea = rawTp === 'חוג בוקר' || /בוקר/.test(rawSup) || /בוקר/.test(rawNt) || (ev.t && parseInt(ev.t) < 13);
+              const ideaLabel = isMorningIdea ? '* בוקר' : '* צהריים';
+              rowVals.push(ideaLabel);
+              cellStyles.push({ type: 'idea', text: ideaLabel });
+              return;
+            }
+
+            // Scheduled with an actual supplier
+            const dispSup = window.supBase ? window.supBase(rawSup) : rawSup;
+            const isTzaharon = rawTp === 'חוג צהרון' || /צהרון|צהריים/.test(rawNt) || rawTp.includes('צהרון');
+            const isMorning = rawTp === 'חוג בוקר' || /בוקר/.test(rawNt) || (ev.t && parseInt(ev.t) < 13);
+
+            let cellText = dispSup;
+            let styleColor = 'blue';
+
+            if (isTzaharon) {
+              if (rawNt.includes('+ צהרון')) {
+                cellText = `${dispSup} + צהרון`;
+              } else {
+                cellText = `${dispSup} - צהריים`;
+              }
+              styleColor = 'red';
+            } else if (isMorning) {
+              cellText = `${dispSup} - בוקר`;
+              styleColor = 'blue';
+            }
+
+            const uniqueSups = [...new Set(evs.map(e => window.supBase ? window.supBase(e.a) : e.a).filter(Boolean))];
+            if (uniqueSups.length > 1) {
+              cellText = uniqueSups.join(' + ');
+            }
+
+            rowVals.push(cellText);
+            cellStyles.push({ type: 'scheduled', color: styleColor, text: cellText });
+          });
+
+          // Empty notes column
+          rowVals.push('');
+
+          const r = ws.addRow(rowVals);
+          r.height = 22;
+          lastRowIndex = r.number;
+
+          // Col 1: Cluster Name
+          const cCell = r.getCell(1);
+          cCell.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FF000000' } };
+          cCell.alignment = { horizontal: 'right', vertical: 'middle', readingOrder: 'rightToLeft' };
+          cCell.border = thinBorder;
+
+          // Day Cells styling
+          cellStyles.forEach((st, idx) => {
+            const cell = r.getCell(2 + idx);
+            cell.border = thinBorder;
+            cell.alignment = { horizontal: 'center', vertical: 'middle', readingOrder: 'rightToLeft' };
+
+            if (st.type === 'idea') {
+              cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFF00' } }; // Yellow background
+              cell.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FF000000' } };
+            } else if (st.type === 'scheduled') {
+              if (st.color === 'red') {
+                cell.font = { name: 'Arial', size: 9.5, bold: true, color: { argb: 'FFC00000' } }; // Red text
+              } else {
+                cell.font = { name: 'Arial', size: 9.5, bold: true, color: { argb: 'FF002060' } }; // Dark blue text
+              }
+            }
+          });
+
+          // Notes col
+          r.getCell(totalCols).border = thinBorder;
+        });
+
+        // Add blank separator row between cities (except after the last city)
+        if (cityIdx < sortedCities.length - 1) {
+          const sepRow = ws.addRow(new Array(totalCols).fill(''));
+          sepRow.height = 14;
+          for (let c = 1; c <= totalCols; c++) {
+            sepRow.getCell(c).border = {
+              top: { style: 'thin', color: { argb: 'FF000000' } },
+              bottom: { style: 'thin', color: { argb: 'FF000000' } }
+            };
+          }
+          lastRowIndex = sepRow.number;
+        }
+      });
+
+      // Set autofilter on header row
+      ws.autoFilter = { from: { row: 2, column: 1 }, to: { row: Math.max(2, lastRowIndex), column: totalCols } };
+
+      const buffer = await wb.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const fName = `מס_מדריכים_ליום_אשכולות (${minDs}${minDs !== maxDs ? '_' + maxDs : ''}).xlsx`;
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = fName; document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      if (window.showToast) window.showToast(`📊 דוח מס' מדריכים ליום הורד בהצלחה: ${fName}`);
+    } catch (err) {
+      console.error('[ClusterMatrix Excel]', err);
+      window.spAlert('שגיאה בייצוא לאקסל: ' + err.message);
+    }
+  };
 })();
