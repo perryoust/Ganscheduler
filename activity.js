@@ -2111,7 +2111,7 @@ async function saveReplaceRecur(id) {
       cur.setDate(cur.getDate() + 1);
     }
 
-    window.saveAndRefresh('rrm');
+    window.saveAndRefresh('sp');
     window.showToast(`✅ הפעילות הקבועה הוחלפה בהצלחה. נוצרו ${count} שיבוצים חדשים.`);
   } catch(err) {
     console.error('[saveReplaceRecur]', err);

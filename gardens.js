@@ -2016,8 +2016,8 @@ window.getGardenFreeDays = function(gardenIds, targetDateStr) {
       checkDateObj.setDate(sundayObj.getDate() + wd + offsetDays);
       const ds = d2sHelper(checkDateObj);
 
-      // Don't consider past days
-      if (ds <= todayStr && ds <= baseDateStr) return;
+      // Don't consider days in the past or on/before the cancelled date
+      if (ds < todayStr || ds <= baseDateStr) return;
 
       // Check holidays and global blocks
       if (typeof window.getHolidayInfo === 'function') {
