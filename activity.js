@@ -567,6 +567,31 @@ window.spBatchAction = function(val) {
 };
 
 
+window.spRowTpChg = async function(id, tp) {
+  const ev = window.getSchById(id);
+  if(!ev) return;
+  ev.tp = tp;
+  const pair = window.getGardenGroup ? window.getGardenGroup(ev.g, ev.d) : window.gardenPair(ev.g, ev.d);
+  let syncPartner = false;
+  if(pair && pair.ids && pair.ids.length > 1) {
+    const otherNames = pair.ids.filter(pid => Number(pid) !== Number(ev.g)).map(pid => (window.G(pid)||{}).name).filter(Boolean).join(', ');
+    const targetType = pair.ids.length > 2 ? 'האשכול' : 'גן בן-הזוג';
+    if(otherNames && (await window.spConfirm(`האם לעדכן את סוג הפעילות ל-"${tp}" גם ב${targetType} (${otherNames})?`))) {
+      syncPartner = true;
+    }
+  }
+  if(syncPartner && pair && pair.ids) {
+    pair.ids.forEach(pid => {
+      if(Number(pid) === Number(ev.g)) return;
+      const pEv = window.findPartnerActivity ? window.findPartnerActivity(pid, ev.d, ev.a) : null;
+      if(pEv) pEv.tp = tp;
+    });
+  }
+  window.save();
+  window.refresh();
+  if (typeof window.showToast === 'function') window.showToast(`✅ סוג הפעילות עודכן ל-"${tp}"`);
+};
+
 window.spRowGrpChg = async function(id, val) {
   const ev = window.getSchById(id);
   if(!ev) return;
@@ -962,7 +987,21 @@ window.openSP = function(id) {
               <td style="padding:6px;font-weight:800;color:#1a237e">${isMain?'':'🔗 '}${rowG.name} <span style="font-size:0.65rem;color:#78909c">(${rowG.city})</span></td>
               <td style="padding:6px">${pev ? window.supBase(pev.a) : '—'}</td>
               <td style="padding:6px">${pev ? (pev.act||'—') : '—'}</td>
-              <td style="padding:6px">${pev ? (pev.tp || (window.gcls(rowG)==='גנים'?'חוג':'—')) : '—'}</td>
+              <td style="padding:6px">
+                ${pev ? `
+                  <select onchange="window.spRowTpChg('${pev.id}', this.value)" style="padding:2px 4px;font-size:0.7rem;border-radius:4px;border:1px solid #ccc;background:#fff">
+                    <option value="חוג" ${!pev.tp||pev.tp==='חוג'?'selected':''}>חוג</option>
+                    <option value="חוג צהרון" ${pev.tp==='חוג צהרון'?'selected':''}>חוג צהרון</option>
+                    <option value="חוג בוקר" ${pev.tp==='חוג בוקר'?'selected':''}>חוג בוקר</option>
+                    <option value="חוג פנימי" ${pev.tp==='חוג פנימי'?'selected':''}>חוג פנימי</option>
+                    <option value="הפעלה" ${pev.tp==='הפעלה'?'selected':''}>הפעלה</option>
+                    <option value="מופע" ${pev.tp==='מופע'?'selected':''}>מופע</option>
+                    <option value="חופשה" ${pev.tp==='חופשה'?'selected':''}>חופשה</option>
+                    <option value="קייטנה" ${pev.tp==='קייטנה'?'selected':''}>קייטנה</option>
+                    <option value="גיבוי" ${pev.tp==='גיבוי'?'selected':''}>גיבוי</option>
+                  </select>
+                ` : '—'}
+              </td>
               <td style="padding:6px;text-align:center;font-weight:700">${pev ? `<input type="number" min="1" max="10" value="${pev.grp || 1}" style="width:40px;text-align:center;border:1px solid #ccc;border-radius:4px" onchange="window.spRowGrpChg(\'${pev.id}\', this.value)">` : '—'}</td>
               <td style="padding:6px">
                 ${pev ? `
@@ -1193,13 +1232,26 @@ window.openSP = function(id) {
       <span id="sp-acc-edit-arrow" style="font-size:0.7rem;transition:0.3s">▼</span>
     </div>
     <div id="sp-acc-edit" style="display:none;padding:12px;background:#fff;border-top:1px solid #e0e0e0">
-      <div style="font-size:.72rem;color:#78909c;margin-bottom:8px;background:#f9f9f9;padding:4px 8px;border-radius:4px">שינוי תאריך, ספק, פעילות או שעה <b>רק לפעילות זו</b></div>
+      <div style="font-size:.72rem;color:#78909c;margin-bottom:8px;background:#f9f9f9;padding:4px 8px;border-radius:4px">שינוי תאריך, ספק, פעילות, סוג פעילות או שעה <b>רק לפעילות זו</b></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
         <div class="fg"><label for="sp-edit-date" style="font-size:.7rem;font-weight:700">תאריך</label><input type="date" id="sp-edit-date" value="${s.d}" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc"></div>
         <div class="fg" id="sp-edit-time-wrap" style="${spPair ? 'display:none;' : ''}"><label for="sp-edit-time" style="font-size:.7rem;font-weight:700">שעה (${g.name})</label><input type="time" id="sp-edit-time" value="${s.t||''}" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc"></div>
         <div class="fg"><label for="sp-edit-sup" style="font-size:.7rem;font-weight:700">ספק</label><select id="sp-edit-sup" onchange="window.spEditSupChg()" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc">${allSups.map(sup => { const disp = window.supNameLabel(sup.name) !== sup.name ? window.supNameLabel(sup.name) + ' (' + sup.name + ')' : sup.name; return `<option value="${sup.name}" ${(window.supBase ? window.supBase(sup.name) : sup.name) === (window.supBase ? window.supBase(s.a) : s.a) ? 'selected':''}>${disp}</option>`; }).join('')}</select></div>
         <div class="fg" id="sp-edit-grp-wrap" style="${spPair ? 'display:none;' : ''}"><label for="sp-edit-grp" style="font-size:.7rem;font-weight:700">קבוצות</label><input type="number" id="sp-edit-grp" value="${s.grp||1}" min="1" max="10" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc"></div>
         <div class="fg"><label for="sp-edit-act" style="font-size:.7rem;font-weight:700">פעילות</label><select id="sp-edit-act" onchange="window.spEditActChg()" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc"><option value="">— ללא שינוי —</option>${initialActs.map(a => `<option value="${a}" ${a===s.act ? 'selected':''}>${a}</option>`).join('')}<option value="__new__">➕ פעילות חדשה...</option></select></div>
+        <div class="fg"><label for="sp-edit-tp" style="font-size:.7rem;font-weight:700">סוג פעילות</label>
+          <select id="sp-edit-tp" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc">
+            <option value="חוג" ${!s.tp||s.tp==='חוג'?'selected':''}>חוג</option>
+            <option value="חוג צהרון" ${s.tp==='חוג צהרון'?'selected':''}>חוג צהרון</option>
+            <option value="חוג בוקר" ${s.tp==='חוג בוקר'?'selected':''}>חוג בוקר</option>
+            <option value="חוג פנימי" ${s.tp==='חוג פנימי'?'selected':''}>חוג פנימי</option>
+            <option value="הפעלה" ${s.tp==='הפעלה'?'selected':''}>הפעלה</option>
+            <option value="מופע" ${s.tp==='מופע'?'selected':''}>מופע</option>
+            <option value="חופשה" ${s.tp==='חופשה'?'selected':''}>חופשה</option>
+            <option value="קייטנה" ${s.tp==='קייטנה'?'selected':''}>קייטנה</option>
+            <option value="גיבוי" ${s.tp==='גיבוי'?'selected':''}>גיבוי</option>
+          </select>
+        </div>
       </div>
       <div class="fg" id="sp-edit-act-new-wrap" style="display:none;margin-top:8px"><label for="sp-edit-act-new" style="font-size:.7rem;font-weight:700">שם הפעילות החדשה</label><input type="text" id="sp-edit-act-new" style="width:100%;padding:4px;border-radius:4px;border:1px solid #ccc"></div>
       ${spPair ? window.renderPartnerSynergy(s.g, 'sped', currentTimesSP, currentGrpsSP) : ''}
@@ -2132,6 +2184,8 @@ function spEditSave(){
   const newTime=document.getElementById('sp-edit-time').value;
   const grpInput=document.getElementById('sp-edit-grp');
   const newGrp=grpInput ? parseInt(grpInput.value, 10) : null;
+  const tpEl=document.getElementById('sp-edit-tp');
+  const newTp=tpEl ? tpEl.value : null;
 
   if (newDate && newDate !== origDate) {
     const mainG = window.G(s.g);
@@ -2164,6 +2218,7 @@ function spEditSave(){
     }
     if(finalTime) s.t=finalTime;
     if(finalGrp && finalGrp > 0) s.grp=finalGrp;
+    if(newTp) s.tp=newTp;
   }
   
   const synergyPartners = typeof window.getSynergyData === 'function' ? window.getSynergyData('sped') : [];
@@ -2183,6 +2238,7 @@ function spEditSave(){
         pEv.a = pEv.act ? (newSup + ' - ' + pEv.act) : newSup;
       }
       if(syn.t || newTime) pEv.t=syn.t || newTime;
+      if(newTp) pEv.tp=newTp;
     }
   });
 
