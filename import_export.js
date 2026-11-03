@@ -108,7 +108,9 @@ window._processExcelFile = function(file) {
               name: gardenName,
               city: city,
               cls: cls, // Real cls from excel or default 'גנים'
+              st: street,
               add: street,
+              address: street,
               age: age,
               cluster: clusterName
             };
@@ -119,7 +121,12 @@ window._processExcelFile = function(file) {
             console.log(`[Import] Auto-created new garden: ${gardenName} (${city})`);
           } else {
             // Merge new properties if missing
-            if (street && !garden.add) { garden.add = street; modified = true; }
+            if (street && !garden.st && !garden.add) {
+              garden.st = street;
+              garden.add = street;
+              garden.address = street;
+              modified = true;
+            }
             if (age && !garden.age) { garden.age = age; modified = true; }
             if (cls && !garden.cls) { garden.cls = cls; modified = true; }
             if (clusterName && !garden.cluster) { garden.cluster = clusterName; modified = true; }

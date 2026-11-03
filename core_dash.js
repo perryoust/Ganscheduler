@@ -1384,7 +1384,7 @@ function openGardenEdit(gid){
 
   // Fields — override from supEx if exists
   document.getElementById('gedit-name').value=ex.name||g.name||'';
-  document.getElementById('gedit-st').value=ex.st!==undefined?ex.st:(g.st||'');
+  document.getElementById('gedit-st').value=ex.st!==undefined?ex.st:(g.st||g.add||g.address||'');
   document.getElementById('gedit-co').value=ex.co!==undefined?ex.co:resolved.name;
   document.getElementById('gedit-coph').value=ex.coph!==undefined?ex.coph:resolved.phone;
   const rawAge = ex.age !== undefined ? ex.age : (g.age || window.extractGardenAge(g));
@@ -1423,7 +1423,7 @@ window.exportGardenWA = function() {
   const ex = (window.supEx && window.supEx['g_' + gid]) || {};
   
   const name = (document.getElementById('gedit-name').value || '').trim() || ex.name || g.name || '';
-  const st = (document.getElementById('gedit-st').value || '').trim() || ex.st || g.st || '';
+  const st = (document.getElementById('gedit-st').value || '').trim() || ex.st || g.st || g.add || g.address || '';
   const city = g.city || '';
   const age = (document.getElementById('gedit-age')?.value || '').trim() || ex.age || window.extractGardenAge(g);
   const mgr = typeof window.getGardenMgr === 'function' ? window.getGardenMgr(gid) : null;
