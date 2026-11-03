@@ -2415,15 +2415,12 @@ function genExport(){
 
   const splitPairs = document.getElementById('ex-split-msg') && document.getElementById('ex-split-msg').checked;
   const byDate={};rel.forEach(s=>{if(!byDate[s.d])byDate[s.d]=[];byDate[s.d].push(s);});
-  let text = '';
+  let text = headerTitle;
   const dates=Object.keys(byDate).sort();
   dates.forEach((date,di)=>{
     const dayIcon = '🗓️';
     const dateHeader = `${dayIcon} *${fD(date)} - יום ${dayN(date)}*\n`;
-    if (!splitPairs) {
-      if (headerTitle) text += headerTitle;
-      text += dateHeader;
-    }
+    if (!splitPairs) text += dateHeader;
     const byCity={};
     byDate[date].forEach(s=>{
       const g=G(s.g);const c=g.city||'';

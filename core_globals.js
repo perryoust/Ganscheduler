@@ -1,4 +1,4 @@
-window.APP_VERSION = '114.33';
+if (!window.APP_VERSION) window.APP_VERSION = 'unknown'; // Single source of truth: index.html
 console.log('Ganscheduler Core: v' + window.APP_VERSION + ' Initializing...');
 
 // ── Platform Detection ──
