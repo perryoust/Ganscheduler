@@ -317,7 +317,7 @@
             🧑‍🏫 מדריכים לספקים ועומסים
           </button>
           <button type="button" id="gexp-tab-btn-gaps" onclick="window.setGridExportTab('gaps')" style="padding:10px 10px; border:none; border-bottom:3px solid transparent; background:transparent; color:#475569; font-weight:800; font-size:0.84rem; cursor:pointer; transition:all 0.15s; display:inline-flex; align-items:center; justify-content:center; gap:5px;">
-            <span>🔍 בקרת אשכולות וחוסרים</span>
+            <span>🔍 בקרת אשכולות וחוסרים (חוגי צהרון)</span>
             <span id="gexp-gaps-badge"></span>
           </button>
         </div>
@@ -2139,10 +2139,18 @@
       return a.dispName.localeCompare(b.dispName, 'he');
     });
 
-    // 4. Detect Cluster Completeness Gaps (Missed Gardens in Clusters!)
-    const partiallyMissed = []; // Garden active on some days in range, missed on day where rest of cluster IS scheduled
-    const zeroInActiveClusters = []; // Cluster has schedules in range, but specific member garden(s) have 0 schedules all range
-    const emptyClusters = []; // Entire cluster has 0 schedules in range
+    // 4. Detect Cluster Completeness Gaps (Strictly for AFTERNOON CLUBS חוגי צהרון!)
+    const partiallyMissed = []; // Garden active on some days in range, missed on afternoon day where rest of cluster IS scheduled
+    const zeroInActiveClusters = []; // Cluster has afternoon schedules in range, but specific member garden(s) have 0 afternoon schedules all range
+    const emptyClusters = []; // Entire cluster has 0 afternoon schedules in range
+
+    const _isTzaharonAct = (ev) => {
+      if (!ev) return false;
+      if (ev.tp === 'חוג בוקר') return false;
+      if (ev.nt && /חוג בוקר|שעת בוקר/i.test(ev.nt)) return false;
+      if (ev.t && parseInt(ev.t) < 13) return false;
+      return true;
+    };
 
     allClusters.forEach(cl => {
       const members = (cl.gardenIds || [])
@@ -2153,8 +2161,12 @@
       const clCity = members[0].city || 'אחר';
       if (cityFilter && clCity !== cityFilter) return;
 
+      // Active days where at least one member has an afternoon club (חוג צהרון)
       const clusterActiveDays = days.filter(ds =>
-        members.some(g => scheduledByGidDay.has(`${g.id}_${ds}`))
+        members.some(g => {
+          const evs = scheduledByGidDay.get(`${g.id}_${ds}`) || [];
+          return evs.some(_isTzaharonAct);
+        })
       );
 
       if (clusterActiveDays.length === 0) {
@@ -2165,28 +2177,33 @@
       const zeroGardensForThisCl = [];
       members.forEach(g => {
         const gid = Number(g.id);
-        const gDays = scheduledDaysByGid.get(gid) || new Set();
+        const gTzaharonDays = new Set(
+          days.filter(ds => {
+            const evs = scheduledByGidDay.get(`${gid}_${ds}`) || [];
+            return evs.some(_isTzaharonAct);
+          })
+        );
 
-        if (gDays.size === 0) {
+        if (gTzaharonDays.size === 0) {
           const blockedAll = clusterActiveDays.every(ds => typeof window.getGardenBlock === 'function' && window.getGardenBlock(gid, ds));
           if (!blockedAll) {
             zeroGardensForThisCl.push(g);
           }
         } else {
-          // Garden IS active in this date range — check if it got missed on any day where peers in this cluster were scheduled!
+          // Garden IS active in afternoon clubs — check if it got missed on any day where peers in this cluster were scheduled!
           clusterActiveDays.forEach(ds => {
-            if (gDays.has(ds)) return;
+            if (gTzaharonDays.has(ds)) return;
             if (typeof window.getGardenBlock === 'function' && window.getGardenBlock(gid, ds)) return;
 
             const peerSups = new Set();
             members.forEach(peer => {
-              const pEvs = scheduledByGidDay.get(`${peer.id}_${ds}`) || [];
+              const pEvs = (scheduledByGidDay.get(`${peer.id}_${ds}`) || []).filter(_isTzaharonAct);
               pEvs.forEach(ev => peerSups.add(_resolveSupplierAlias(ev.a)));
             });
             if (supFilter) {
               const peerHasSup = members.some(peer =>
                 (scheduledByGidDay.get(`${peer.id}_${ds}`) || []).some(ev =>
-                  (typeof window.supBase === 'function' ? window.supBase(ev.a) : ev.a) === supFilter
+                  _isTzaharonAct(ev) && (typeof window.supBase === 'function' ? window.supBase(ev.a) : ev.a) === supFilter
                 )
               );
               if (!peerHasSup) return;
@@ -3450,7 +3467,11 @@
         cList.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'he', { numeric: true }));
 
         cList.forEach(cl => {
-          const rowVals = [cl.name || ''];
+          let clDisp = cl.name || '';
+          if (/^(.+)\s+(\d+)$/.test(clDisp)) clDisp = clDisp.replace(/^(.+)\s+(\d+)$/, '$1 - $2');
+
+          const topRowVals = [clDisp];
+          const botRowVals = [''];
           const cellStyles = [];
 
           days.forEach(ds => {
@@ -3458,7 +3479,8 @@
             const evs = (window.SCH || []).filter(s => gids.includes(Number(s.g)) && s.d === ds && s.st !== 'can');
 
             if (!evs.length) {
-              rowVals.push('');
+              topRowVals.push('');
+              botRowVals.push('');
               cellStyles.push({ type: 'empty' });
               return;
             }
@@ -3467,6 +3489,12 @@
             const rawSup = ev.a ? String(ev.a).trim() : '';
             const rawNt = ev.nt ? String(ev.nt).trim() : '';
             const rawTp = ev.tp ? String(ev.tp).trim() : '';
+
+            // Get names of gardens in cluster that have this activity
+            const activeGids = evs.map(e => Number(e.g));
+            let names = [...new Set(activeGids.map(id => (window.G(id)||{}).name).filter(Boolean))];
+            if (!names.length) names = gids.map(id => (window.G(id)||{}).name).filter(Boolean);
+            const gNamesStr = names.join('/');
 
             // Check if this is a tentative idea (רעיון לשיבוץ)
             const isIdea = !rawSup || 
@@ -3478,8 +3506,9 @@
             if (isIdea) {
               const isMorningIdea = rawTp === 'חוג בוקר' || /בוקר/.test(rawSup) || /בוקר/.test(rawNt) || (ev.t && parseInt(ev.t) < 13);
               const ideaLabel = isMorningIdea ? '* בוקר' : '* צהריים';
-              rowVals.push(ideaLabel);
-              cellStyles.push({ type: 'idea', text: ideaLabel });
+              topRowVals.push(ideaLabel);
+              botRowVals.push(gNamesStr);
+              cellStyles.push({ type: 'idea', text: ideaLabel, gNames: gNamesStr });
               return;
             }
 
@@ -3508,43 +3537,54 @@
               cellText = uniqueSups.join(' + ');
             }
 
-            rowVals.push(cellText);
-            cellStyles.push({ type: 'scheduled', color: styleColor, text: cellText });
+            topRowVals.push(cellText);
+            botRowVals.push(gNamesStr);
+            cellStyles.push({ type: 'scheduled', color: styleColor, text: cellText, gNames: gNamesStr });
           });
 
           // Empty notes column
-          rowVals.push('');
+          topRowVals.push('');
+          botRowVals.push('');
 
-          const r = ws.addRow(rowVals);
-          r.height = 22;
-          lastRowIndex = r.number;
+          const rTop = ws.addRow(topRowVals);
+          const rBot = ws.addRow(botRowVals);
+          rTop.height = 20;
+          rBot.height = 17;
+          lastRowIndex = rBot.number;
 
-          // Col 1: Cluster Name
-          const cCell = r.getCell(1);
+          // Merge Column 1 (אשכול) across both rows
+          ws.mergeCells(rTop.number, 1, rBot.number, 1);
+          const cCell = rTop.getCell(1);
           cCell.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FF000000' } };
-          cCell.alignment = { horizontal: 'right', vertical: 'middle', readingOrder: 'rightToLeft' };
+          cCell.alignment = { horizontal: 'center', vertical: 'middle', readingOrder: 'rightToLeft' };
           cCell.border = thinBorder;
+          rBot.getCell(1).border = thinBorder;
 
-          // Day Cells styling
+          // Merge Column totalCols (הערות) across both rows
+          ws.mergeCells(rTop.number, totalCols, rBot.number, totalCols);
+          rTop.getCell(totalCols).border = thinBorder;
+          rBot.getCell(totalCols).border = thinBorder;
+
+          // Style day cells
           cellStyles.forEach((st, idx) => {
-            const cell = r.getCell(2 + idx);
-            cell.border = thinBorder;
-            cell.alignment = { horizontal: 'center', vertical: 'middle', readingOrder: 'rightToLeft' };
+            const cTop = rTop.getCell(2 + idx);
+            const cBot = rBot.getCell(2 + idx);
+            cTop.border = thinBorder;
+            cBot.border = thinBorder;
+            cTop.alignment = { horizontal: 'center', vertical: 'middle', readingOrder: 'rightToLeft' };
+            cBot.alignment = { horizontal: 'center', vertical: 'middle', readingOrder: 'rightToLeft' };
 
             if (st.type === 'idea') {
-              cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFF00' } }; // Yellow background
-              cell.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FF000000' } };
+              cTop.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFF00' } };
+              cTop.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FF000000' } };
+              cBot.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFF00' } };
+              cBot.font = { name: 'Arial', size: 8, bold: true, color: { argb: 'FF000000' } };
             } else if (st.type === 'scheduled') {
-              if (st.color === 'red') {
-                cell.font = { name: 'Arial', size: 9.5, bold: true, color: { argb: 'FFC00000' } }; // Red text
-              } else {
-                cell.font = { name: 'Arial', size: 9.5, bold: true, color: { argb: 'FF002060' } }; // Dark blue text
-              }
+              const fontArgb = st.color === 'red' ? 'FFC00000' : 'FF002060';
+              cTop.font = { name: 'Arial', size: 9.5, bold: true, color: { argb: fontArgb } };
+              cBot.font = { name: 'Arial', size: 8, bold: true, color: { argb: fontArgb } };
             }
           });
-
-          // Notes col
-          r.getCell(totalCols).border = thinBorder;
         });
 
         // Add blank separator row between cities (except after the last city)
