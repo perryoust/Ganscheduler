@@ -508,9 +508,11 @@ window.spBatchDelete = async function() {
   if (!window.supEx) window.supEx = {};
   if (!window.supEx['__deleted_sraws_ids']) window.supEx['__deleted_sraws_ids'] = [];
   
+  let sampleEv = null;
   ids.forEach(id => {
     const s = window.getSchById(id);
     if(!s) return;
+    if(!sampleEv) sampleEv = s;
     
     // Check for makeup restoration
     const origEvs = s._isMakeup ? window.SCH.filter(orig => String(orig._compByMakeup) === String(s.id)) : [];
@@ -530,7 +532,29 @@ window.spBatchDelete = async function() {
     if(i >= 0) window.SCH.splice(i, 1);
   });
   
-  window.saveAndRefresh('sp');
+  // Look for any remaining scheduled activity in the cluster on that date
+  let nextEvId = null;
+  if (sampleEv) {
+    const pair = window.getGardenGroup ? window.getGardenGroup(sampleEv.g, sampleEv.d) : window.gardenPair(sampleEv.g, sampleEv.d);
+    if (pair && pair.ids) {
+      const otherEv = window.SCH.find(x => pair.ids.includes(Number(x.g)) && x.d === sampleEv.d && !ids.includes(String(x.id)) && x.st !== 'can');
+      if (otherEv) nextEvId = otherEv.id;
+      else {
+        const anyOther = window.SCH.find(x => pair.ids.includes(Number(x.g)) && x.d === sampleEv.d && !ids.includes(String(x.id)));
+        if (anyOther) nextEvId = anyOther.id;
+      }
+    }
+  }
+
+  if (nextEvId) {
+    window.selEv = nextEvId;
+    await window.saveAndRefresh('sp', true);
+    if (typeof window.openSP === 'function') window.openSP(nextEvId);
+    if (window.showToast) window.showToast('✅ השיבוצים המסומנים הוסרו מהלוח');
+  } else {
+    await window.saveAndRefresh('sp', false);
+    if (window.showToast) window.showToast('✅ השיבוצים המסומנים הוסרו מהלוח');
+  }
 };
 
 window.spBatchQSetSt = function(st) {
@@ -624,7 +648,7 @@ window.spRowStatusChg = async function(id, st) {
   if (st === 'delete') {
       const origSel = document.querySelector(`select[onchange="window.spRowStatusChg('${id}', this.value)"]`);
       if (origSel) origSel.value = ev.st || 'ok';
-      window.deleteSingleActivity(id);
+      await window.deleteSingleActivity(id, true, false);
       return;
   }
   
@@ -1013,7 +1037,7 @@ window.openSP = function(id) {
                     <option value="post" ${curSt==='post'?'selected':''}>⏩ נדחה</option>
                     <option value="delete" style="color:#c62828;font-weight:700">לא משובץ</option>
                   </select>
-                  ${(curSt==='nohap'||curSt==='can') ? `<button class="btn br bsm" style="padding:1px 4px;margin-right:3px;border:1px solid #ef9a9a;background:#fff;color:#c62828" title="מחיקה מהלוח" onclick="window.deleteSingleActivity('${pev.id}')">🗑️</button>` : ''}
+                  ${(curSt==='nohap'||curSt==='can') ? `<button class="btn br bsm" style="padding:1px 4px;margin-right:3px;border:1px solid #ef9a9a;background:#fff;color:#c62828" title="מחיקה מהלוח" onclick="window.deleteSingleActivity('${pev.id}', true, false)">🗑️</button>` : ''}
                 ` : `<span style="font-size:.7rem;color:#c62828;font-weight:700">לא משובץ</span> <button class="btn bp bsm" style="padding:1px 5px;font-size:0.65rem;margin-right:5px;border-radius:4px" onclick="window.spAddActivityToPartner('${rowG.id}')" title="הוסף שיבוץ לגן זה בהתבסס על הפעילות הנוכחית">➕ הוסף</button>`}
               </td>
               <td style="padding:6px;font-weight:700">
@@ -1756,50 +1780,91 @@ async function deleteRecurSeries(id) {
   window.saveAndRefresh('sp');
 }
 
-async function deleteSingleActivity(id) {
+async function deleteSingleActivity(id, stayOpen = true, askPartnerSync = false) {
   const s = window.getSchById(id);
   if(!s) return;
   const g = window.G(s.g);
-  
-  const gName = g.name.startsWith('גן') ? g.name : `גן ${g.name}`;
-  if(!await window.spConfirm(`האם למחוק את השיבוץ של ${gName} בתאריך ${window.fD(s.d)} לצמיתות?`)) return;
-  
+  const gName = (g && g.name) ? (g.name.startsWith('גן') ? g.name : `גן ${g.name}`) : 'הגן';
+
+  const origEvs = s._isMakeup ? window.SCH.filter(orig => String(orig._compByMakeup) === String(s.id)) : [];
+  const restoreMsg = origEvs.length > 0 ? `\n\n(מחיקה זו גם תחזיר את הפעילות המקורית שלא התקיימה לרשימה)` : '';
+
+  if(!await window.spConfirm(`האם להסיר את השיבוץ של ${gName} בתאריך ${window.fD(s.d)} ולהגדירו כלא משובץ?` + restoreMsg)) return;
+
   if (!window.supEx) window.supEx = {};
   if (!window.supEx['__deleted_sraws_ids']) window.supEx['__deleted_sraws_ids'] = [];
-  
+
   const isSraws = !String(s.id).startsWith('e_');
   if (isSraws && !window.supEx['__deleted_sraws_ids'].includes(s.id)) {
     window.supEx['__deleted_sraws_ids'].push(s.id);
   }
-  
+
   const i = window.SCH.indexOf(s);
   if(i >= 0) window.SCH.splice(i, 1);
-  
-  // Also check for partner sync
+
+  if (origEvs.length > 0) {
+    origEvs.forEach(orig => {
+      orig._compByMakeup = '';
+      cleanMakeupNote(orig, s.d);
+    });
+  }
+
+  // Also check for partner sync ONLY if explicitly requested
   const pair = window.getGardenGroup ? window.getGardenGroup(s.g, s.d) : window.gardenPair(s.g, s.d);
-  if(pair) {
+  if(askPartnerSync && pair) {
     const partnerGids = pair.ids.filter(pid => Number(pid) !== Number(s.g));
     const partnerEvs = [];
     partnerGids.forEach(pid => {
       const pEv = window.findPartnerActivity ? window.findPartnerActivity(pid, s.d, s.a) : null;
       if (pEv) partnerEvs.push(pEv);
     });
-    
+
     if(partnerEvs.length > 0) {
-      if(await window.spConfirm(`האם למחוק גם את ${partnerEvs.length} השיבוצים המקבילים בגנים השותפים?`)) {
+      const hasMakeup = partnerEvs.some(pe => pe._isMakeup);
+      const pRestoreMsg = hasMakeup ? `\n(יש פעילויות השלמה שיחזירו את הפעילות המקורית)` : '';
+      const otherNames = partnerEvs.map(pe => (window.G(pe.g)||{}).name).filter(Boolean).join(', ');
+      const targetType = pair.ids.length > 2 ? 'באשכול' : 'בגן בן-הזוג';
+      if(await window.spConfirm(`האם למחוק גם את השיבוצים המקבילים ${targetType} (${otherNames})?` + pRestoreMsg)) {
         partnerEvs.forEach(pEv => {
           const isSrawsPartner = !String(pEv.id).startsWith('e_');
           if (isSrawsPartner && !window.supEx['__deleted_sraws_ids'].includes(pEv.id)) {
             window.supEx['__deleted_sraws_ids'].push(pEv.id);
           }
+          const pOrigEvs = pEv._isMakeup ? window.SCH.filter(orig => String(orig._compByMakeup) === String(pEv.id)) : [];
           const pi = window.SCH.indexOf(pEv);
           if(pi >= 0) window.SCH.splice(pi, 1);
+          if (pOrigEvs.length > 0) {
+            pOrigEvs.forEach(orig => {
+              orig._compByMakeup = '';
+              cleanMakeupNote(orig, pEv.d);
+            });
+          }
         });
       }
     }
   }
-  
-  window.saveAndRefresh('sp');
+
+  // Look for another event in the same cluster/pair on this date to keep the modal open
+  let nextEvId = null;
+  if (stayOpen && pair && pair.ids) {
+    const otherEv = window.SCH.find(x => pair.ids.includes(Number(x.g)) && x.d === s.d && String(x.id) !== String(s.id) && x.st !== 'can');
+    if (otherEv) {
+      nextEvId = otherEv.id;
+    } else {
+      const anyOther = window.SCH.find(x => pair.ids.includes(Number(x.g)) && x.d === s.d && String(x.id) !== String(s.id));
+      if (anyOther) nextEvId = anyOther.id;
+    }
+  }
+
+  if (stayOpen && nextEvId) {
+    window.selEv = nextEvId;
+    await window.saveAndRefresh('sp', true);
+    if (typeof window.openSP === 'function') window.openSP(nextEvId);
+    if (window.showToast) window.showToast('✅ השיבוץ הוסר — הגן עודכן כלא משובץ');
+  } else {
+    await window.saveAndRefresh('sp', false);
+    if (window.showToast) window.showToast('✅ השיבוץ הוסר מהלוח');
+  }
 }
 
 async function toggleSpRecurBox(isChecked) {
@@ -1855,56 +1920,6 @@ function spEditActChg(){
   const v=document.getElementById('sp-edit-act').value;
   const wrap=document.getElementById('sp-edit-act-new-wrap');
   if(wrap) wrap.style.display=v==='__new__'?'block':'none';
-}
-
-
-
-async function deleteSingleActivity(id) {
-  const s = window.getSchById(id);
-  if(!s) return;
-  const g = window.G(s.g);
-  
-  const origEvs = s._isMakeup ? window.SCH.filter(orig => String(orig._compByMakeup) === String(s.id)) : [];
-  const restoreMsg = origEvs.length > 0 ? `\n\n(מחיקה זו גם תחזיר את הפעילות המקורית שלא התקיימה לרשימה)` : '';
-
-  if(!await window.spConfirm(`האם למחוק את השיבוץ של גן ${g.name} בתאריך ${window.fD(s.d)} לצמיתות?` + restoreMsg)) return;
-  
-  const i = window.SCH.indexOf(s);
-  if(i >= 0) window.SCH.splice(i, 1);
-  
-  if (origEvs.length > 0) {
-    origEvs.forEach(orig => {
-      orig._compByMakeup = '';
-      cleanMakeupNote(orig, s.d);
-    });
-  }
-  
-  // Also check for partner sync
-  const pair = window.getGardenGroup ? window.getGardenGroup(s.g, s.d) : window.gardenPair(s.g, s.d);
-  if(pair) {
-    const pEvs = pair.ids.filter(pid => Number(pid) !== Number(s.g)).map(pid => window.findPartnerActivity ? window.findPartnerActivity(pid, s.d, s.a) : null).filter(Boolean);
-    if(pEvs.length > 0) {
-      let hasMakeup = pEvs.some(pe => pe._isMakeup);
-      const pRestoreMsg = hasMakeup ? `\n(יש פעילויות השלמה שיחזירו את הפעילות המקורית)` : '';
-      const otherNames = pEvs.map(pe => window.G(pe.g).name).join(', ');
-      const targetType = pair.ids.length > 2 ? 'באשכול' : 'בגן בן-הזוג';
-      if(await window.spConfirm(`האם למחוק גם את השיבוצים המקבילים ${targetType} (${otherNames})?` + pRestoreMsg)) {
-        pEvs.forEach(pEv => {
-          const pOrigEvs = pEv._isMakeup ? window.SCH.filter(orig => String(orig._compByMakeup) === String(pEv.id)) : [];
-          const pi = window.SCH.indexOf(pEv);
-          if(pi >= 0) window.SCH.splice(pi, 1);
-          if (pOrigEvs.length > 0) {
-            pOrigEvs.forEach(orig => {
-              orig._compByMakeup = '';
-              cleanMakeupNote(orig, pEv.d);
-            });
-          }
-        });
-      }
-    }
-  }
-  
-  window.saveAndRefresh('sp');
 }
 
 function openReplaceRecur(id) {
