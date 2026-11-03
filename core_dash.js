@@ -1476,6 +1476,21 @@ function saveGardenCard(){
 
   // update manager assignment
   const selMgrId = document.getElementById('gedit-mgr-sel')?.value;
+  // Sync in-memory objects immediately
+  const gObj = typeof G === 'function' ? G(_geditGid) : null;
+  if (gObj) {
+    if (ex.name) gObj.name = ex.name;
+    if (ex.st) { gObj.st = ex.st; gObj.add = ex.st; gObj.address = ex.st; }
+    if (ex.co) gObj.co = ex.co;
+  }
+  if (window._GARDENS_ALL && Array.isArray(window._GARDENS_ALL)) {
+    const gAll = window._GARDENS_ALL.find(g => Number(g.id) === Number(_geditGid));
+    if (gAll) {
+      if (ex.name) gAll.name = ex.name;
+      if (ex.st) { gAll.st = ex.st; gAll.add = ex.st; gAll.address = ex.st; }
+      if (ex.co) gAll.co = ex.co;
+    }
+  }
   // Remove this garden from other field coordinators only (never strip from area managers/VPs!)
   Object.values(managers).forEach(m => {
      if(m.role !== 'manager' && m.role !== 'vp' && m.gardenIds) {

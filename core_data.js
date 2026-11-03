@@ -1146,7 +1146,7 @@ function G(id){
     const ex = window.supEx && window.supEx['g_' + found.id];
     if (ex) {
       if (ex.name) found.name = ex.name;
-      if (ex.st) found.st = ex.st;
+      if (ex.st) { found.st = ex.st; found.add = ex.st; found.address = ex.st; }
       if (ex.co) found.co = ex.co;
     }
     return found;

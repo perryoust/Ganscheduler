@@ -1249,9 +1249,9 @@ async function exportToExcel(data, filename, opts = {}) {
               let rowData;
               if (isPlacement) {
                 if (isClusterGroup) {
-                  rowData = [(g.add || g.st) || '', g.name, ageVal, window.fD(s.d), dayStr, s.t, grpCount, displayStatus, formattedNote, clusterName];
+                  rowData = [(g.st || g.add || g.address || ''), g.name, ageVal, window.fD(s.d), dayStr, s.t, grpCount, displayStatus, formattedNote, clusterName];
                 } else {
-                  rowData = [(g.add || g.st) || '', g.name, ageVal, window.fD(s.d), dayStr, s.t, grpCount, displayStatus, formattedNote];
+                  rowData = [(g.st || g.add || g.address || ''), g.name, ageVal, window.fD(s.d), dayStr, s.t, grpCount, displayStatus, formattedNote];
                 }
               } else {
                 if (isClusterGroup) {
@@ -1468,7 +1468,7 @@ async function exportShortagesToExcel() {
     ws.addRow({
       type: type,
       city: city,
-      street: g.address || '',
+      street: (g.st || g.add || g.address || ''),
       name: g.name || '',
       age: window.extractGardenAge(g),
       date: dateStr,
@@ -2011,7 +2011,7 @@ window.exportBulkAnnualSchedule = async function() {
            }
            
            const rVals = [
-               cls, g.city || '', (g.add || g.st) || '', g.name || '', window.extractGardenAge(g),
+               cls, g.city || '', (g.st || g.add || g.address || ''), g.name || '', window.extractGardenAge(g),
                formattedDate, dayName, finalTp, fullActName, phone, finalGrp, ev.t || '', finalNotes,
                cName, mgrName
              ].map(v => v === '' ? null : v);
@@ -2021,7 +2021,7 @@ window.exportBulkAnnualSchedule = async function() {
              dateObj: formattedDate,
              city: g.city || '',
              operator: fullActName,
-             street: (g.add || g.st) || '',
+             street: (g.st || g.add || g.address || ''),
              time: ev.t || '',
              isWeekend, finalTp, cls, finalGrp, holName,
              status: ev.st || '',
@@ -2031,7 +2031,7 @@ window.exportBulkAnnualSchedule = async function() {
       } else {
         const cName = clusterByGanForDate[g.id] || g.cluster || '';
         const rVals = [
-            cls, g.city || '', (g.add || g.st) || '', g.name || '', window.extractGardenAge(g),
+            cls, g.city || '', (g.st || g.add || g.address || ''), g.name || '', window.extractGardenAge(g),
             formattedDate, dayName, holName || '', '', '', '', '', '', cName, mgrName
           ].map(v => v === '' ? null : v);
           
@@ -2040,7 +2040,7 @@ window.exportBulkAnnualSchedule = async function() {
           dateObj: formattedDate,
           city: g.city || '',
           operator: '',
-          street: (g.add || g.st) || '',
+          street: (g.st || g.add || g.address || ''),
           time: '',
           isWeekend, finalTp: '', cls, finalGrp: 0, holName,
           status: ''

@@ -506,7 +506,7 @@ window.exportBulkSchedule = async function() {
         s.tp || 'חוג',
         g.cluster || '',
         g.cls || 'גנים',
-        g.add || '',
+        (g.st || g.add || g.address || ''),
         notes,
         stHeb
       ];
