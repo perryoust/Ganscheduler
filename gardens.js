@@ -1983,13 +1983,7 @@ window.getGardenFreeDays = function(gardenIds, targetDateStr) {
   sundayObj.setDate(baseObj.getDate() - baseObj.getDay());
   sundayObj.setHours(0, 0, 0, 0);
 
-  // Look forward 14 days (current week + next week for future completion)
-  const forwardDaysLimit = 14;
-  const busyDays = new Set();
-  
-  // A weekday is considered busy if ALL forward weeks in the window have a scheduled active activity,
-  // or if a garden already has an active recurring series in that forward window.
-  // We collect occupied weekdays for the gardens within [sunday, sunday + 14 days].
+  // Helper to format date string
   const d2sHelper = (d) => {
     const y = d.getFullYear();
     const m = String(d.getMonth() + 1).padStart(2, '0');
@@ -1997,40 +1991,62 @@ window.getGardenFreeDays = function(gardenIds, targetDateStr) {
     return `${y}-${m}-${day}`;
   };
 
-  const winStart = d2sHelper(sundayObj);
-  const endObj = new Date(sundayObj);
-  endObj.setDate(sundayObj.getDate() + forwardDaysLimit);
-  const winEnd = d2sHelper(endObj);
+  const todayStr = typeof window.td === 'function' ? window.td() : d2sHelper(new Date());
 
-  // Collect future events in this forward 2-week window
-  const forwardEvents = (window.SCH || []).filter(s => {
-    if (!gids.includes(Number(s.g))) return false;
-    if (s.st === 'can' || s.st === 'nohap') return false; // Cancelled/non-happening days don't block
-    return s.d >= winStart && s.d <= winEnd;
-  });
+  // Check each weekday in the forward window (current week + next week)
+  // A weekday is considered blocked/busy if in that forward window:
+  // 1. It is already in the past (before today)
+  // 2. The day of the cancelled activity itself (cannot make up on the same day it didn't happen)
+  // 3. Any garden in the group has an active activity on that date
+  // 4. Any garden is blocked or there is a full-date holiday/vacation/block on that date
+  const busyDays = new Set();
 
-  // Count active events per weekday in the forward window
-  const weekdayCounts = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0 };
-  forwardEvents.forEach(s => {
-    let wd = -1;
-    try {
-      const p = s.d.split('-');
-      wd = new Date(parseInt(p[0], 10), parseInt(p[1], 10) - 1, parseInt(p[2], 10)).getDay();
-    } catch(e) {}
-    if (wd >= 0 && wd <= 4) {
-      weekdayCounts[wd] = (weekdayCounts[wd] || 0) + 1;
-    }
-  });
+  // The weekday of the base activity itself is excluded
+  busyDays.add(baseObj.getDay());
 
-  // A day is busy if in the current week (or across the forward window) there is an active activity
+  // Check each weekday 0..4 across the two weeks
   workDays.forEach(wd => {
-    // The current day itself of the cancelled activity is not a valid completion day
-    if (wd === baseObj.getDay()) {
-      busyDays.add(wd);
-      return;
-    }
-    // If there is an active activity on this weekday in the forward window, it is considered occupied
-    if (weekdayCounts[wd] > 0) {
+    if (busyDays.has(wd)) return;
+
+    // We check occurrences of this weekday in week 1 and week 2
+    let hasAvailableOccurrence = false;
+
+    [0, 7].forEach(offsetDays => {
+      const checkDateObj = new Date(sundayObj);
+      checkDateObj.setDate(sundayObj.getDate() + wd + offsetDays);
+      const ds = d2sHelper(checkDateObj);
+
+      // Don't consider past days
+      if (ds <= todayStr && ds <= baseDateStr) return;
+
+      // Check holidays and global blocks
+      if (typeof window.getHolidayInfo === 'function') {
+        const hol = window.getHolidayInfo(ds);
+        if (hol && (hol.type === 'vacation' || hol.type === 'noact' || hol.isOff)) return;
+      }
+      if (window.blockedDates && window.blockedDates[ds]) return;
+
+      // Check per-garden blocks and active activities
+      let gardenBlocked = false;
+      for (const gid of gids) {
+        if (window.gardenBlocks && (window.gardenBlocks[`${gid}_${ds}`] || window.gardenBlocks[`${parseInt(gid)}_${ds}`])) {
+          gardenBlocked = true;
+          break;
+        }
+        // Active activity for this garden on ds
+        const hasAct = (window.SCH || []).some(s => Number(s.g) === gid && s.d === ds && s.st !== 'can' && s.st !== 'nohap');
+        if (hasAct) {
+          gardenBlocked = true;
+          break;
+        }
+      }
+
+      if (!gardenBlocked) {
+        hasAvailableOccurrence = true;
+      }
+    });
+
+    if (!hasAvailableOccurrence) {
       busyDays.add(wd);
     }
   });
