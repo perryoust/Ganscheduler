@@ -333,11 +333,6 @@
         signatureSection.push({ text: l, bold: true, fontSize: 10, alignment: 'center' });
       });
     }
-    signatureSection.push({
-      canvas: [{ type: 'line', x1: 0, y1: 0, x2: 160, y2: 0, lineWidth: 1, lineColor: '#000' }],
-      alignment: 'center',
-      margin: [0, 15, 0, 0]
-    });
 
     // --- Assemble document definition ---
     const docDef = {

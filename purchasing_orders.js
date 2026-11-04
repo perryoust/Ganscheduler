@@ -1555,7 +1555,6 @@ function openOrderPrintPreview(order, autoDownload = false, returnHtmlOnly = fal
         <div class="signature-wrapper" style="margin-top: 80px; margin-bottom: 5px; display: flex; justify-content: flex-end; width: 100%;">
           <div style="display: flex; flex-direction: column; align-items: center; width: 200px;">
             ${order.orderer ? order.orderer.split('\n').map(l => `<div style="margin-bottom:3px; font-weight:bold; font-size:0.9em;">${rtlFix(l)}</div>`).join('') : ''}
-            <div class="signature-line" style="border-top: 1px solid #000; width: 100%; margin-top: 20px; text-align: center; padding-top: 3px;"></div>
           </div>
         </div>
         ` : ''}
