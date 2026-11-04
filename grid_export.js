@@ -317,7 +317,7 @@
             🧑‍🏫 מדריכים לספקים ועומסים
           </button>
           <button type="button" id="gexp-tab-btn-gaps" onclick="window.setGridExportTab('gaps')" style="padding:10px 10px; border:none; border-bottom:3px solid transparent; background:transparent; color:#475569; font-weight:800; font-size:0.84rem; cursor:pointer; transition:all 0.15s; display:inline-flex; align-items:center; justify-content:center; gap:5px;">
-            <span>🔍 בקרת אשכולות וחוסרים (חוגי צהרון)</span>
+            <span>🔍 בקרת אשכולות וחוסרים</span>
             <span id="gexp-gaps-badge"></span>
           </button>
         </div>
@@ -2139,17 +2139,17 @@
       return a.dispName.localeCompare(b.dispName, 'he');
     });
 
-    // 4. Detect Cluster Completeness Gaps (Strictly for AFTERNOON CLUBS חוגי צהרון!)
-    const partiallyMissed = []; // Garden active on some days in range, missed on afternoon day where rest of cluster IS scheduled
-    const zeroInActiveClusters = []; // Cluster has afternoon schedules in range, but specific member garden(s) have 0 afternoon schedules all range
-    const emptyClusters = []; // Entire cluster has 0 afternoon schedules in range
+    // 4. Detect Cluster Completeness & Quantitative Parity Gaps (חוגי בוקר וצהרון כמותית!)
+    const imbalancedClusters = []; // Clusters where member gardens have unequal morning or afternoon counts
+    const zeroInActiveClusters = []; // Specific member garden(s) have 0 schedules in range while cluster is active
+    const emptyClusters = []; // Entire cluster has 0 schedules in range
 
-    const _isTzaharonAct = (ev) => {
+    const _isMorningAct = (ev) => {
       if (!ev) return false;
-      if (ev.tp === 'חוג בוקר') return false;
-      if (ev.nt && /חוג בוקר|שעת בוקר/i.test(ev.nt)) return false;
-      if (ev.t && parseInt(ev.t) < 13) return false;
-      return true;
+      if (ev.tp === 'חוג בוקר') return true;
+      if (ev.nt && /חוג בוקר|שעת בוקר/i.test(ev.nt)) return true;
+      if (ev.t && parseInt(ev.t) < 13) return true;
+      return false;
     };
 
     allClusters.forEach(cl => {
@@ -2161,75 +2161,88 @@
       const clCity = members[0].city || 'אחר';
       if (cityFilter && clCity !== cityFilter) return;
 
-      // Active days where at least one member has an afternoon club (חוג צהרון)
-      const clusterActiveDays = days.filter(ds =>
-        members.some(g => {
-          const evs = scheduledByGidDay.get(`${g.id}_${ds}`) || [];
-          return evs.some(_isTzaharonAct);
-        })
-      );
+      const memberStats = members.map(g => {
+        const gid = Number(g.id);
+        let mCount = 0;
+        let tCount = 0;
+        const activeDays = new Set();
+        days.forEach(ds => {
+          const evs = (scheduledByGidDay.get(`${gid}_${ds}`) || []).filter(ev => {
+            if (supFilter) {
+              const b = typeof window.supBase === 'function' ? window.supBase(ev.a) : ev.a;
+              return b === supFilter;
+            }
+            return true;
+          });
+          evs.forEach(ev => {
+            activeDays.add(ds);
+            if (_isMorningAct(ev)) mCount++;
+            else tCount++;
+          });
+        });
+        return {
+          g,
+          gid,
+          name: (g.name || '').replace(/\s*\([^)]*\)/g, '').trim(),
+          fullName: g.name || '',
+          mCount,
+          tCount,
+          total: mCount + tCount,
+          activeDays: Array.from(activeDays)
+        };
+      });
 
-      if (clusterActiveDays.length === 0) {
+      const totalClusterEvents = memberStats.reduce((s, m) => s + m.total, 0);
+      if (totalClusterEvents === 0) {
         emptyClusters.push({ cl, city: clCity, membersCount: members.length });
         return;
       }
 
-      const zeroGardensForThisCl = [];
-      members.forEach(g => {
-        const gid = Number(g.id);
-        const gTzaharonDays = new Set(
-          days.filter(ds => {
-            const evs = scheduledByGidDay.get(`${gid}_${ds}`) || [];
-            return evs.some(_isTzaharonAct);
-          })
-        );
+      const maxMorning = Math.max(...memberStats.map(m => m.mCount));
+      const maxTzaharon = Math.max(...memberStats.map(m => m.tCount));
 
-        if (gTzaharonDays.size === 0) {
-          const blockedAll = clusterActiveDays.every(ds => typeof window.getGardenBlock === 'function' && window.getGardenBlock(gid, ds));
-          if (!blockedAll) {
-            zeroGardensForThisCl.push(g);
-          }
-        } else {
-          // Garden IS active in afternoon clubs — check if it got missed on any day where peers in this cluster were scheduled!
-          clusterActiveDays.forEach(ds => {
-            if (gTzaharonDays.has(ds)) return;
-            if (typeof window.getGardenBlock === 'function' && window.getGardenBlock(gid, ds)) return;
-
-            const peerSups = new Set();
-            members.forEach(peer => {
-              const pEvs = (scheduledByGidDay.get(`${peer.id}_${ds}`) || []).filter(_isTzaharonAct);
-              pEvs.forEach(ev => peerSups.add(_resolveSupplierAlias(ev.a)));
-            });
-            if (supFilter) {
-              const peerHasSup = members.some(peer =>
-                (scheduledByGidDay.get(`${peer.id}_${ds}`) || []).some(ev =>
-                  _isTzaharonAct(ev) && (typeof window.supBase === 'function' ? window.supBase(ev.a) : ev.a) === supFilter
-                )
-              );
-              if (!peerHasSup) return;
-            }
-            partiallyMissed.push({
-              city: clCity,
-              clId: cl.id,
-              clName: cl.name,
-              gid,
-              gardenName: g.name,
-              ds,
-              peerSups: Array.from(peerSups).filter(Boolean).join(', ')
-            });
-          });
-        }
-      });
-
-      if (zeroGardensForThisCl.length > 0 && !supFilter) {
+      // Check if any garden has 0 total in this active cluster
+      const zeroMembers = memberStats.filter(m => m.total === 0);
+      if (zeroMembers.length > 0 && !supFilter) {
         zeroInActiveClusters.push({
           city: clCity,
           clId: cl.id,
           clName: cl.name,
-          firstActiveDs: clusterActiveDays[0],
-          scheduledCount: members.length - zeroGardensForThisCl.length,
+          scheduledCount: members.length - zeroMembers.length,
           totalMembers: members.length,
-          missedGardens: zeroGardensForThisCl
+          missedGardens: zeroMembers.map(zm => zm.g)
+        });
+      }
+
+      // Check for quantitative parity gaps across gardens in cluster
+      const gaps = [];
+      memberStats.forEach(m => {
+        const diffM = maxMorning - m.mCount;
+        const diffT = maxTzaharon - m.tCount;
+        if (diffM > 0 || diffT > 0) {
+          gaps.push({
+            gid: m.gid,
+            gardenName: m.name,
+            fullName: m.fullName,
+            mCount: m.mCount,
+            tCount: m.tCount,
+            diffM,
+            diffT,
+            isZero: m.total === 0
+          });
+        }
+      });
+
+      if (gaps.length > 0) {
+        imbalancedClusters.push({
+          city: clCity,
+          clId: cl.id,
+          clName: cl.name,
+          maxMorning,
+          maxTzaharon,
+          totalMembers: members.length,
+          memberStats,
+          gaps
         });
       }
     });
@@ -2280,7 +2293,7 @@
       allSuppliers,
       filteredSuppliers,
       unclusteredGardens,
-      partiallyMissed,
+      imbalancedClusters,
       zeroInActiveClusters,
       emptyClusters
     };
@@ -2376,15 +2389,17 @@
   };
 
   function _countGapIssues(data) {
-    const unclusteredCnt = data.unclusteredGardens.length;
-    const partialCnt = data.partiallyMissed.length;
-    const zeroActiveGidCnt = data.zeroInActiveClusters.reduce((s, x) => s + x.missedGardens.length, 0);
+    const unclusteredCnt = (data.unclusteredGardens || []).length;
+    const imbalancedClCnt = (data.imbalancedClusters || []).length;
+    const totalGapsCnt = (data.imbalancedClusters || []).reduce((s, c) => s + (c.gaps ? c.gaps.length : 0), 0);
+    const zeroActiveGidCnt = (data.zeroInActiveClusters || []).reduce((s, x) => s + (x.missedGardens ? x.missedGardens.length : 0), 0);
     return {
       unclusteredCnt,
-      partialCnt,
+      imbalancedClCnt,
+      totalGapsCnt,
       zeroActiveGidCnt,
-      emptyClCnt: data.emptyClusters.length,
-      urgentTotal: unclusteredCnt + partialCnt + zeroActiveGidCnt
+      emptyClCnt: (data.emptyClusters || []).length,
+      urgentTotal: unclusteredCnt + totalGapsCnt
     };
   }
 
@@ -2411,8 +2426,8 @@
 
     const parts = [];
     if (counts.unclusteredCnt > 0) parts.push(`${counts.unclusteredCnt} גנים ללא אשכול`);
-    if (counts.partialCnt > 0) parts.push(`${counts.partialCnt} פספוסים ביום פעיל`);
-    if (counts.zeroActiveGidCnt > 0) parts.push(`${counts.zeroActiveGidCnt} גנים ללא שיבוץ באשכול פעיל`);
+    if (counts.imbalancedClCnt > 0) parts.push(`${counts.imbalancedClCnt} אשכולות עם פערי כמות`);
+    if (counts.zeroActiveGidCnt > 0) parts.push(`${counts.zeroActiveGidCnt} גנים ללא שיבוץ`);
 
     banner.style.display = 'block';
     banner.innerHTML = `
@@ -2438,9 +2453,9 @@
           <div style="font-size:1.1rem; font-weight:800; color:${counts.unclusteredCnt > 0 ? '#b45309' : '#64748b'};">${counts.unclusteredCnt}</div>
           <div style="font-size:0.72rem; font-weight:700; color:#475569;">גנים משובצים ללא אשכול</div>
         </div>
-        <div style="background:${counts.partialCnt > 0 ? '#fef2f2' : '#f8fafc'}; border:1px solid ${counts.partialCnt > 0 ? '#fecaca' : '#e2e8f0'}; border-radius:8px; padding:8px; text-align:center;">
-          <div style="font-size:1.1rem; font-weight:800; color:${counts.partialCnt > 0 ? '#dc2626' : '#64748b'};">${counts.partialCnt}</div>
-          <div style="font-size:0.72rem; font-weight:700; color:#475569;">פספוס ביום פעיל של אשכול</div>
+        <div style="background:${counts.imbalancedClCnt > 0 ? '#fef2f2' : '#f8fafc'}; border:1px solid ${counts.imbalancedClCnt > 0 ? '#fecaca' : '#e2e8f0'}; border-radius:8px; padding:8px; text-align:center;">
+          <div style="font-size:1.1rem; font-weight:800; color:${counts.imbalancedClCnt > 0 ? '#dc2626' : '#64748b'};">${counts.imbalancedClCnt}</div>
+          <div style="font-size:0.72rem; font-weight:700; color:#475569;">אשכולות עם פערי כמות</div>
         </div>
         <div style="background:${counts.zeroActiveGidCnt > 0 ? '#fff7ed' : '#f8fafc'}; border:1px solid ${counts.zeroActiveGidCnt > 0 ? '#fed7aa' : '#e2e8f0'}; border-radius:8px; padding:8px; text-align:center;">
           <div style="font-size:1.1rem; font-weight:800; color:${counts.zeroActiveGidCnt > 0 ? '#ea580c' : '#64748b'};">${counts.zeroActiveGidCnt}</div>
@@ -2455,7 +2470,7 @@
     let sectionsHtml = '';
 
     // 1. Unclustered Scheduled Gardens
-    if (data.unclusteredGardens.length > 0) {
+    if (data.unclusteredGardens && data.unclusteredGardens.length > 0) {
       sectionsHtml += `
         <div style="background:#fffbeb; border:1px solid #f59e0b; border-radius:10px; padding:10px 14px; margin-bottom:10px;">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:6px;">
@@ -2478,20 +2493,49 @@
         </div>`;
     }
 
-    // 2. Partially Missed Gardens on Active Cluster Days
-    if (data.partiallyMissed.length > 0) {
+    // 2. Imbalanced Clusters (Quantitative check: morning & afternoon clubs parity)
+    if (data.imbalancedClusters && data.imbalancedClusters.length > 0) {
       sectionsHtml += `
         <div style="background:#fef2f2; border:1px solid #fca5a5; border-radius:10px; padding:10px 14px; margin-bottom:10px;">
-          <div style="font-weight:800; color:#b91c1c; font-size:0.85rem; margin-bottom:8px;">🔴 גנים באשכול שהתפספסו ביום פעילות של שאר האשכול (${data.partiallyMissed.length})</div>
-          <div style="display:flex; flex-direction:column; gap:6px;">
-            ${data.partiallyMissed.map(pm => `
-              <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; background:#ffffff; border:1px solid #fecaca; border-right:4px solid #dc2626; border-radius:7px; padding:6px 10px; font-size:0.79rem;">
-                <div>
-                  <b>${_esc(pm.city)} · ${_esc(pm.clName)} · ${_esc(pm.gardenName)}</b>
-                  <span style="color:#b91c1c; font-weight:800; margin-right:6px;">חסר ב-${_shortDate(pm.ds)} (${_shortDay(pm.ds)})</span>
-                  ${pm.peerSups ? `<span style="color:#64748b; font-size:0.74rem;"> [שאר האשכול: ${_esc(pm.peerSups)}]</span>` : ''}
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:6px;">
+            <div style="font-weight:800; color:#b91c1c; font-size:0.85rem;">
+              🔴 בקרת כמות באשכולות – פערי שיבוץ בין גנים באותו אשכול (${data.imbalancedClusters.length} אשכולות)
+            </div>
+            <span style="font-size:0.73rem; color:#64748b;">בדיקה כמותית של חוגי בוקר וחוגי צהרון</span>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:8px;">
+            ${data.imbalancedClusters.map(ic => `
+              <div style="background:#ffffff; border:1px solid #fecaca; border-right:4px solid #dc2626; border-radius:8px; padding:8px 12px; font-size:0.8rem;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; flex-wrap:wrap; gap:6px;">
+                  <div>
+                    <b style="font-size:0.85rem; color:#1e293b;">${_esc(ic.city)} · ${_esc(ic.clName)}</b>
+                    <span style="color:#475569; font-size:0.75rem; margin-right:8px;">(${ic.totalMembers} גנים באשכול · יעד מקסימלי שנרשם: <b>${ic.maxMorning} בוקר</b>, <b>${ic.maxTzaharon} צהרון</b>)</span>
+                  </div>
+                  <span style="background:#fee2e2; color:#b91c1c; font-weight:800; font-size:0.72rem; border-radius:999px; padding:2px 8px;">${ic.gaps.length} גנים בחסר</span>
                 </div>
-                <button type="button" data-clid="${_esc(pm.clId)}" onclick="window.instScheduleMissed(this.dataset.clid, ${pm.gid}, '${pm.ds}')" style="background:#dc2626; color:#fff; border:none; border-radius:6px; padding:4px 10px; font-size:0.73rem; font-weight:800; cursor:pointer; white-space:nowrap;">➕ שבץ לתאריך</button>
+                <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(250px, 1fr)); gap:6px;">
+                  ${ic.memberStats.map(m => {
+                    const isBalanced = m.mCount === ic.maxMorning && m.tCount === ic.maxTzaharon;
+                    const diffM = ic.maxMorning - m.mCount;
+                    const diffT = ic.maxTzaharon - m.tCount;
+                    return `
+                      <div style="background:${isBalanced ? '#f0fdf4' : '#fff5f5'}; border:1px solid ${isBalanced ? '#bbf7d0' : '#fecaca'}; border-radius:6px; padding:6px 9px; display:flex; justify-content:space-between; align-items:center;">
+                        <div>
+                          <div style="font-weight:700; color:${isBalanced ? '#166534' : '#991b1b'};">${_esc(m.name)}</div>
+                          <div style="font-size:0.73rem; color:#475569;">
+                            בוקר: <b>${m.mCount}</b> · צהרון: <b>${m.tCount}</b> (סה"כ ${m.total})
+                          </div>
+                        </div>
+                        <div style="display:flex; flex-direction:column; align-items:flex-end; gap:2px;">
+                          ${isBalanced ? `<span style="color:#16a34a; font-size:0.72rem; font-weight:800;">🟢 תקין</span>` : `
+                            ${diffM > 0 ? `<span style="background:#fee2e2; color:#b91c1c; font-size:0.69rem; font-weight:800; padding:1px 5px; border-radius:4px;">חסר ${diffM} בוקר</span>` : ''}
+                            ${diffT > 0 ? `<span style="background:#ffedd5; color:#c2410c; font-size:0.69rem; font-weight:800; padding:1px 5px; border-radius:4px;">חסר ${diffT} צהרון</span>` : ''}
+                            <button type="button" onclick="window.instJumpToGarden(${m.gid}, '${data.minDs}')" style="background:#fff; border:1px solid #cbd5e1; color:#475569; border-radius:4px; padding:1px 6px; font-size:0.68rem; font-weight:700; cursor:pointer; margin-top:2px;">📅 לוח</button>
+                          `}
+                        </div>
+                      </div>`;
+                  }).join('')}
+                </div>
               </div>
             `).join('')}
           </div>
@@ -2499,7 +2543,7 @@
     }
 
     // 3. Gardens with 0 Schedules inside an Otherwise Active Cluster
-    if (data.zeroInActiveClusters.length > 0) {
+    if (data.zeroInActiveClusters && data.zeroInActiveClusters.length > 0) {
       sectionsHtml += `
         <div style="background:#fff7ed; border:1px solid #fdba74; border-radius:10px; padding:10px 14px; margin-bottom:10px;">
           <div style="font-weight:800; color:#c2410c; font-size:0.85rem; margin-bottom:8px;">🟠 גנים ללא אף שיבוץ בטווח בתוך אשכול פעיל</div>
@@ -2511,7 +2555,7 @@
                   <span style="color:#1e293b; font-weight:700;"> ${zc.missedGardens.map(g => _esc(g.name)).join(', ')}</span>
                   <span style="color:#64748b; font-size:0.73rem;"> (${zc.scheduledCount}/${zc.totalMembers} גנים אחרים באשכול שובצו)</span>
                 </div>
-                <button type="button" data-clid="${_esc(zc.clId)}" onclick="window.instScheduleMissed(this.dataset.clid, ${zc.missedGardens[0].id}, '${zc.firstActiveDs}')" style="background:#ea580c; color:#fff; border:none; border-radius:6px; padding:4px 10px; font-size:0.73rem; font-weight:800; cursor:pointer; white-space:nowrap;">➕ שבץ לאשכול</button>
+                <button type="button" data-clid="${_esc(zc.clId)}" onclick="window.instScheduleMissed(this.dataset.clid, ${zc.missedGardens[0].id}, '${data.minDs}')" style="background:#ea580c; color:#fff; border:none; border-radius:6px; padding:4px 10px; font-size:0.73rem; font-weight:800; cursor:pointer; white-space:nowrap;">➕ שבץ לאשכול</button>
               </div>
             `).join('')}
           </div>
@@ -2524,12 +2568,12 @@
         <div style="background:#f0fdf4; border:1px solid #86efac; border-radius:10px; padding:16px; text-align:center; margin-bottom:10px;">
           <div style="font-size:1.3rem; margin-bottom:4px;">✅</div>
           <div style="font-weight:800; color:#166534; font-size:0.9rem;">בקרת האשכולות תקינה לחלוטין בטווח זה!</div>
-          <div style="font-size:0.78rem; color:#15803d; margin-top:2px;">כל הגנים המשובצים משויכים לאשכולות, ולא נמצאו פספוסי שיבוץ בתוך האשכולות הפעילים.</div>
+          <div style="font-size:0.78rem; color:#15803d; margin-top:2px;">כל הגנים המשובצים משויכים לאשכולות, וכל הגנים בכל אשכול שובצו שווה בשווה לחוגי בוקר ולחוגי צהרון.</div>
         </div>`;
     }
 
     // 4. Empty Clusters Info Box
-    if (data.emptyClusters.length > 0) {
+    if (data.emptyClusters && data.emptyClusters.length > 0) {
       sectionsHtml += `
         <div style="background:#f8fafc; border:1px solid #cbd5e1; border-radius:9px; padding:9px 12px; font-size:0.77rem; color:#475569;">
           <div style="font-weight:800; color:#334155; margin-bottom:5px;">⚪ אשכולות ללא שיבוץ כלל בטווח (${data.emptyClusters.length}):</div>
@@ -3044,7 +3088,7 @@
       });
 
       // Sheet 3 (if gaps exist): חריגים וגנים לטיפול
-      if (data.unclusteredGardens.length > 0 || data.partiallyMissed.length > 0 || data.zeroInActiveClusters.length > 0) {
+      if ((data.unclusteredGardens && data.unclusteredGardens.length > 0) || (data.imbalancedClusters && data.imbalancedClusters.length > 0) || (data.zeroInActiveClusters && data.zeroInActiveClusters.length > 0)) {
         const ws3 = wb.addWorksheet('גנים לטיפול והשלמת שיבוץ', {
           views: [{ rightToLeft: true, state: 'frozen', ySplit: 1 }]
         });
@@ -3056,16 +3100,21 @@
           hr3.getCell(c).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFB45309' } };
           hr3.getCell(c).alignment = { horizontal: 'right', vertical: 'middle', readingOrder: 'rightToLeft' };
         }
-        data.unclusteredGardens.forEach(u => {
+        (data.unclusteredGardens || []).forEach(u => {
           const det = u.items.map(it => `${_shortDate(it.ds)} ${it.supDisp}`).join(' | ');
           const r = ws3.addRow(['גן משובץ ללא אשכול', u.city, '— ללא אשכול —', u.g.name, det]);
           for (let c = 1; c <= 5; c++) r.getCell(c).alignment = { horizontal: 'right', readingOrder: 'rightToLeft' };
         });
-        data.partiallyMissed.forEach(pm => {
-          const r = ws3.addRow(['גן באשכול שהתפספס ביום פעיל', pm.city, pm.clName, pm.gardenName, `חסר ב-${_shortDate(pm.ds)} (${_shortDay(pm.ds)})`]);
-          for (let c = 1; c <= 5; c++) r.getCell(c).alignment = { horizontal: 'right', readingOrder: 'rightToLeft' };
+        (data.imbalancedClusters || []).forEach(ic => {
+          ic.gaps.forEach(g => {
+            const gapDesc = [];
+            if (g.diffM > 0) gapDesc.push(`חסר ${g.diffM} חוג בוקר (שובצו ${g.mCount}/${ic.maxMorning})`);
+            if (g.diffT > 0) gapDesc.push(`חסר ${g.diffT} חוג צהרון (שובצו ${g.tCount}/${ic.maxTzaharon})`);
+            const r = ws3.addRow(['פער כמותי באשכול', ic.city, ic.clName, g.fullName, gapDesc.join(' | ')]);
+            for (let c = 1; c <= 5; c++) r.getCell(c).alignment = { horizontal: 'right', readingOrder: 'rightToLeft' };
+          });
         });
-        data.zeroInActiveClusters.forEach(zc => {
+        (data.zeroInActiveClusters || []).forEach(zc => {
           zc.missedGardens.forEach(mg => {
             const r = ws3.addRow(['0 שיבוצים בטווח באשכול פעיל', zc.city, zc.clName, mg.name, `${zc.scheduledCount}/${zc.totalMembers} גנים אחרים באשכול שובצו`]);
             for (let c = 1; c <= 5; c++) r.getCell(c).alignment = { horizontal: 'right', readingOrder: 'rightToLeft' };
@@ -3490,10 +3539,18 @@
             const rawNt = ev.nt ? String(ev.nt).trim() : '';
             const rawTp = ev.tp ? String(ev.tp).trim() : '';
 
-            // Get names of gardens in cluster that have this activity
+            // Get names of gardens in cluster that have this activity (stripping parentheses like (חב"ד) to save space)
             const activeGids = evs.map(e => Number(e.g));
-            let names = [...new Set(activeGids.map(id => (window.G(id)||{}).name).filter(Boolean))];
-            if (!names.length) names = gids.map(id => (window.G(id)||{}).name).filter(Boolean);
+            let names = [...new Set(activeGids.map(id => {
+              const nm = (window.G(id)||{}).name || '';
+              return nm.replace(/\s*\([^)]*\)/g, '').trim();
+            }).filter(Boolean))];
+            if (!names.length) {
+              names = gids.map(id => {
+                const nm = (window.G(id)||{}).name || '';
+                return nm.replace(/\s*\([^)]*\)/g, '').trim();
+              }).filter(Boolean);
+            }
             const gNamesStr = names.join('/');
 
             // Check if this is a tentative idea (רעיון לשיבוץ)
@@ -3548,8 +3605,8 @@
 
           const rTop = ws.addRow(topRowVals);
           const rBot = ws.addRow(botRowVals);
-          rTop.height = 20;
-          rBot.height = 17;
+          rTop.height = 19;
+          rBot.height = 14;
           lastRowIndex = rBot.number;
 
           // Merge Column 1 (אשכול) across both rows
@@ -3578,11 +3635,11 @@
               cTop.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFF00' } };
               cTop.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FF000000' } };
               cBot.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFF00' } };
-              cBot.font = { name: 'Arial', size: 8, bold: true, color: { argb: 'FF000000' } };
+              cBot.font = { name: 'Arial', size: 6, bold: true, color: { argb: 'FF000000' } };
             } else if (st.type === 'scheduled') {
               const fontArgb = st.color === 'red' ? 'FFC00000' : 'FF002060';
               cTop.font = { name: 'Arial', size: 9.5, bold: true, color: { argb: fontArgb } };
-              cBot.font = { name: 'Arial', size: 8, bold: true, color: { argb: fontArgb } };
+              cBot.font = { name: 'Arial', size: 6, bold: true, color: { argb: fontArgb } };
             }
           });
         });
