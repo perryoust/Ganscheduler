@@ -2157,6 +2157,14 @@ function genExport(){
     return (ds < today) ? 'לא התקיים' : 'לא מתקיים';
   };
 
+  const getEvIcon = (s) => {
+    if (s.st === 'can') return '❌ ';
+    const t = getEvType(s);
+    if (s.st === 'post' || t === 'postponed_out' || t === 'preponed_out') return '⏩ ';
+    if (s.st === 'nohap' || t === 'nohap') return '❌ ';
+    return '🏫 ';
+  };
+
   if (window._exEventIds && window._exEventIds.length) {
     const eventDates = window._exEventIds.map(id => (SCH.find(x => String(x.id) === String(id))||{}).d).filter(Boolean);
     const allInDateRange = eventDates.every(d => d >= from && d <= to);
@@ -2389,7 +2397,7 @@ function genExport(){
   // Row-level label builder based on exact comments
   const getRowTag = (s) => {
     const t = getEvType(s);
-    if (isAllMakeup || isAllPreponed || isAllPostponed || isAllPreponedOut) return ''; // Already handled globally
+    if (isAllMakeup || isAllPreponed || isAllPostponed || isAllPreponedOut || isAllPostponedOut) return ''; // Already handled globally
     const sRef = getRefDateStr([s], s.d);
     
     const getOrigStr = (dateStr) => {
@@ -2489,7 +2497,7 @@ function genExport(){
             const addrs=[...new Set(group.map(s=>s.gd.st||''))];
             const sameAddr=addrs.length===1&&addrs[0];
             
-            const isNohapFunc = (s) => s.st === 'can' || s.st === 'nohap' || s.st === 'post';
+            const isNohapFunc = (s) => s.st === 'can' || s.st === 'nohap';
             const allNohap = group.every(isNohapFunc);
             
             const groupMgrs = [...new Set(group.map(s => getCoordStr(s.g)).filter(Boolean))];
@@ -2510,6 +2518,16 @@ function genExport(){
               blockTitle = `*(${getNohapLabel(gDate)})*\n`;
               skipInlineNohap = true;
             }
+
+            if (blockTitle && headerTitle) {
+              const cleanH = headerTitle.replace(/[*_~`\s]/g, '');
+              const cleanB = blockTitle.replace(/[*_~`\s]/g, '');
+              if (cleanH.includes(cleanB) || cleanB.includes(cleanH)) {
+                blockTitle = '';
+                skipInlineMTag = true;
+                skipInlineNohap = true;
+              }
+            }
             
             if (blockTitle) text += blockTitle;
             text+=`${supLine}\n📍 ${c}\n`;
@@ -2519,7 +2537,7 @@ function genExport(){
               group.forEach(s=>{ 
                 const mTag = skipInlineMTag ? '' : getRowTag(s);
                 const isNohapRow = isNohapFunc(s);
-                const stIcon = isNohapRow ? '❌ ' : '🏫 ';
+                const stIcon = getEvIcon(s);
                 const statusTag = (!skipInlineNohap && isNohapRow && !isAllCan && !isAllNohap && !isAllPreponedOut) ? ` *(${getNohapLabel(s.d)})*` : '';
                 const rawCoord = isPairWithSameMgr ? '' : getCoordStr(s.g);
                 const coordText = rawCoord ? `\n     ${rawCoord.trim()}` : '';
@@ -2546,7 +2564,7 @@ function genExport(){
                     const s = byAddr[addr][0];
                     const mTag = skipInlineMTag ? '' : getRowTag(s);
                     const isNohapRow = isNohapFunc(s);
-                    const stIcon = isNohapRow ? '❌ ' : '🏫 ';
+                    const stIcon = getEvIcon(s);
                     const addrStr = `📍 ${addr} · `;
                     const statusTag = (!skipInlineNohap && isNohapRow && !isAllCan && !isAllNohap && !isAllPreponedOut) ? ` *(${getNohapLabel(s.d)})*` : '';
                     const rawCoord = isPairWithSameMgr ? '' : getCoordStr(s.g);
@@ -2565,7 +2583,7 @@ function genExport(){
                     byAddr[addr].forEach(s => {
                       const mTag = skipInlineMTag ? '' : getRowTag(s);
                       const isNohapRow = isNohapFunc(s);
-                      const stIcon = isNohapRow ? '❌ ' : '🏫 ';
+                      const stIcon = getEvIcon(s);
                       const statusTag = (!skipInlineNohap && isNohapRow && !isAllCan && !isAllNohap && !isAllPreponedOut) ? ` *(${getNohapLabel(s.d)})*` : '';
                       const rawCoord = isPairWithSameMgr ? '' : getCoordStr(s.g);
                       const coordText = rawCoord ? `\n     ${rawCoord.trim()}` : '';
@@ -2584,7 +2602,7 @@ function genExport(){
                   byAddr[addr].forEach(s => {
                     const mTag = skipInlineMTag ? '' : getRowTag(s);
                     const isNohapRow = isNohapFunc(s);
-                    const stIcon = isNohapRow ? '❌ ' : '🏫 ';
+                    const stIcon = getEvIcon(s);
                     const statusTag = (!skipInlineNohap && isNohapRow && !isAllCan && !isAllNohap && !isAllPreponedOut) ? ` *(${getNohapLabel(s.d)})*` : '';
                     const rawCoord = isPairWithSameMgr ? '' : getCoordStr(s.g);
                     const coordText = rawCoord ? `\n  ${rawCoord.trim()}` : '';
@@ -2646,6 +2664,16 @@ function genExport(){
                 skipInlineMTag = true;
               }
             }
+
+            if (blockTitle && headerTitle) {
+              const cleanH = headerTitle.replace(/[*_~`\s]/g, '');
+              const cleanB = blockTitle.replace(/[*_~`\s]/g, '');
+              if (cleanH.includes(cleanB) || cleanB.includes(cleanH)) {
+                blockTitle = '';
+                skipInlineMTag = true;
+                skipInlineNohap = true;
+              }
+            }
             
             if (blockTitle) text += blockTitle;
             text+=`${supLine}\n📍 ${c}\n`;
@@ -2655,7 +2683,7 @@ function genExport(){
               group.forEach(s=>{ 
                 const mTag = skipInlineMTag ? '' : getRowTag(s);
                 const isNohapRow = isNohapFunc(s);
-                const stIcon = isNohapRow ? '❌ ' : '🏫 ';
+                const stIcon = getEvIcon(s);
                 const statusTag = (!skipInlineNohap && isNohapRow && !isAllCan && !isAllNohap && !isAllPreponedOut) ? ` *(${getNohapLabel(s.d)})*` : '';
                 const rawCoord = getCoordStr(s.g);
                 const coordText = rawCoord ? `\n     ${rawCoord.trim()}` : '';
@@ -2671,7 +2699,7 @@ text+=`     ${stIcon}${mTag}${s.gd.name}${statusTag}${timeStr}${coordText}\n`;
               group.forEach(s=>{
                 const mTag = skipInlineMTag ? '' : getRowTag(s);
                 const isNohapRow = isNohapFunc(s);
-                const stIcon = isNohapRow ? '❌ ' : '🏫 ';
+                const stIcon = getEvIcon(s);
                 const addr=s.gd.st?`📍 ${s.gd.st} · `:'';
                 const statusTag = (!skipInlineNohap && isNohapRow && !isAllCan && !isAllNohap && !isAllPreponedOut) ? ` *(${getNohapLabel(s.d)})*` : '';
                 const rawCoord = getCoordStr(s.g);
@@ -2697,7 +2725,7 @@ text+=`  ${stIcon}${mTag}${addr}${s.gd.name}${statusTag}${timeStr}${coordText}\n
         byCity[c].forEach(s=>{
           const mTag = getRowTag(s);
           const isNohapRow = s.st === 'can' || s.st === 'nohap';
-          const stIcon = isNohapRow ? '❌ ' : '🏫 ';
+          const stIcon = getEvIcon(s);
           const statusTag = (isNohapRow && !isAllCan && !isAllNohap && !isAllPreponedOut) ? ` *(${getNohapLabel(s.d)})*` : '';
           const rawCoord = getCoordStr(s.g);
           const coordText = rawCoord ? `\n${rawCoord.trim()}` : '';
