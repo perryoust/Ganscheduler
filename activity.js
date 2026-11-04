@@ -485,23 +485,78 @@ window.spBatchStatus = function(st) {
   const ids = window.spGetSelectedIds();
   ids.forEach(id => window.setStatus(id, st));
 };
+window.findOriginalEventsForMakeup = function(s) {
+  if (!s) return [];
+  const origList = [];
+  const sSupBase = window.supBase ? window.supBase(s.a) : s.a;
+
+  // 1. Match by exact link ID
+  (window.SCH || []).forEach(orig => {
+    if (orig._compByMakeup && String(orig._compByMakeup) === String(s.id)) {
+      if (!origList.includes(orig)) origList.push(orig);
+    }
+  });
+
+  // 2. Match by _makeupFrom or date in note
+  let origDate = s._makeupFrom || '';
+  if (!origDate && s.nt) {
+    const m = s.nt.match(/השלמה (?:על|מ-|מ|עבור)\s*(\d{1,2}[\/\.]\d{1,2}[\/\.]\d{2,4}|\d{4}-\d{2}-\d{2})/);
+    if (m && m[1]) {
+      const rawD = m[1].replace(/\./g, '/');
+      if (rawD.includes('/')) {
+        const parts = rawD.split('/');
+        const yr = parts[2].length === 2 ? '20' + parts[2] : parts[2];
+        origDate = `${yr}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+      } else {
+        origDate = rawD;
+      }
+    }
+  }
+
+  if (origDate) {
+    (window.SCH || []).forEach(orig => {
+      if (Number(orig.g) === Number(s.g) && orig.d === origDate) {
+        const origSup = window.supBase ? window.supBase(orig.a) : orig.a;
+        if (!sSupBase || origSup === sSupBase) {
+          if (!origList.includes(orig)) origList.push(orig);
+        }
+      }
+    });
+  }
+
+  return origList;
+};
+
+window.restoreOriginalActivity = function(orig) {
+  if (!orig) return;
+  delete orig._compByMakeup;
+  orig._compByMakeup = '';
+  if (orig.st !== 'can') orig.st = 'nohap';
+
+  const cleanNoteField = (str) => {
+    if (!str) return '';
+    return str
+      .split(' | ')
+      .filter(part => !/השלמה נקבעה|נקבעה השלמה|הושלם ב|השלמה ב|הושלם על ידי|סיום טיפול/i.test(part))
+      .join(' | ')
+      .trim();
+  };
+
+  orig.nt = cleanNoteField(orig.nt);
+  orig.n = cleanNoteField(orig.n);
+};
+
 function cleanMakeupNote(orig, dateStr) {
-  const formattedDate = typeof window.fD === 'function' ? window.fD(dateStr) : dateStr;
-  const targetStr = 'השלמה נקבעה ל-' + formattedDate;
-  
-  if (orig.nt) {
-    orig.nt = orig.nt.split(' | ').filter(part => !part.includes(targetStr)).join(' | ').trim();
-  }
-  if (orig.n) {
-    orig.n = orig.n.split(' | ').filter(part => !part.includes(targetStr)).join(' | ').trim();
-  }
+  window.restoreOriginalActivity(orig);
 }
 
 window.spBatchDelete = async function() {
   const ids = window.spGetSelectedIds();
   if(!ids.length) { _spAlertDialog('יש לסמן לפחות גן אחד למחיקה'); return; }
   
-  const restoreMsg = window.SCH.some(x => ids.includes(String(x.id)) && x._isMakeup) ? '\n(פעילויות השלמה מסומנות יוחזרו למקוריות שלא התקיימו)' : '';
+  const restoreMsg = window.SCH.some(x => ids.includes(String(x.id)) && (x._isMakeup || x._makeupFrom || (x.nt && /השלמה/i.test(x.nt)))) 
+    ? '\n(פעילויות השלמה מסומנות יימחקו והפעילויות המקוריות יוחזרו ללוח הבקרה כלא התקיימו)' 
+    : '';
   
   if(!await window.spConfirm(`האם למחוק ${ids.length > 1 ? ids.length + ' שיבוצים מסומנים' : 'את השיבוץ המסומן'} מהלוח לצמיתות?` + restoreMsg)) return;
   
@@ -515,11 +570,11 @@ window.spBatchDelete = async function() {
     if(!sampleEv) sampleEv = s;
     
     // Check for makeup restoration
-    const origEvs = s._isMakeup ? window.SCH.filter(orig => String(orig._compByMakeup) === String(s.id)) : [];
-    if (origEvs.length > 0) {
+    const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && /השלמה/i.test(s.nt)));
+    if (isM) {
+      const origEvs = window.findOriginalEventsForMakeup ? window.findOriginalEventsForMakeup(s) : [];
       origEvs.forEach(orig => {
-        orig._compByMakeup = '';
-        cleanMakeupNote(orig, s.d);
+        window.restoreOriginalActivity(orig);
       });
     }
     
@@ -555,6 +610,78 @@ window.spBatchDelete = async function() {
     await window.saveAndRefresh('sp', false);
     if (window.showToast) window.showToast('✅ השיבוצים המסומנים הוסרו מהלוח');
   }
+};
+
+window.spCancelMakeupAndRestoreOriginal = async function(customId) {
+  const targetId = customId || window.selEv;
+  const s = window.getSchById(targetId);
+  if (!s) {
+    if (window.spAlert) window.spAlert('פעילות לא נמצאה');
+    return;
+  }
+
+  // Find all activities in this group/pair/cluster on this date that are makeups
+  const pair = (typeof window.getGardenGroup === 'function') ? window.getGardenGroup(s.g, s.d) : window.gardenPair(s.g, s.d);
+  const cluster = window.clusters ? Object.values(window.clusters).find(c => (c.gardenIds || c.gids || []).map(Number).includes(Number(s.g))) : null;
+  const relatedGids = new Set();
+  if (pair && pair.ids) pair.ids.forEach(id => relatedGids.add(Number(id)));
+  if (cluster && (cluster.gardenIds || cluster.gids)) (cluster.gardenIds || cluster.gids).forEach(id => relatedGids.add(Number(id)));
+  relatedGids.add(Number(s.g));
+
+  const sSupBase = window.supBase ? window.supBase(s.a) : s.a;
+
+  // Find all makeup activities on this day for these gardens with this supplier
+  const makeupsToDelete = (window.SCH || []).filter(ev => 
+    relatedGids.has(Number(ev.g)) && 
+    ev.d === s.d && 
+    (window.supBase ? window.supBase(ev.a) === sSupBase : ev.a === s.a) &&
+    (ev._isMakeup || ev._makeupFrom || (ev.nt && /השלמה/i.test(ev.nt)))
+  );
+
+  if (!makeupsToDelete.length) {
+    makeupsToDelete.push(s);
+  }
+
+  const gNames = Array.from(new Set(makeupsToDelete.map(m => (window.G(m.g) || {}).name || '').filter(Boolean))).join(' + ');
+  const dateFmt = window.fD ? window.fD(s.d) : s.d;
+
+  const confirmMsg = 
+    `האם לבטל את שיבוץ ההשלמה עבור ${gNames || 'פעילות זו'}?\n\n` +
+    `• פעילויות ההשלמה שנקבעו לתאריך ${dateFmt} יימחקו מהלוח לצמיתות.\n` +
+    `• הפעילויות המקוריות יחזרו לסטטוס "לא התקיים" (ללא סימון שהושלמו).\n` +
+    `• כל ההערות על קביעת השלמה ינוקו והגנים יחזרו ללוח הבקרה כרגיל.`;
+
+  const ok = typeof window.spConfirm === 'function' ? await window.spConfirm(confirmMsg) : confirm(confirmMsg);
+  if (!ok) return;
+
+  if (!window.supEx) window.supEx = {};
+  if (!window.supEx['__deleted_sraws_ids']) window.supEx['__deleted_sraws_ids'] = [];
+
+  let restoredCount = 0;
+
+  makeupsToDelete.forEach(mk => {
+    const origList = window.findOriginalEventsForMakeup ? window.findOriginalEventsForMakeup(mk) : [];
+    origList.forEach(orig => {
+      if (window.restoreOriginalActivity) window.restoreOriginalActivity(orig);
+      restoredCount++;
+    });
+
+    const isSraws = !String(mk.id).startsWith('e_');
+    if (isSraws && !window.supEx['__deleted_sraws_ids'].includes(mk.id)) {
+      window.supEx['__deleted_sraws_ids'].push(mk.id);
+    }
+    const idx = window.SCH.indexOf(mk);
+    if (idx >= 0) window.SCH.splice(idx, 1);
+  });
+
+  if (window.CM) window.CM('sp-m');
+  await window.saveAndRefresh('sp', false);
+  if (window.showToast) {
+    window.showToast(`✅ שיבוץ ההשלמה בוטל! ${restoredCount > 0 ? `${restoredCount} פעילויות מקוריות הוחזרו ללוח הבקרה` : 'הפעילות הוסרה'}`);
+  }
+};
+window.quickCancelMakeup = function(id) {
+  window.spCancelMakeupAndRestoreOriginal(id);
 };
 
 window.spBatchQSetSt = function(st) {
@@ -967,7 +1094,32 @@ window.openSP = function(id) {
     return (a.pg?.name || '').localeCompare(b.pg?.name || '', 'he');
   });
   
-  let h = `<div style="background:#fff;border-radius:10px;padding:12px;border:1px solid #e0e0e0;margin-bottom:12px;box-shadow:0 2px 4px rgba(0,0,0,0.02)">
+  let makeupBanner = '';
+  if (isM) {
+    let origDateStr = '';
+    if (s._makeupFrom) origDateStr = window.fD ? window.fD(s._makeupFrom) : s._makeupFrom;
+    else if (s.nt) {
+      const m = s.nt.match(/השלמה (?:על|מ-|מ|עבור)\s*(\d{1,2}[\/\.]\d{1,2}[\/\.]\d{2,4}|\d{4}-\d{2}-\d{2})/);
+      if (m && m[1]) origDateStr = m[1];
+    }
+    makeupBanner = `
+      <div style="background:#fff8e1; border:2px solid #ffa000; border-radius:10px; padding:12px 14px; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; box-shadow:0 2px 6px rgba(255,160,0,0.12)">
+        <div>
+          <div style="display:flex; align-items:center; gap:8px">
+            <span style="font-size:1.1rem">🔄</span>
+            <b style="color:#e65100; font-size:0.92rem">פעילות זו נקבעה כהשלמה${origDateStr ? ` על ${origDateStr}` : ''}</b>
+          </div>
+          <div style="font-size:0.75rem; color:#5d4037; margin-top:3px">
+            רוצה לבטל את שיבוץ ההשלמה? הפעילות החלופית תימחק והפעילויות המקוריות יחזרו ללוח הבקרה כ'לא התקיימו'.
+          </div>
+        </div>
+        <button type="button" class="btn br bsm" onclick="window.spCancelMakeupAndRestoreOriginal()" style="background:#d32f2f; color:#fff; border:none; font-weight:800; padding:8px 14px; border-radius:6px; font-size:0.8rem; cursor:pointer; display:flex; align-items:center; gap:5px; box-shadow:0 1px 3px rgba(0,0,0,0.2)">
+          <span>↩️ בטל שיבוץ השלמה והחזר ללוח הבקרה</span>
+        </button>
+      </div>`;
+  }
+  
+  let h = makeupBanner + `<div style="background:#fff;border-radius:10px;padding:12px;border:1px solid #e0e0e0;margin-bottom:12px;box-shadow:0 2px 4px rgba(0,0,0,0.02)">
     <div style="font-size:0.85rem;font-weight:800;color:#1a237e;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center">
       <span>🏠 פירוט גנים ושיבוצים - ${window.fD(s.d)} (${window.dayN(s.d)})</span>
       <div style="display:flex;gap:8px;align-items:center">

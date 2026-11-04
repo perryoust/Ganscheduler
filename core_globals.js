@@ -202,10 +202,12 @@ window.ui = {
     const isPost = s.st === 'post';
     const isException = isNohap || isPost || isCan;
     const isHandled = !!(s._compByMakeup && s._compByMakeup !== 'false');
+    const isM = !!(s._isMakeup || s._makeupFrom || (s.nt && !s.nt.includes('השלמה נקבעה ל-') && /השלמה/i.test(s.nt)));
 
     return `
       <div class="qacts flex-c justify-center gap-3 ${window.isMobileMode()?'mob-ver':''}" onclick="event.stopPropagation()">
         ${isDone ? '' : `<button title="בוצע" class="qbtn q-done" onclick="window.qSetSt('${sid}','done')">✔️ ${window.isMobileMode()?'בוצע':''}</button>`}
+        ${isM ? `<button title="ביטול שיבוץ השלמה והחזרה למצב מקורי של לא התקיים" class="qbtn q-undo-mu" style="background:#fff3e0;color:#c62828;border:1px solid #ffb74d;font-weight:800" onclick="window.quickCancelMakeup('${sid}')">↩️ ${window.isMobileMode()?'בטל השלמה':''}</button>` : ''}
         ${(isException && !isHandled) ? `<button title="סיום טיפול" class="qbtn q-handled" onclick="if(window.markCompQuick)window.markCompQuick('${sid}')">✅ ${window.isMobileMode()?'טופל':''}</button>` : ''}
         ${(isException && isHandled) ? `<button title="ביטול טיפול (החזרה לרשימת לטיפול)" class="qbtn q-handled" style="background:#fff3e0;color:#e65100;border:1px solid #ffb74d" onclick="if(window.unmarkCompQuick)window.unmarkCompQuick('${sid}')">↩️ ${window.isMobileMode()?'לא טופל':''}</button>` : ''}
         ${isCan ? '' : `<button title="ביטול" class="qbtn q-can" onclick="window.openCanQ('${sid}')">❌ ${window.isMobileMode()?'ביטול':''}</button>`}
