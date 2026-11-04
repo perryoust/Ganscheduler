@@ -72,6 +72,14 @@ async function restoreSnapshot(i){
 function deleteSnapshot(i){const snaps=getSnapshots();snaps.splice(i,1);saveSnapshots(snaps);renderBackupList();}
 
 function importBackup(input){
+  const isAdm = (window.role === 'admin') || (typeof window.isUserAdmin === 'function' && window.isUserAdmin()) || (typeof _isAdmin === 'function' && _isAdmin());
+  if (!isAdm) {
+    const msg = '⛔ שחזור נתונים מורשה למנהל מערכת בלבד (Admin).';
+    if (window.spAlert) window.spAlert(msg);
+    else alert(msg);
+    if (input) input.value = '';
+    return;
+  }
   const file=input.files[0];if(!file)return;
   window._MASTER_LOCK = true;
   const r=new FileReader();

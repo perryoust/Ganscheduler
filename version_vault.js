@@ -286,9 +286,26 @@
     }
   };
 
-  // ── 4. Safe Cloud Restore (שחזור ענן מלא ומאובטח) ───────────────
+  function isUserAdmin() {
+    if (window.role === 'admin') return true;
+    if (typeof _isAdmin === 'function' && _isAdmin()) return true;
+    const em = (window._fbUser?.email || '').toLowerCase().trim();
+    const dn = (window._fbUser?.displayName || '').toLowerCase().trim();
+    const uid = window._fbUser?.uid || '';
+    if (uid === 'VW5FCIlBb9VS4Eo1BTKyCxq5xa03' || em === 'perry@ganmanager.app' || dn === 'perry') return true;
+    return false;
+  }
+  window.isUserAdmin = isUserAdmin;
+
+  // ── 4. Safe Cloud Restore (שחזור ענן מלא ומאובטח - למנהל בלבד) ─
   window.restoreVersionBackup = async function (vKey) {
     if (!vKey) return;
+    if (!isUserAdmin()) {
+      const msg = '⛔ שחזור מערכת מענן מורשה למנהל מערכת בלבד (Admin).';
+      if (window.spAlert) window.spAlert(msg);
+      else alert(msg);
+      return;
+    }
     const authQ = await getAuthHeader();
 
     try {
@@ -848,6 +865,7 @@
 
     const currentVer = window.APP_VERSION || '113.04';
     const currentSeq = getCurrentSeq();
+    const isAdm = isUserAdmin();
 
     el.innerHTML = list.map((item, idx) => {
       const isLatest = (idx === 0);
@@ -878,9 +896,11 @@
             </div>
           </div>
           <div style="display:flex; gap:6px; align-items:center;">
-            <button class="btn bp bsm" onclick="window.restoreVersionBackup('${item.key}')" title="שחזר גרסת ענן זו למערכת החיה" style="background:#1565c0; border-color:#1565c0; color:#fff; font-weight:700; display:flex; align-items:center; gap:5px; padding:6px 12px; cursor:pointer;">
+            ${isAdm ? `
+            <button class="btn bp bsm" onclick="window.restoreVersionBackup('${item.key}')" title="שחזר גרסת ענן זו למערכת החיה (למנהל בלבד)" style="background:#1565c0; border-color:#1565c0; color:#fff; font-weight:700; display:flex; align-items:center; gap:5px; padding:6px 12px; cursor:pointer;">
               <span>🔄 שחזר מענן</span>
             </button>
+            ` : ''}
             <button class="btn bg bsm" onclick="window.exportVersionBackupToExcel('${item.key}')" title="ייצא גרסה היסטורית זו ישירות לקובץ Excel מלא" style="background:#2e7d32; border-color:#2e7d32; color:#fff; font-weight:700; display:flex; align-items:center; gap:5px; padding:6px 12px; cursor:pointer;">
               <span>📊 ייצוא לאקסל</span>
             </button>
@@ -903,6 +923,7 @@
       return;
     }
     if (limit > 0) list = list.slice(0, limit);
+    const isAdm = isUserAdmin();
     el.innerHTML = list.map((item, idx) => {
       const isLatest = (idx === 0);
       const c = item.counts || {};
@@ -928,9 +949,11 @@
             </div>
           </div>
           <div style="display:flex; gap:5px; align-items:center;">
-            <button class="btn bp bsm" onclick="window.restoreVersionBackup('${item.key}')" title="שחזר גרסת ענן זו למערכת החיה" style="background:#1565c0; border-color:#1565c0; color:#fff; font-weight:700; padding:4px 9px; font-size:0.74rem; cursor:pointer;">
+            ${isAdm ? `
+            <button class="btn bp bsm" onclick="window.restoreVersionBackup('${item.key}')" title="שחזר גרסת ענן זו למערכת החיה (למנהל בלבד)" style="background:#1565c0; border-color:#1565c0; color:#fff; font-weight:700; padding:4px 9px; font-size:0.74rem; cursor:pointer;">
               <span>🔄 שחזר</span>
             </button>
+            ` : ''}
             <button class="btn bg bsm" onclick="window.exportVersionBackupToExcel('${item.key}')" title="ייצא לאקסל" style="background:#2e7d32; border-color:#2e7d32; color:#fff; font-weight:700; padding:4px 9px; font-size:0.74rem; cursor:pointer;">
               <span>📊 אקסל</span>
             </button>

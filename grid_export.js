@@ -3534,69 +3534,145 @@
               return;
             }
 
-            const ev = evs[0];
-            const rawSup = ev.a ? String(ev.a).trim() : '';
-            const rawNt = ev.nt ? String(ev.nt).trim() : '';
-            const rawTp = ev.tp ? String(ev.tp).trim() : '';
-
-            // Get names of gardens in cluster that have this activity (stripping parentheses like (חב"ד) to save space)
-            const activeGids = evs.map(e => Number(e.g));
-            let names = [...new Set(activeGids.map(id => {
-              const nm = (window.G(id)||{}).name || '';
+            // Helper to clean garden name (stripping parentheses like (חב"ד) to save space)
+            const cleanGardenName = (id) => {
+              const nm = (window.G(id) || {}).name || '';
               return nm.replace(/\s*\([^)]*\)/g, '').trim();
-            }).filter(Boolean))];
-            if (!names.length) {
-              names = gids.map(id => {
-                const nm = (window.G(id)||{}).name || '';
-                return nm.replace(/\s*\([^)]*\)/g, '').trim();
-              }).filter(Boolean);
-            }
-            const gNamesStr = names.join('/');
+            };
 
-            // Check if this is a tentative idea (רעיון לשיבוץ)
-            const isIdea = !rawSup || 
-              rawSup === 'בוקר' || rawSup === '* בוקר' || 
-              rawSup === 'צהריים' || rawSup === '* צהריים' || rawSup === 'צהרון' ||
-              rawSup.startsWith('*') || 
-              /רעיון|הצעה|\*/i.test(rawNt);
+            // Parse each event in this cluster/day slot
+            const parsedEvs = evs.map(ev => {
+              const rawSup = ev.a ? String(ev.a).trim() : '';
+              const rawNt = ev.nt ? String(ev.nt).trim() : '';
+              const rawTp = ev.tp ? String(ev.tp).trim() : '';
+              const hour = ev.t ? parseInt(ev.t) : 0;
 
-            if (isIdea) {
-              const isMorningIdea = rawTp === 'חוג בוקר' || /בוקר/.test(rawSup) || /בוקר/.test(rawNt) || (ev.t && parseInt(ev.t) < 13);
-              const ideaLabel = isMorningIdea ? '* בוקר' : '* צהריים';
-              topRowVals.push(ideaLabel);
-              botRowVals.push(gNamesStr);
-              cellStyles.push({ type: 'idea', text: ideaLabel, gNames: gNamesStr });
+              const isIdea = !rawSup || 
+                rawSup === 'בוקר' || rawSup === '* בוקר' || 
+                rawSup === 'צהריים' || rawSup === '* צהריים' || rawSup === 'צהרון' ||
+                rawSup.startsWith('*') || 
+                /רעיון|הצעה|\*/i.test(rawNt);
+
+              let isMorning = false;
+              let isTzaharon = false;
+
+              if (rawTp === 'חוג בוקר' || rawTp.includes('בוקר')) {
+                isMorning = true;
+              } else if (rawTp === 'חוג צהרון' || rawTp.includes('צהרון')) {
+                isTzaharon = true;
+              } else if (/צהרון|צהריים/.test(rawNt)) {
+                isTzaharon = true;
+              } else if (/בוקר/.test(rawNt)) {
+                isMorning = true;
+              } else if (hour > 0 && hour < 13) {
+                isMorning = true;
+              } else if (hour >= 13) {
+                isTzaharon = true;
+              } else {
+                if (/בוקר/.test(rawSup)) isMorning = true;
+                else isTzaharon = true;
+              }
+
+              const dispSup = window.supBase ? window.supBase(rawSup) : rawSup;
+              const gid = Number(ev.g);
+              const gName = cleanGardenName(gid);
+
+              return { ev, gid, gName, rawSup, dispSup, rawNt, rawTp, hour, isIdea, isMorning, isTzaharon };
+            });
+
+            const mList = parsedEvs.filter(p => p.isMorning);
+            const aList = parsedEvs.filter(p => !p.isMorning && p.isTzaharon);
+
+            // ── Case A: SPLIT (Cluster has BOTH Morning and Afternoon activities!) ──
+            if (mList.length > 0 && aList.length > 0) {
+              const mGNames = [...new Set(mList.map(p => p.gName).filter(Boolean))].join('/');
+              const aGNames = [...new Set(aList.map(p => p.gName).filter(Boolean))].join('/');
+
+              const mAllIdea = mList.every(p => p.isIdea);
+              const mSups = [...new Set(mList.filter(p => !p.isIdea).map(p => p.dispSup).filter(Boolean))];
+              const mSupName = mAllIdea ? '* בוקר' : (mSups.join(' + ') || 'בוקר');
+
+              const aAllIdea = aList.every(p => p.isIdea);
+              const aSups = [...new Set(aList.filter(p => !p.isIdea).map(p => p.dispSup).filter(Boolean))];
+              const aSupName = aAllIdea ? '* צהריים' : (aSups.join(' + ') || 'צהרון');
+
+              let plainTop = '';
+              const topRich = [];
+
+              if (mAllIdea && aAllIdea) {
+                plainTop = '* בוקר + * צהריים';
+                topRich.push(
+                  { text: '* בוקר', font: { name: 'Arial', size: 9.5, bold: true, color: { argb: 'FF000000' } } },
+                  { text: ' + ', font: { name: 'Arial', size: 9.5, bold: true, color: { argb: 'FF000000' } } },
+                  { text: '* צהריים', font: { name: 'Arial', size: 9.5, bold: true, color: { argb: 'FF000000' } } }
+                );
+              } else if (mSupName === aSupName) {
+                // Format: תלתן בוקר + צהרון (בוקר בכחול, צהרון באדום)
+                plainTop = `${mSupName} בוקר + צהרון`;
+                topRich.push(
+                  { text: `${mSupName} בוקר`, font: { name: 'Arial', size: 9.5, bold: true, color: { argb: 'FF002060' } } },
+                  { text: ' + ', font: { name: 'Arial', size: 9.5, bold: true, color: { argb: 'FF000000' } } },
+                  { text: 'צהרון', font: { name: 'Arial', size: 9.5, bold: true, color: { argb: 'FFC00000' } } }
+                );
+              } else {
+                plainTop = `${mSupName} בוקר + ${aSupName} צהרון`;
+                topRich.push(
+                  { text: `${mSupName} בוקר`, font: { name: 'Arial', size: 9.5, bold: true, color: { argb: 'FF002060' } } },
+                  { text: ' + ', font: { name: 'Arial', size: 9.5, bold: true, color: { argb: 'FF000000' } } },
+                  { text: `${aSupName} צהרון`, font: { name: 'Arial', size: 9.5, bold: true, color: { argb: 'FFC00000' } } }
+                );
+              }
+
+              const plainBot = `${mGNames} / ${aGNames}`;
+              const botRich = [
+                { text: mGNames, font: { name: 'Arial', size: 6, bold: true, color: { argb: 'FF002060' } } },
+                { text: ' / ', font: { name: 'Arial', size: 6, bold: true, color: { argb: 'FF555555' } } },
+                { text: aGNames, font: { name: 'Arial', size: 6, bold: true, color: { argb: 'FFC00000' } } }
+              ];
+
+              topRowVals.push(plainTop);
+              botRowVals.push(plainBot);
+              cellStyles.push({ type: 'split', topRich, botRich, isAllIdea: (mAllIdea && aAllIdea) });
               return;
             }
 
-            // Scheduled with an actual supplier
-            const dispSup = window.supBase ? window.supBase(rawSup) : rawSup;
-            const isTzaharon = rawTp === 'חוג צהרון' || /צהרון|צהריים/.test(rawNt) || rawTp.includes('צהרון');
-            const isMorning = rawTp === 'חוג בוקר' || /בוקר/.test(rawNt) || (ev.t && parseInt(ev.t) < 13);
+            // ── Case B: ONLY MORNING ──
+            if (mList.length > 0) {
+              const mGNames = [...new Set(mList.map(p => p.gName).filter(Boolean))].join('/') || (cl.gardenIds || []).map(cleanGardenName).join('/');
+              const mAllIdea = mList.every(p => p.isIdea);
 
-            let cellText = dispSup;
-            let styleColor = 'blue';
-
-            if (isTzaharon) {
-              if (rawNt.includes('+ צהרון')) {
-                cellText = `${dispSup} + צהרון`;
+              if (mAllIdea) {
+                topRowVals.push('* בוקר');
+                botRowVals.push(mGNames);
+                cellStyles.push({ type: 'idea', text: '* בוקר', gNames: mGNames });
               } else {
-                cellText = `${dispSup} - צהריים`;
+                const mSups = [...new Set(mList.filter(p => !p.isIdea).map(p => p.dispSup).filter(Boolean))];
+                const mSupName = mSups.join(' + ') || 'בוקר';
+                const cellText = `${mSupName} - בוקר`;
+                topRowVals.push(cellText);
+                botRowVals.push(mGNames);
+                cellStyles.push({ type: 'scheduled', color: 'blue', text: cellText, gNames: mGNames });
               }
-              styleColor = 'red';
-            } else if (isMorning) {
-              cellText = `${dispSup} - בוקר`;
-              styleColor = 'blue';
+              return;
             }
 
-            const uniqueSups = [...new Set(evs.map(e => window.supBase ? window.supBase(e.a) : e.a).filter(Boolean))];
-            if (uniqueSups.length > 1) {
-              cellText = uniqueSups.join(' + ');
-            }
+            // ── Case C: ONLY AFTERNOON (צהרון) ──
+            const aGNames = [...new Set(aList.map(p => p.gName).filter(Boolean))].join('/') || (cl.gardenIds || []).map(cleanGardenName).join('/');
+            const aAllIdea = aList.every(p => p.isIdea);
 
-            topRowVals.push(cellText);
-            botRowVals.push(gNamesStr);
-            cellStyles.push({ type: 'scheduled', color: styleColor, text: cellText, gNames: gNamesStr });
+            if (aAllIdea) {
+              topRowVals.push('* צהריים');
+              botRowVals.push(aGNames);
+              cellStyles.push({ type: 'idea', text: '* צהריים', gNames: aGNames });
+            } else {
+              const aSups = [...new Set(aList.filter(p => !p.isIdea).map(p => p.dispSup).filter(Boolean))];
+              const aSupName = aSups.join(' + ') || 'צהריים';
+              const hasPlus = aList.some(p => p.rawNt.includes('+ צהרון'));
+              const cellText = hasPlus ? `${aSupName} + צהרון` : `${aSupName} - צהריים`;
+              topRowVals.push(cellText);
+              botRowVals.push(aGNames);
+              cellStyles.push({ type: 'scheduled', color: 'red', text: cellText, gNames: aGNames });
+            }
           });
 
           // Empty notes column
@@ -3628,10 +3704,17 @@
             const cBot = rBot.getCell(2 + idx);
             cTop.border = thinBorder;
             cBot.border = thinBorder;
-            cTop.alignment = { horizontal: 'center', vertical: 'middle', readingOrder: 'rightToLeft' };
-            cBot.alignment = { horizontal: 'center', vertical: 'middle', readingOrder: 'rightToLeft' };
+            cTop.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true, readingOrder: 'rightToLeft' };
+            cBot.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true, readingOrder: 'rightToLeft' };
 
-            if (st.type === 'idea') {
+            if (st.type === 'split') {
+              cTop.value = { richText: st.topRich };
+              cBot.value = { richText: st.botRich };
+              if (st.isAllIdea) {
+                cTop.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFF00' } };
+                cBot.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFF00' } };
+              }
+            } else if (st.type === 'idea') {
               cTop.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFF00' } };
               cTop.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FF000000' } };
               cBot.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFF00' } };
