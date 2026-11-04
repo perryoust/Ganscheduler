@@ -2637,13 +2637,25 @@ window.exportMgrExcel = async function(mgrId = null, filterSup = null, filterCit
     targetManagers = allManagers.filter(m => {
       if (selectedCity && m.city && m.city !== selectedCity) return false;
       if (roleFilter && m.role !== roleFilter) return false;
+      // When exporting all coordinators (or for a supplier), exclude management overlays (manager/vp) so field coordinators take precedence
+      if (!roleFilter && (m.role === 'manager' || m.role === 'vp')) return false;
       if (selectedSup) {
         const mGardens = window.getGardensForCoordinator(m);
         const hasSupGarden = mGardens.some(g => window.isSupplierInGarden(g.id, selectedSup));
         if (!hasSupGarden) return false;
       }
       return true;
-    }).sort((a,b) => (a.role === 'manager' ? 0 : 1) - (b.role === 'manager' ? 0 : 1) || (a.name||'').localeCompare(b.name||'', 'he', { numeric: true }));
+    }).sort((a,b) => (a.name||'').localeCompare(b.name||'', 'he', { numeric: true }));
+  }
+
+  // Fallback: If filtering by supplier and no dedicated coordinators matched directly via gardenIds,
+  // allow any manager who has supplier gardens so the report isn't empty
+  if (!targetManagers.length && selectedSup && !mgrId) {
+    targetManagers = allManagers.filter(m => {
+      if (selectedCity && m.city && m.city !== selectedCity) return false;
+      const mGardens = window.getGardensForCoordinator(m);
+      return mGardens.some(g => window.isSupplierInGarden(g.id, selectedSup));
+    }).sort((a,b) => (a.name||'').localeCompare(b.name||'', 'he', { numeric: true }));
   }
 
   if (!targetManagers.length) {
@@ -2658,12 +2670,14 @@ window.exportMgrExcel = async function(mgrId = null, filterSup = null, filterCit
 
   let safeFilename = '';
   if (selectedSup) {
+    const rolePrefix = (singleM && (singleM.role === 'manager' || singleM.role === 'vp')) ? 'מנהל' : 'רכז';
     safeFilename = isSingle
-      ? `רשימת_גנים_רכז_${(singleM.name || 'ללא_שם').replace(/[\\/:*?"<>|\s]+/g, '_')}_מפעיל_${selectedSup.replace(/[\\/:*?"<>|\s]+/g, '_')}.xlsx`
+      ? `רשימת_גנים_${rolePrefix}_${(singleM.name || 'ללא_שם').replace(/[\\/:*?"<>|\s]+/g, '_')}_מפעיל_${selectedSup.replace(/[\\/:*?"<>|\s]+/g, '_')}.xlsx`
       : `דוח_רכזים_וגנים_מפעיל_${selectedSup.replace(/[\\/:*?"<>|\s]+/g, '_')}_${new Date().toISOString().slice(0,10)}.xlsx`;
   } else {
+    const rolePrefix = (singleM && (singleM.role === 'manager' || singleM.role === 'vp')) ? 'מנהל' : 'רכז';
     safeFilename = isSingle 
-      ? `רשימת_גנים_רכז_${(singleM.name || 'ללא_שם').replace(/[\\/:*?"<>|\s]+/g, '_')}.xlsx`
+      ? `רשימת_גנים_${rolePrefix}_${(singleM.name || 'ללא_שם').replace(/[\\/:*?"<>|\s]+/g, '_')}.xlsx`
       : `דוח_רכזים_וגנים_טומשין_${new Date().toISOString().slice(0,10)}.xlsx`;
   }
 
@@ -2823,6 +2837,7 @@ window.exportMgrExcel = async function(mgrId = null, filterSup = null, filterCit
     };
 
     const allRowsMaster = [];
+    const seenMasterGardenIds = new Set();
     let masterCounter = 1;
 
     targetManagers.forEach(m => {
@@ -2844,11 +2859,20 @@ window.exportMgrExcel = async function(mgrId = null, filterSup = null, filterCit
         const supActInfo = selectedSup ? window.getSupplierGardenActivityInfo(g.id, selectedSup) : '';
         const notesVal = supActInfo || (window.supEx && window.supEx['g_' + g.id]?.notes) || g.notes || '';
 
+        // Resolve true field coordinator for this garden
+        const coordInfo = typeof window.getGardenCoordinator === 'function' ? window.getGardenCoordinator(g.id) : null;
+        const fallbackCoordInfo = (!coordInfo && typeof window.getGardenCoordinator === 'function') 
+          ? window.getGardenCoordinator(g.id, { allowAreaManager: true }) 
+          : null;
+        const finalCoordName = coordInfo ? coordInfo.name : (m.role !== 'manager' && m.role !== 'vp' ? m.name : (fallbackCoordInfo ? fallbackCoordInfo.name : (m.name || '—')));
+        const finalCoordPhone = coordInfo ? coordInfo.phone : (m.role !== 'manager' && m.role !== 'vp' ? m.phone : (fallbackCoordInfo ? fallbackCoordInfo.phone : (m.phone || '—')));
+        const finalCoordCity = (coordInfo && coordInfo.mgr && coordInfo.mgr.city) || (m.city || g.city || '—');
+
         const rowItem = {
           idx: idx + 1,
-          mgrName: m.name,
-          mgrPhone: m.phone || '',
-          mgrCity: m.city || '',
+          mgrName: finalCoordName,
+          mgrPhone: finalCoordPhone,
+          mgrCity: finalCoordCity,
           city: g.city || '',
           cls: (typeof window.gcls === 'function' ? window.gcls(g) : (g.cls || 'גנים')),
           age: ageVal,
@@ -2861,21 +2885,70 @@ window.exportMgrExcel = async function(mgrId = null, filterSup = null, filterCit
         };
 
         mRows.push(rowItem);
-        allRowsMaster.push({
-          ...rowItem,
-          idx: masterCounter++
-        });
+        if (!seenMasterGardenIds.has(Number(g.id))) {
+          seenMasterGardenIds.add(Number(g.id));
+          allRowsMaster.push({
+            ...rowItem,
+            idx: masterCounter++
+          });
+        }
       });
 
       if (isSingle) {
         const ws = wb.addWorksheet((m.name || 'רכז').slice(0, 30));
-        const sub = `רכז/ת: ${m.name} | טלפון: ${m.phone || '—'}${m.phone2 ? ' / ' + m.phone2 : ''}${selectedSup ? ' | מפעיל: ' + selectedSup : ''} | סה"כ גנים: ${gs.length} | תאריך הפקה: ${new Date().toLocaleDateString('he-IL')}`;
+        const roleLabel = (m.role === 'manager' || m.role === 'vp') ? 'מנהל/ת' : 'רכז/ת';
+        const sub = `${roleLabel}: ${m.name} | טלפון: ${m.phone || '—'}${m.phone2 ? ' / ' + m.phone2 : ''}${selectedSup ? ' | מפעיל: ' + selectedSup : ''} | סה"כ גנים: ${gs.length} | תאריך הפקה: ${new Date().toLocaleDateString('he-IL')}`;
         const titleText = selectedSup 
-          ? `טומשין - רשימת גנים לרכז/ת: ${m.name} (מפעיל: ${selectedSup})`
-          : `טומשין - רשימת גנים לרכז/ת: ${m.name}`;
+          ? `טומשין - רשימת גנים ל${roleLabel}: ${m.name} (מפעיל: ${selectedSup})`
+          : `טומשין - רשימת גנים ל${roleLabel}: ${m.name}`;
         buildSheet(ws, titleText, sub, mRows, false);
       }
     });
+
+    // If filtering by supplier in master mode, capture any unmapped supplier gardens
+    if (selectedSup && !isSingle) {
+      const allSystemGardens = (typeof window.getAllGardens === 'function' ? window.getAllGardens() : null) || 
+                               (typeof AG === 'function' ? AG() : (window.GARDENS || []));
+      allSystemGardens.forEach(g => {
+        if (!g || !g.id || seenMasterGardenIds.has(Number(g.id))) return;
+        if (selectedCity && g.city && g.city !== selectedCity) return;
+        if (!window.isSupplierInGarden(g.id, selectedSup)) return;
+
+        seenMasterGardenIds.add(Number(g.id));
+        const info = window.getGardenPhoneInfo(g);
+        const age = (typeof window.extractGardenAge === 'function' ? window.extractGardenAge(g) : (g.age || ''));
+        const ageVal = (age && age !== '***') ? age : '—';
+        const clObj = (typeof window.gardenClusters === 'function' ? window.gardenClusters(g.id) : [])[0] || 
+                      (typeof window.getClusters === 'function' ? window.getClusters().find(c => (c.gardenIds||[]).map(Number).includes(Number(g.id))) : null);
+        const clusterName = clObj ? clObj.name : (g.cl || '');
+        const supActInfo = window.getSupplierGardenActivityInfo(g.id, selectedSup);
+        const notesVal = supActInfo || (window.supEx && window.supEx['g_' + g.id]?.notes) || g.notes || '';
+
+        const coordInfo = typeof window.getGardenCoordinator === 'function' ? window.getGardenCoordinator(g.id) : null;
+        const fallbackCoordInfo = (!coordInfo && typeof window.getGardenCoordinator === 'function') 
+          ? window.getGardenCoordinator(g.id, { allowAreaManager: true }) 
+          : null;
+        const finalCoordName = coordInfo ? coordInfo.name : (fallbackCoordInfo ? fallbackCoordInfo.name : '—');
+        const finalCoordPhone = coordInfo ? coordInfo.phone : (fallbackCoordInfo ? fallbackCoordInfo.phone : '—');
+        const finalCoordCity = (coordInfo && coordInfo.mgr && coordInfo.mgr.city) || (fallbackCoordInfo && fallbackCoordInfo.mgr && fallbackCoordInfo.mgr.city) || (g.city || '—');
+
+        allRowsMaster.push({
+          idx: masterCounter++,
+          mgrName: finalCoordName,
+          mgrPhone: finalCoordPhone,
+          mgrCity: finalCoordCity,
+          city: g.city || '',
+          cls: (typeof window.gcls === 'function' ? window.gcls(g) : (g.cls || 'גנים')),
+          age: ageVal,
+          name: g.name || '',
+          st: g.st || '',
+          gPhone: info.gardenPhone || '',
+          gContact: info.contactName || '',
+          cluster: clusterName,
+          notes: notesVal
+        });
+      });
+    }
 
     if (!isSingle) {
       // Sort Master Table by City (עיר הגן), then by Coordinator Name, then by Garden Name
@@ -2936,7 +3009,8 @@ window.exportMgrExcel = async function(mgrId = null, filterSup = null, filterCit
               notes: supActInfo || (window.supEx && window.supEx['g_' + g.id]?.notes) || g.notes || ''
             });
           });
-          const sub = `רכז/ת: ${m.name} | טלפון: ${m.phone || '—'}${selectedSup ? ' | ספק חוגים: ' + selectedSup : ''} | סה"כ גנים: ${gs.length}`;
+          const roleLabel = (m.role === 'manager' || m.role === 'vp') ? 'מנהל/ת' : 'רכז/ת';
+          const sub = `${roleLabel}: ${m.name} | טלפון: ${m.phone || '—'}${selectedSup ? ' | ספק חוגים: ' + selectedSup : ''} | סה"כ גנים: ${gs.length}`;
           buildSheet(wsInd, `רשימת גנים - ${m.name}`, sub, mRows, false);
         });
       }
@@ -2964,6 +3038,7 @@ window.exportMgrExcel = async function(mgrId = null, filterSup = null, filterCit
     : ['מס"ד', 'שם הרכז/ת', 'טלפון רכז', 'עיר רכז', 'עיר הגן', 'סוג מוסד', 'גיל הגן', 'שם הצהרון / גן', 'כתובת', 'טלפון בגן', 'איש קשר בגן', 'אשכול', lastColHeader];
 
   const csvRows = [csvHeaders];
+  const seenCsvGardenIds = new Set();
   let counter = 1;
 
   targetManagers.forEach(m => {
@@ -2972,12 +3047,23 @@ window.exportMgrExcel = async function(mgrId = null, filterSup = null, filterCit
       gs = gs.filter(g => window.isSupplierInGarden(g.id, selectedSup));
     }
     gs.forEach(g => {
+      if (!isSingle && seenCsvGardenIds.has(Number(g.id))) return;
+      if (!isSingle) seenCsvGardenIds.add(Number(g.id));
+
       const info = window.getGardenPhoneInfo(g);
       const age = (typeof window.extractGardenAge === 'function' ? window.extractGardenAge(g) : (g.age || ''));
       const ageVal = (age && age !== '***') ? age : '—';
       const clObj = (typeof window.gardenClusters === 'function' ? window.gardenClusters(g.id) : [])[0];
       const supActInfo = selectedSup ? window.getSupplierGardenActivityInfo(g.id, selectedSup) : '';
       const notesVal = supActInfo || (window.supEx && window.supEx['g_' + g.id]?.notes) || g.notes || '';
+
+      const coordInfo = typeof window.getGardenCoordinator === 'function' ? window.getGardenCoordinator(g.id) : null;
+      const fallbackCoordInfo = (!coordInfo && typeof window.getGardenCoordinator === 'function') 
+        ? window.getGardenCoordinator(g.id, { allowAreaManager: true }) 
+        : null;
+      const finalCoordName = coordInfo ? coordInfo.name : (m.role !== 'manager' && m.role !== 'vp' ? m.name : (fallbackCoordInfo ? fallbackCoordInfo.name : (m.name || '—')));
+      const finalCoordPhone = coordInfo ? coordInfo.phone : (m.role !== 'manager' && m.role !== 'vp' ? m.phone : (fallbackCoordInfo ? fallbackCoordInfo.phone : (m.phone || '—')));
+      const finalCoordCity = (coordInfo && coordInfo.mgr && coordInfo.mgr.city) || (m.city || g.city || '—');
 
       if (isSingle) {
         csvRows.push([
@@ -2995,9 +3081,9 @@ window.exportMgrExcel = async function(mgrId = null, filterSup = null, filterCit
       } else {
         csvRows.push([
           counter++,
-          m.name || '',
-          m.phone || '',
-          m.city || '',
+          finalCoordName,
+          finalCoordPhone,
+          finalCoordCity,
           g.city || '',
           (typeof window.gcls === 'function' ? window.gcls(g) : (g.cls || 'גנים')),
           ageVal,
@@ -3011,6 +3097,48 @@ window.exportMgrExcel = async function(mgrId = null, filterSup = null, filterCit
       }
     });
   });
+
+  if (selectedSup && !isSingle) {
+    const allSystemGardens = (typeof window.getAllGardens === 'function' ? window.getAllGardens() : null) || 
+                             (typeof AG === 'function' ? AG() : (window.GARDENS || []));
+    allSystemGardens.forEach(g => {
+      if (!g || !g.id || seenCsvGardenIds.has(Number(g.id))) return;
+      if (selectedCity && g.city && g.city !== selectedCity) return;
+      if (!window.isSupplierInGarden(g.id, selectedSup)) return;
+
+      seenCsvGardenIds.add(Number(g.id));
+      const info = window.getGardenPhoneInfo(g);
+      const age = (typeof window.extractGardenAge === 'function' ? window.extractGardenAge(g) : (g.age || ''));
+      const ageVal = (age && age !== '***') ? age : '—';
+      const clObj = (typeof window.gardenClusters === 'function' ? window.gardenClusters(g.id) : [])[0];
+      const supActInfo = window.getSupplierGardenActivityInfo(g.id, selectedSup);
+      const notesVal = supActInfo || (window.supEx && window.supEx['g_' + g.id]?.notes) || g.notes || '';
+
+      const coordInfo = typeof window.getGardenCoordinator === 'function' ? window.getGardenCoordinator(g.id) : null;
+      const fallbackCoordInfo = (!coordInfo && typeof window.getGardenCoordinator === 'function') 
+        ? window.getGardenCoordinator(g.id, { allowAreaManager: true }) 
+        : null;
+      const finalCoordName = coordInfo ? coordInfo.name : (fallbackCoordInfo ? fallbackCoordInfo.name : '—');
+      const finalCoordPhone = coordInfo ? coordInfo.phone : (fallbackCoordInfo ? fallbackCoordInfo.phone : '—');
+      const finalCoordCity = (coordInfo && coordInfo.mgr && coordInfo.mgr.city) || (fallbackCoordInfo && fallbackCoordInfo.mgr && fallbackCoordInfo.mgr.city) || (g.city || '—');
+
+      csvRows.push([
+        counter++,
+        finalCoordName,
+        finalCoordPhone,
+        finalCoordCity,
+        g.city || '',
+        (typeof window.gcls === 'function' ? window.gcls(g) : (g.cls || 'גנים')),
+        ageVal,
+        g.name || '',
+        g.st || '',
+        info.gardenPhone || '',
+        info.contactName || '',
+        clObj ? clObj.name : (g.cl || ''),
+        notesVal
+      ]);
+    });
+  }
 
   if (!isSingle && csvRows.length > 1) {
     const dataRows = csvRows.slice(1);
