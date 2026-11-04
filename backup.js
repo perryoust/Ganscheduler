@@ -70,42 +70,6 @@ async function restoreSnapshot(i){
   setTimeout(()=>location.reload(),1200);
 }
 function deleteSnapshot(i){const snaps=getSnapshots();snaps.splice(i,1);saveSnapshots(snaps);renderBackupList();}
-async function updateAppFromHTML(input){
-  const file=input.files[0]; if(!file) return;
-  if(!await window.spConfirm('האפליקציה תתעדכן לגרסה החדשה. הנתונים הקיימים יישמרו. להמשיך?')) return;
-  // Save current data first
-  const currentData=window._safeLS.getItem('ganv5');
-  const currentCfg=window._safeLS.getItem('autoBackupCfg');
-  const r=new FileReader();
-  r.onload=e=>{
-    try{
-      const newHTML=e.target.result;
-      if(!newHTML.includes('ganv5')&&!newHTML.includes('מנהל גנים')) throw new Error('קובץ לא נראה כאפליקציה תקינה');
-      // Write new HTML to a blob and navigate
-      const blob=new Blob([newHTML],{type:'text/html'});
-      const url=URL.createObjectURL(blob);
-      // Store data to restore after load
-      window._safeLS.setItem('_restore_data',currentData||'');
-      window._safeLS.setItem('_restore_cfg',currentCfg||'');
-      window._safeLS.setItem('_pending_restore','1');
-      window.location.href=url;
-    }catch(err){window.spAlert('שגיאה: '+err.message);}
-  };
-  r.readAsText(file,'utf-8');
-}
-// On load: restore data if flagged
-(function(){
-  if(window._safeLS.getItem('_pending_restore')==='1'){
-    window._safeLS.removeItem('_pending_restore');
-    const d=window._safeLS.getItem('_restore_data');
-    const c=window._safeLS.getItem('_restore_cfg');
-    window._safeLS.removeItem('_restore_data');
-    window._safeLS.removeItem('_restore_cfg');
-    if(d) window._safeLS.setItem('ganv5',d);
-    if(c) window._safeLS.setItem('autoBackupCfg',c);
-    setTimeout(()=>window.showToast('✅ האפליקציה עודכנה! הנתונים שוחזרו.'),1500);
-  }
-})();
 
 function importBackup(input){
   const file=input.files[0];if(!file)return;
@@ -114,20 +78,27 @@ function importBackup(input){
   r.onload = async e => {
     try{
       const data=JSON.parse(e.target.result);
-      if(!data.ch&&!data.pairs) throw new Error('פורמט לא תקין');
+      if(!data.ch&&!data.pairs&&!data.schedules) throw new Error('פורמט קובץ לא תקין');
       createSnapshot('לפני ייבוא');
-      const sd={ch:data.ch||[],pairs:data.pairs||[],supEx:data.supEx||{},
+      const sd={ch:data.ch||data.schedules||[],pairs:data.pairs||[],supEx:data.supEx||data.suppliers||{},
         clusters:data.clusters||{},holidays:data.holidays||[],pairBreaks:data.pairBreaks||{},
         managers:data.managers||{},blockedDates:data.blockedDates||{},
         gardenBlocks:data.gardenBlocks||{},invoices:data.invoices||[],
         orders:data.orders||[],deliveries:data.deliveries||[],
         schoolBudgets:data.schoolBudgets||{},
         customGardens:data.customGardens||[],
+        workerTasks:data.workerTasks||[],
         todos:data.todos||[]};
       if (Array.isArray(data.orders)) window.ORDERS = data.orders;
       if (Array.isArray(data.deliveries)) window.DELIVERIES = data.deliveries;
       if (data.schoolBudgets) window.schoolBudgets = data.schoolBudgets;
       if (Array.isArray(data.customGardens)) window._GARDENS_EXTRA = data.customGardens;
+      if (Array.isArray(data.workerTasks)) {
+        window.WORKER_TASKS = data.workerTasks;
+        if (typeof window.saveWorkerTasksToFirebase === 'function') {
+          window.saveWorkerTasksToFirebase();
+        }
+      }
       if (data.matzava && window.MATZAVA_STATE) {
         window.MATZAVA_STATE.records = data.matzava.records || [];
         window.MATZAVA_STATE.nutritionOnly = data.matzava.nutritionOnly || [];
@@ -177,14 +148,6 @@ function importBackup(input){
 setInterval(()=>createSnapshot('שעתי'),60*60*1000);
 window.addEventListener('beforeunload',()=>{
   createSnapshot('סגירה');
-  // Try to sync to Firebase before closing
-  const raw = _safeLS.getItem('ganv5');
-  if(raw && window._fbUser && window._cachedToken){
-    const url = FIREBASE_DB_URL + '?auth=' + window._cachedToken;
-    try{
-      navigator.sendBeacon(url, new Blob([JSON.stringify({data:JSON.parse(raw),ts:Date.now(),version:'10.2'})],{type:'application/json'}));
-    }catch(e){}
-  }
 });
 
 // ── Auto-backup scheduler ──────────────────────────────
@@ -265,6 +228,10 @@ function openInfoModal(){
 
   const bscEl = document.getElementById('bulk-sch-count');
   if (bscEl) bscEl.textContent = (Array.isArray(window.SCH) ? window.SCH.length : (Array.isArray(SCH) ? SCH.length : 0)).toLocaleString();
+
+  if (typeof window.renderVersionVaultIntoContainer === 'function') {
+    window.renderVersionVaultIntoContainer('settings-cloud-vault-list', 5);
+  }
 
   document.getElementById('infom').classList.add('open');
 }
@@ -364,117 +331,4 @@ function goToNoHap(){
 }
 
 
-// === Google Drive Backup Webhook Integration ===
 
-window.setGDriveWebhookUrl = function() {
-  const current = window._safeLS.getItem('gdriveWebhookUrl') || '';
-  const url = prompt('הכנס את כתובת ה-Webhook (URL) של קוד ה-Google Apps Script שיצרת:\n\n(כדי להסיר, השאר ריק ולחץ אישור)', current);
-  if (url !== null) {
-    if (url.trim() === '') {
-      window._safeLS.removeItem('gdriveWebhookUrl');
-      if (window.showToast) window.showToast('✅ חיבור ל-Google Drive הוסר');
-    } else {
-      window._safeLS.setItem('gdriveWebhookUrl', url.trim());
-      if (window.showToast) window.showToast('✅ חיבור ל-Google Drive נשמר בהצלחה!');
-    }
-  }
-};
-
-window.backupToGoogleDrive = async function(isSilent) {
-  const url = window._safeLS.getItem('gdriveWebhookUrl') || 'https://script.google.com/macros/s/AKfycbzntHOkWy1JHRn1XclcSS7l-MlY-TaurQvi8h53u8qzDTQ8LW4CgAUmEqnlD6qFfEhW/exec';
-  if (!url) {
-    if (!isSilent && await window.spConfirm('לא הוגדרה כתובת לגיבוי דרייב.\nהאם תרצה להגדיר כעת?')) {
-      window.setGDriveWebhookUrl();
-    }
-    return;
-  }
-  
-  const btn = document.getElementById('btn-gdrive-backup');
-  if (btn && !isSilent) btn.innerText = 'מגבה... ⏳';
-  
-  try {
-    // Generate backup payload from live in-memory variables (same as exportFullBackup)
-    const backupObj = typeof window.getMasterDataSnapshot === 'function' ? window.getMasterDataSnapshot() : {
-      version: 4,
-      exported: new Date().toISOString(),
-      ch: typeof SCH !== 'undefined' ? SCH.map(s=>({id:s.id,g:s.g,d:s.d,a:s.a,t:s.t,p:s.p,n:s.n,st:s.st,cr:s.cr,cn:s.cn,nt:s.nt,pd:s.pd,pt:s.pt,grp:s.grp,act:s.act||''})) : [],
-      pairs: typeof pairs !== 'undefined' ? pairs : [],
-      supEx: typeof supEx !== 'undefined' ? supEx : [],
-      clusters: typeof clusters !== 'undefined' ? clusters : {},
-      holidays: typeof holidays !== 'undefined' ? holidays : [],
-      pairBreaks: typeof pairBreaks !== 'undefined' ? pairBreaks : [],
-      managers: typeof managers !== 'undefined' ? managers : {},
-      blockedDates: typeof blockedDates !== 'undefined' ? blockedDates : {},
-      gardenBlocks: typeof gardenBlocks !== 'undefined' ? gardenBlocks : {},
-      invoices: typeof INVOICES !== 'undefined' ? INVOICES : [],
-      orders: typeof ORDERS !== 'undefined' ? ORDERS : [],
-      deliveries: typeof DELIVERIES !== 'undefined' ? DELIVERIES : [],
-      matzava: window.MATZAVA_STATE ? {
-        records: window.MATZAVA_STATE.records || [],
-        nutritionOnly: window.MATZAVA_STATE.nutritionOnly || [],
-        schools: window.MATZAVA_STATE.schools || [],
-        lastSync: window.MATZAVA_STATE.lastSync || null
-      } : null,
-      todos: window.todo ? window.todo.items : []
-    };
-    
-    const dataStr = JSON.stringify(backupObj);
-    if (!backupObj.ch || backupObj.ch.length === 0) throw new Error('אין נתונים לגיבוי (המערכת עדיין נטענת)');
-    
-    const payload = {
-      token: "ganscheduler-backup-2026-xyz",
-      data: dataStr
-    };
-    
-    // Create a hidden iframe if not exists, to prevent page reload on form submit
-    let iframe = document.getElementById('gdrive-backup-iframe');
-    if (!iframe) {
-      iframe = document.createElement('iframe');
-      iframe.id = 'gdrive-backup-iframe';
-      iframe.name = 'gdrive-backup-iframe';
-      iframe.style.display = 'none';
-      document.body.appendChild(iframe);
-    }
-    
-    // Create form and submit the payload
-    const form = document.createElement('form');
-    form.method = 'POST';
-    form.action = url;
-    form.target = 'gdrive-backup-iframe';
-    form.style.display = 'none';
-    
-    const tokenInput = document.createElement('input');
-    tokenInput.type = 'hidden';
-    tokenInput.name = 'token';
-    tokenInput.value = "ganscheduler-backup-2026-xyz";
-    form.appendChild(tokenInput);
-    
-    const dataInput = document.createElement('textarea');
-    dataInput.name = 'data';
-    dataInput.value = dataStr;
-    form.appendChild(dataInput);
-    
-    document.body.appendChild(form);
-    form.submit();
-    
-    // Assume success since form POST doesn't fail unless offline
-    setTimeout(() => {
-      document.body.removeChild(form);
-    }, 1000);
-    
-    if (!isSilent) {
-      if (window.showCopyToast) window.showCopyToast('✅ הגיבוי נשמר בהצלחה ב-Google Drive!');
-      else alert('✅ הגיבוי נשמר בהצלחה ב-Google Drive!');
-    } else {
-      console.log('[AutoBackup] Daily silent backup form submitted.');
-    }
-  } catch(e) {
-    console.error('[AutoBackup] Error during silent backup:', e);
-    if (!isSilent) {
-      if (window.spAlert) window.spAlert('❌ שגיאה בגיבוי לענן: ' + e.message);
-      else alert('❌ שגיאה בגיבוי לענן: ' + e.message);
-    }
-  } finally {
-    if (btn && !isSilent) btn.innerText = '☁️ גיבוי מהיר ל-Google Drive';
-  }
-};

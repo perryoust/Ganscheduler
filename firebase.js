@@ -992,19 +992,6 @@ async function loadFromFirebase(silent = false, force = false) {
 
     window._fbSyncReady = true;
 
-    // Silent Daily Auto-Backup to Google Drive for Managers/Admins
-    try {
-      if (window.role !== 'worker' && typeof window.backupToGoogleDrive === 'function') {
-        const today = new Date().toDateString();
-        const lastBackup = window._safeLS.getItem('lastGDriveBackupDate');
-        if (lastBackup !== today) {
-          console.log('[AutoBackup] Triggering daily silent backup to Google Drive...');
-          window._safeLS.setItem('lastGDriveBackupDate', today);
-          setTimeout(() => window.backupToGoogleDrive(true), 3000);
-        }
-      }
-    } catch (e) { console.warn('[AutoBackup] Failed to trigger auto backup:', e); }
-
     return true;
   } catch (e) {
     _setSyncState(null, null, e.message, true);

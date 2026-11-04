@@ -101,6 +101,22 @@
       const ord = Array.isArray(window.ORDERS) ? window.ORDERS : [];
       const del = Array.isArray(window.DELIVERIES) ? window.DELIVERIES : [];
 
+      // Ensure Field Worker Tasks (משימות שטח) are included
+      let wt = Array.isArray(window.WORKER_TASKS) ? window.WORKER_TASKS : [];
+      if (wt.length === 0) {
+        try {
+          const authQ = await getAuthHeader();
+          const r = await fetch(`https://ganmanage-free-default-rtdb.europe-west1.firebasedatabase.app/data/global_worker_tasks.json${authQ}`);
+          if (r.ok) {
+            const data = await r.json();
+            if (data) {
+              wt = Array.isArray(data) ? data : Object.values(data);
+              window.WORKER_TASKS = wt;
+            }
+          }
+        } catch (e) { }
+      }
+
       if (sch.length === 0 && !isManual) {
         console.warn('[VersionVault] Schedules not yet loaded in memory. Deferring checkpoint.');
         return false;
@@ -118,6 +134,7 @@
         invoices: inv,
         orders: ord,
         deliveries: del,
+        workerTasks: wt,
         matzava: window.MATZAVA_STATE ? {
           records: Array.isArray(window.MATZAVA_STATE.records) ? window.MATZAVA_STATE.records : [],
           nutritionOnly: Array.isArray(window.MATZAVA_STATE.nutritionOnly) ? window.MATZAVA_STATE.nutritionOnly : [],
@@ -151,7 +168,8 @@
           invoices: inv.length,
           orders: ord.length,
           deliveries: del.length,
-          matzava: ((window.MATZAVA_STATE?.records?.length || 0) + (window.MATZAVA_STATE?.schools?.length || 0) + (window.MATZAVA_STATE?.nutritionOnly?.length || 0))
+          matzava: ((window.MATZAVA_STATE?.records?.length || 0) + (window.MATZAVA_STATE?.schools?.length || 0) + (window.MATZAVA_STATE?.nutritionOnly?.length || 0)),
+          workerTasks: wt.length
         }
       };
 
@@ -257,7 +275,7 @@
         seq: m.seq || 0,
         ts: m.ts || 0,
         dateStr: m.dateStr || (m.ts ? new Date(m.ts).toLocaleString('he-IL') : '—'),
-        counts: m.counts || { schedules: 0, invoices: 0, suppliers: 0, orders: 0 }
+        counts: m.counts || { schedules: 0, invoices: 0, suppliers: 0, orders: 0, workerTasks: 0 }
       }));
 
       list.sort((a, b) => b.ts - a.ts);
@@ -268,13 +286,141 @@
     }
   };
 
-  // ── 4. Safe Non-Destructive Protection (Live Overwrite Disabled) ─
+  // ── 4. Safe Cloud Restore (שחזור ענן מלא ומאובטח) ───────────────
   window.restoreVersionBackup = async function (vKey) {
-    alert(
-      '🛡️ שחזור דורס נחסם להגנה על המערכת!\n\n' +
-      'כדי להבטיח שלעולם לא יידרס מידע קיים או ייגרם אובדן נתונים, כספת הגיבויים פועלת במצב קריאה וייצוא בלבד.\n\n' +
-      'באפשרותך לייצא את הגרסה שנבחרה ישירות לקובץ אקסל מעוצב (📊 ייצוא לאקסל) או להוריד את קובץ הגיבוי (📥 הורד JSON).'
-    );
+    if (!vKey) return;
+    const authQ = await getAuthHeader();
+
+    try {
+      // 1. Fetch metadata first to show detailed numbers
+      let meta = null;
+      try {
+        const metaRes = await fetch(`${VAULT_ROOT}/meta/${vKey}.json${authQ}`);
+        if (metaRes.ok) meta = await metaRes.json();
+      } catch (e) { }
+
+      const vVer = meta?.version || vKey;
+      const vSeq = meta?.seq ? `#${meta.seq}` : '';
+      const vDate = meta?.dateStr || (meta?.ts ? new Date(meta.ts).toLocaleString('he-IL') : 'לא ידוע');
+      const c = meta?.counts || {};
+      const schStr = c.schedules ? `${c.schedules.toLocaleString()} חוגים` : '';
+      const invStr = c.invoices ? `${c.invoices.toLocaleString()} חשבוניות` : '';
+      const wtStr = c.workerTasks ? `${c.workerTasks.toLocaleString()} משימות שטח` : '';
+      const matzStr = c.matzava ? `${c.matzava.toLocaleString()} רשומות מצבה` : '';
+      const summaryParts = [schStr, invStr, wtStr, matzStr].filter(Boolean).join(' | ');
+
+      const confirmMsg =
+        `⚠️ שחזור מערכת מענן לגרסה v${vVer} (רצף ${vSeq}) ⚠️\n\n` +
+        `📅 תאריך צילום המצב: ${vDate}\n` +
+        (summaryParts ? `📊 נתונים בגיבוי זה: ${summaryParts}\n\n` : '\n') +
+        `🛡️ להגנתך: המערכת תיצור אוטומטית צילום מצב עדכני בענן של הנתונים הנוכחיים לפני ביצוע השחזור.\n\n` +
+        `האם ברצונך לשחזר את כל נתוני המערכת בענן לגרסה זו?`;
+
+      const firstOk = typeof window.spConfirm === 'function' ? await window.spConfirm(confirmMsg) : confirm(confirmMsg);
+      if (!firstOk) return;
+
+      const doubleCheck = typeof window.spConfirm === 'function'
+        ? await window.spConfirm(`🚨 אישור סופי: פעולה זו תחליף את כל נתוני הלוח, הרכש, המצבה ומשימות השטח בענן לגרסה שנבחרה (${vDate}).\n\nלהמשיך?`)
+        : confirm(`אישור סופי לשחזור מענן מ-${vDate}?`);
+      if (!doubleCheck) return;
+
+      if (window.showToast) window.showToast('⏳ מגבה מצב נוכחי בענן לפני שחזור...');
+
+      // 2. Emergency Pre-Restore Cloud Checkpoint
+      try {
+        await window.saveVersionBackup(true);
+      } catch (e) {
+        console.warn('[VersionVault] Pre-restore backup warning:', e);
+      }
+
+      if (window.showToast) window.showToast('📥 מושך ופורס את נתוני הגיבוי מהענן...');
+
+      // 3. Fetch Data Node
+      const dataUrl = `${VAULT_ROOT}/data/${vKey}.json${authQ}`;
+      const dr = await fetch(dataUrl);
+      if (!dr.ok) throw new Error('HTTP ' + dr.status + ' בשליפת נתוני גיבוי מהענן');
+
+      const payload = await dr.json();
+      let fullData = null;
+      if (payload.gz && window.utils?.decompressData) {
+        fullData = await window.utils.decompressData(payload.gz);
+      } else {
+        fullData = payload.data || payload;
+      }
+
+      if (!fullData || !fullData.schedules) {
+        throw new Error('קובץ הגיבוי בענן ריק או פגום');
+      }
+
+      // 4. Set Master Lock to prevent any background sync race condition
+      window._MASTER_LOCK = true;
+      if (window._safeLS) {
+        window._safeLS.setItem('fb_sync_ignore_until', String(Date.now() + 60000));
+      }
+
+      // 5. Apply In-Memory Data
+      window.SCH = Array.isArray(fullData.schedules) ? fullData.schedules : [];
+      window.supEx = fullData.suppliers || {};
+      window._GARDENS_EXTRA = Array.isArray(fullData.customGardens) ? fullData.customGardens : [];
+      window.INVOICES = Array.isArray(fullData.invoices) ? fullData.invoices : [];
+      window.ORDERS = Array.isArray(fullData.orders) ? fullData.orders : [];
+      window.DELIVERIES = Array.isArray(fullData.deliveries) ? fullData.deliveries : [];
+
+      if (fullData.matzava && window.MATZAVA_STATE) {
+        window.MATZAVA_STATE.records = fullData.matzava.records || [];
+        window.MATZAVA_STATE.nutritionOnly = fullData.matzava.nutritionOnly || [];
+        window.MATZAVA_STATE.schools = fullData.matzava.schools || [];
+        window.MATZAVA_STATE.lastSync = fullData.matzava.lastSync || null;
+      }
+
+      if (Array.isArray(fullData.workerTasks)) {
+        window.WORKER_TASKS = fullData.workerTasks;
+      }
+
+      if (fullData.config) {
+        const cfg = fullData.config;
+        if (Array.isArray(cfg.pairs)) window.pairs = cfg.pairs;
+        if (cfg.clusters) window.clusters = cfg.clusters;
+        if (Array.isArray(cfg.holidays)) window.holidays = cfg.holidays;
+        if (cfg.pairBreaks) window.pairBreaks = cfg.pairBreaks;
+        if (cfg.managers) window.managers = cfg.managers;
+        if (cfg.blockedDates) window.blockedDates = cfg.blockedDates;
+        if (cfg.gardenBlocks) window.gardenBlocks = cfg.gardenBlocks;
+        if (cfg.vatRate) window.VAT_RATE = cfg.vatRate;
+        if (cfg.schoolBudgets) window.schoolBudgets = cfg.schoolBudgets;
+        if (cfg.todos && window.todo) window.todo.items = cfg.todos;
+      }
+
+      // 6. Write restored state directly to Firebase
+      if (window.showToast) window.showToast('💾 שומר נתונים משוחזרים לענן...');
+
+      // Save main year data (Schedules, Config, Suppliers)
+      if (typeof window.save === 'function') {
+        const ok = await window.save(true);
+        if (!ok) console.warn('[VersionVault] Save returned false, continuing with tasks & matzava...');
+      }
+
+      // Save worker tasks if present
+      if (Array.isArray(fullData.workerTasks) && typeof window.saveWorkerTasksToFirebase === 'function') {
+        await window.saveWorkerTasksToFirebase();
+      }
+
+      // Save matzava if present
+      if (fullData.matzava && typeof window.saveMatzavaToFirebase === 'function') {
+        await window.saveMatzavaToFirebase();
+      }
+
+      if (window.showToast) window.showToast('✅ המערכת שוחזרה בהצלחה מהענן! מרענן דף...');
+      setTimeout(() => {
+        window._MASTER_LOCK = false;
+        location.reload();
+      }, 1500);
+
+    } catch (err) {
+      console.error('[VersionVault Restore Error]', err);
+      window._MASTER_LOCK = false;
+      alert('❌ שגיאה בשחזור מענן: ' + err.message);
+    }
   };
 
   // ── 5. Export Checkpoint directly to Excel (Multi-Sheet) ───────
@@ -531,6 +677,47 @@
         });
       }
 
+      // ─────────────────────────────────────────────────────────
+      // SHEET 6: משימות שטח (Worker Tasks)
+      // ─────────────────────────────────────────────────────────
+      const workerTasks = Array.isArray(fullData.workerTasks) ? fullData.workerTasks : [];
+      if (workerTasks.length > 0) {
+        const wsWt = wb.addWorksheet('משימות שטח', {
+          views: [{ rightToLeft: true, state: 'frozen', ySplit: 1 }]
+        });
+        wsWt.columns = [
+          { header: 'תאריך', key: 'date', width: 14 },
+          { header: 'עיר', key: 'city', width: 16 },
+          { header: 'גן / מוסד', key: 'gardenName', width: 24 },
+          { header: 'כתובת', key: 'address', width: 26 },
+          { header: 'תיאור המשימה', key: 'desc', width: 32 },
+          { header: 'עובד שטח', key: 'workerName', width: 16 },
+          { header: 'סטטוס', key: 'status', width: 14 },
+          { header: 'בוצע בתאריך', key: 'doneAt', width: 18 },
+          { header: 'הערת עובד', key: 'workerNote', width: 30 }
+        ];
+        styleHeader(wsWt, 'FFE65100');
+
+        workerTasks.forEach(t => {
+          let stText = t.status === 'done' ? 'בוצע ✓' : 'ממתין לביצוע';
+          const r = wsWt.addRow({
+            date: t.date || '',
+            city: t.city || '',
+            gardenName: t.gardenName || '',
+            address: t.address || '',
+            desc: t.desc || '',
+            workerName: t.workerName || '',
+            status: stText,
+            doneAt: t.doneAt || '',
+            workerNote: t.workerNote || ''
+          });
+          r.eachCell((cell, colNum) => {
+            cell.alignment = { horizontal: (colNum === 1 || colNum === 2 || colNum === 7 || colNum === 8) ? 'center' : 'right', vertical: 'middle', readingOrder: 'rightToLeft' };
+            cell.font = { name: 'Arial', size: 10 };
+          });
+        });
+      }
+
       // Export workbook to download
       const buffer = await wb.xlsx.writeBuffer();
       const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
@@ -670,6 +857,8 @@
       const invCnt = (c.invoices || 0).toLocaleString();
       const supCnt = (c.suppliers || 0).toLocaleString();
 
+      const wtCnt = (c.workerTasks || 0).toLocaleString();
+
       return `
         <div style="background:${isLatest ? '#f1f8e9' : '#ffffff'}; border:1px solid ${isLatest ? '#a5d6a7' : '#e0e0e0'}; border-radius:8px; padding:12px 14px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; box-shadow:0 1px 3px rgba(0,0,0,0.04);">
           <div>
@@ -683,16 +872,70 @@
               <span>📋 <b>${schCnt}</b> חוגים</span>
               <span>🛒 <b>${invCnt}</b> חשבוניות</span>
               <span>🏢 <b>${supCnt}</b> ספקים</span>
+              ${c.workerTasks ? `<span>👷 <b>${wtCnt}</b> משימות שטח</span>` : ''}
               ${c.orders ? `<span>📦 <b>${c.orders}</b> הזמנות</span>` : ''}
               ${c.matzava ? `<span>👶 <b>${c.matzava}</b> מצבה</span>` : ''}
             </div>
           </div>
           <div style="display:flex; gap:6px; align-items:center;">
+            <button class="btn bp bsm" onclick="window.restoreVersionBackup('${item.key}')" title="שחזר גרסת ענן זו למערכת החיה" style="background:#1565c0; border-color:#1565c0; color:#fff; font-weight:700; display:flex; align-items:center; gap:5px; padding:6px 12px; cursor:pointer;">
+              <span>🔄 שחזר מענן</span>
+            </button>
             <button class="btn bg bsm" onclick="window.exportVersionBackupToExcel('${item.key}')" title="ייצא גרסה היסטורית זו ישירות לקובץ Excel מלא" style="background:#2e7d32; border-color:#2e7d32; color:#fff; font-weight:700; display:flex; align-items:center; gap:5px; padding:6px 12px; cursor:pointer;">
               <span>📊 ייצוא לאקסל</span>
             </button>
             <button class="btn bo bsm" onclick="window.downloadVersionBackup('${item.key}')" title="הורד קובץ JSON למחשב" style="background:#f8fafc; border:1px solid #cbd5e1; color:#334155; display:flex; align-items:center; gap:4px; padding:6px 10px; cursor:pointer;">
               <span>📥 הורד JSON</span>
+            </button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  };
+
+  window.renderVersionVaultIntoContainer = async function (containerId, limit = 0) {
+    const el = document.getElementById(containerId);
+    if (!el) return;
+    el.innerHTML = '<div style="text-align:center; padding:15px; color:#90a4ae;">טוען גיבויי ענן...</div>';
+    let list = await window.loadVersionBackupsList();
+    if (!list || list.length === 0) {
+      el.innerHTML = '<div style="text-align:center; padding:15px; color:#78909c;">טרם נוצרו גיבויי ענן. לחץ על "צור גיבוי ענן עכשיו" ליצירת גיבוי ראשון.</div>';
+      return;
+    }
+    if (limit > 0) list = list.slice(0, limit);
+    el.innerHTML = list.map((item, idx) => {
+      const isLatest = (idx === 0);
+      const c = item.counts || {};
+      const schCnt = (c.schedules || 0).toLocaleString();
+      const invCnt = (c.invoices || 0).toLocaleString();
+      const supCnt = (c.suppliers || 0).toLocaleString();
+      const wtCnt = (c.workerTasks || 0).toLocaleString();
+      return `
+        <div style="background:${isLatest ? '#f1f8e9' : '#ffffff'}; border:1px solid ${isLatest ? '#a5d6a7' : '#e0e0e0'}; border-radius:8px; padding:9px 12px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:6px; box-shadow:0 1px 2px rgba(0,0,0,0.03);">
+          <div>
+            <div style="display:flex; align-items:center; gap:6px;">
+              <span style="font-weight:800; font-size:0.92rem; color:#1a237e;">v${item.version}</span>
+              <span style="background:#e3f2fd; color:#0d47a1; font-size:0.7rem; padding:1px 6px; border-radius:8px; font-weight:700;">#${item.seq || 0}</span>
+              ${isLatest ? '<span style="background:#2e7d32; color:#fff; font-size:0.65rem; padding:1px 6px; border-radius:8px; font-weight:700;">אחרון</span>' : ''}
+              <span style="font-size:0.72rem; color:#78909c;">🕐 ${item.dateStr}</span>
+            </div>
+            <div style="font-size:0.73rem; color:#455a64; margin-top:3px; display:flex; gap:10px; flex-wrap:wrap;">
+              <span>📋 <b>${schCnt}</b> חוגים</span>
+              <span>🛒 <b>${invCnt}</b> חשבוניות</span>
+              <span>🏢 <b>${supCnt}</b> ספקים</span>
+              ${c.workerTasks ? `<span>👷 <b>${wtCnt}</b> משימות</span>` : ''}
+              ${c.matzava ? `<span>👶 <b>${c.matzava}</b> מצבה</span>` : ''}
+            </div>
+          </div>
+          <div style="display:flex; gap:5px; align-items:center;">
+            <button class="btn bp bsm" onclick="window.restoreVersionBackup('${item.key}')" title="שחזר גרסת ענן זו למערכת החיה" style="background:#1565c0; border-color:#1565c0; color:#fff; font-weight:700; padding:4px 9px; font-size:0.74rem; cursor:pointer;">
+              <span>🔄 שחזר</span>
+            </button>
+            <button class="btn bg bsm" onclick="window.exportVersionBackupToExcel('${item.key}')" title="ייצא לאקסל" style="background:#2e7d32; border-color:#2e7d32; color:#fff; font-weight:700; padding:4px 9px; font-size:0.74rem; cursor:pointer;">
+              <span>📊 אקסל</span>
+            </button>
+            <button class="btn bo bsm" onclick="window.downloadVersionBackup('${item.key}')" title="הורד JSON" style="background:#f8fafc; border:1px solid #cbd5e1; color:#334155; padding:4px 8px; font-size:0.74rem; cursor:pointer;">
+              <span>📥 JSON</span>
             </button>
           </div>
         </div>

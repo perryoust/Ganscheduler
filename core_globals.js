@@ -139,6 +139,9 @@ window.getMasterDataSnapshot = function() {
       lastSync: window.MATZAVA_STATE.lastSync || null
     } : null,
 
+    // Field Worker Tasks (משימות שטח)
+    workerTasks: Array.isArray(window.WORKER_TASKS) ? window.WORKER_TASKS : [],
+
     // Tasks & Todos
     todos: window.todo ? window.todo.items : []
   };
