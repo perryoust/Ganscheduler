@@ -459,6 +459,10 @@
                   <input type="checkbox" id="gexp-inst-inc-units" onchange="window.onInstFilterChange(true)">
                   <span>הצג פירוט שמות אשכולות / בתי ספר בסוגריים</span>
                 </label>
+                <label style="display:inline-flex; align-items:center; gap:5px; cursor:pointer;">
+                  <input type="checkbox" id="gexp-inst-inc-coord" onchange="window.onInstFilterChange(true)">
+                  <span>בלו"ז מלא: כלול שם וטלפון רכז/ת</span>
+                </label>
               </div>
             </div>
 
@@ -484,27 +488,29 @@
 
         <!-- Footer Export Actions (Tab 1: Grid) -->
         <div id="gexp-footer-grid" style="background:#f8fafc; border-top:1px solid #e2e8f0; padding:11px 18px; display:flex; flex-wrap:wrap; gap:8px; justify-content:space-between; align-items:center; direction:rtl;">
-          <div style="display:flex; flex-wrap:wrap; gap:8px; flex:1;">
-            <button type="button" class="btn bg" data-tip="הורד דוח שבועי מרוכז של אשכולות ומדריכים (בדיוק כמו בתמונה: מס' מדריכים ליום)" onclick="window.doClusterMatrixExportExcel()" style="background:#0284c7; border-color:#0369a1; color:#fff; font-weight:800; padding:8px 14px; font-size:0.84rem;">📑 מס' מדריכים ליום (אשכולות)</button>
-            <button type="button" class="btn bg" data-tip="הורד קובץ אקסל מעוצב (RTL) של טבלת השיבוצים בטווח שנבחר" onclick="window.doGridExportExcel()" style="background:#15803d; border-color:#166534; color:#fff; font-weight:800; padding:8px 14px; font-size:0.84rem;">📊 אקסל (Excel)</button>
-            <button type="button" class="btn bp" data-tip="פתח תצוגת הדפסה ושמירה ל-PDF מותאמת לרוחב עמוד A4" onclick="window.doGridExportPDF()" style="background:#1d4ed8; border-color:#1e40af; color:#fff; font-weight:800; padding:8px 14px; font-size:0.84rem;">🖨️ PDF / הדפסה</button>
-            <button type="button" class="btn bo" data-tip="הורד את טבלת השיבוצים כתמונת JPG (או קובץ ZIP למספר ערים)" onclick="window.doGridExportImage('download')" style="background:#fdf2f8; border:1px solid #f472b6; color:#9d174d; font-weight:800; padding:8px 12px; font-size:0.82rem;">🖼️ תמונה (JPG)</button>
-            <button type="button" class="btn bo" data-tip="העתק את הטבלה כתמונה ללוח להדבקה ישירה (Ctrl+V) בוואטסאפ" onclick="window.doGridExportImage('copy')" style="background:#ecfdf5; border:1px solid #34d399; color:#065f46; font-weight:800; padding:8px 12px; font-size:0.82rem;">📋 העתק לוואטסאפ</button>
+          <div style="display:flex; flex-wrap:wrap; gap:7px; flex:1;">
+            <button type="button" class="btn bg" data-tip="העתק הודעת טקסט מפורטת לוואטסאפ של כל הלו״ז המלא בטווח ובסינון שנבחרו" onclick="window.doGridExportWhatsAppText()" style="background:#0d9488; border-color:#0f766e; color:#fff; font-weight:800; padding:7px 12px; font-size:0.81rem;">📲 העתק לו"ז מלא בהודעה</button>
+            <button type="button" class="btn bg" data-tip="הורד דוח שבועי מרוכז של אשכולות ומדריכים (בדיוק כמו בתמונה: מס' מדריכים ליום)" onclick="window.doClusterMatrixExportExcel()" style="background:#0284c7; border-color:#0369a1; color:#fff; font-weight:800; padding:7px 12px; font-size:0.81rem;">📑 מס' מדריכים (אשכולות)</button>
+            <button type="button" class="btn bg" data-tip="הורד קובץ אקסל מעוצב (RTL) של טבלת השיבוצים בטווח שנבחר" onclick="window.doGridExportExcel()" style="background:#15803d; border-color:#166534; color:#fff; font-weight:800; padding:7px 12px; font-size:0.81rem;">📊 אקסל (Excel)</button>
+            <button type="button" class="btn bp" data-tip="פתח תצוגת הדפסה ושמירה ל-PDF מותאמת לרוחב עמוד A4" onclick="window.doGridExportPDF()" style="background:#1d4ed8; border-color:#1e40af; color:#fff; font-weight:800; padding:7px 12px; font-size:0.81rem;">🖨️ PDF / הדפסה</button>
+            <button type="button" class="btn bo" data-tip="הורד את טבלת השיבוצים כתמונת JPG (או קובץ ZIP למספר ערים)" onclick="window.doGridExportImage('download')" style="background:#fdf2f8; border:1px solid #f472b6; color:#9d174d; font-weight:800; padding:7px 11px; font-size:0.8rem;">🖼️ תמונה (JPG)</button>
+            <button type="button" class="btn bo" data-tip="העתק את הטבלה כתמונה ללוח להדבקה ישירה (Ctrl+V) בוואטסאפ" onclick="window.doGridExportImage('copy')" style="background:#ecfdf5; border:1px solid #34d399; color:#065f46; font-weight:800; padding:7px 11px; font-size:0.8rem;">📋 העתק תמונה</button>
           </div>
-          <button type="button" class="btn bo" onclick="window.CM('grid-export-m')" style="padding:8px 14px; font-size:0.82rem;">סגור</button>
+          <button type="button" class="btn bo" onclick="window.CM('grid-export-m')" style="padding:7px 13px; font-size:0.81rem;">סגור</button>
         </div>
 
         <!-- Footer Export Actions (Tab 2: Instructors) -->
         <div id="gexp-footer-instructors" style="display:none; background:#f8fafc; border-top:1px solid #e2e8f0; padding:11px 18px; flex-wrap:wrap; gap:8px; justify-content:space-between; align-items:center; direction:rtl;">
-          <div style="display:flex; flex-wrap:wrap; gap:7px; flex:1;">
-            <button type="button" class="btn bg" data-tip="הורד דוח שבועי מרוכז של אשכולות ומדריכים (בדיוק כמו בתמונה: מס' מדריכים ליום)" onclick="window.doClusterMatrixExportExcel()" style="background:#0284c7; border-color:#0369a1; color:#fff; font-weight:800; padding:8px 13px; font-size:0.83rem;">📑 מס' מדריכים ליום (אשכולות)</button>
-            <button type="button" class="btn bg" data-tip="העתק הודעת טקסט מוכנה לוואטסאפ עם כמות המדריכים ליום" onclick="window.doInstExportWhatsAppText()" style="background:#16a34a; border-color:#15803d; color:#fff; font-weight:800; padding:8px 13px; font-size:0.83rem;">💬 העתק הודעה לוואטסאפ</button>
-            <button type="button" class="btn bg" data-tip="הורד קובץ אקסל מלא (3 גיליונות: מדריכים לפי ערים, בקרת עומסים וחוסרים)" onclick="window.doInstExportExcel()" style="background:#15803d; border-color:#166534; color:#fff; font-weight:800; padding:8px 13px; font-size:0.83rem;">📊 אקסל מדריכים ובקרה</button>
-            <button type="button" class="btn bp" data-tip="פתח דוח היערכות מדריכים להדפסה או שמירה כ-PDF" onclick="window.doInstExportPDF()" style="background:#1d4ed8; border-color:#1e40af; color:#fff; font-weight:800; padding:8px 13px; font-size:0.83rem;">🖨️ PDF / הדפסה</button>
-            <button type="button" class="btn bo" data-tip="הורד כרטיס תמונה מעוצב (JPG) של היערכות המדריכים" onclick="window.doInstExportImage('download')" style="background:#fdf2f8; border:1px solid #f472b6; color:#9d174d; font-weight:800; padding:8px 11px; font-size:0.81rem;">🖼️ תמונה (JPG)</button>
-            <button type="button" class="btn bo" data-tip="העתק כרטיס היערכות מדריכים כתמונה ללוח להדבקה ב-Ctrl+V בוואטסאפ" onclick="window.doInstExportImage('copy')" style="background:#ecfdf5; border:1px solid #34d399; color:#065f46; font-weight:800; padding:8px 11px; font-size:0.81rem;">📋 העתק תמונה לוואטסאפ</button>
+          <div style="display:flex; flex-wrap:wrap; gap:6px; flex:1;">
+            <button type="button" class="btn bg" data-tip="העתק הודעת טקסט מוכנה לוואטסאפ עם הלו״ז המלא והמפורט לספק (תאריכים, ערים, אשכולות, גנים, כתובות ושעות)" onclick="window.doInstExportFullScheduleWA()" style="background:#0d9488; border-color:#0f766e; color:#fff; font-weight:800; padding:7px 12px; font-size:0.81rem;">📲 העתק לו"ז מלא בהודעה</button>
+            <button type="button" class="btn bg" data-tip="העתק הודעת טקסט מרוכזת לוואטסאפ עם כמות המדריכים הנדרשת ליום לפי עיר" onclick="window.doInstExportWhatsAppText()" style="background:#16a34a; border-color:#15803d; color:#fff; font-weight:800; padding:7px 12px; font-size:0.81rem;">💬 הודעת כמות מדריכים</button>
+            <button type="button" class="btn bg" data-tip="הורד דוח שבועי מרוכז של אשכולות ומדריכים (בדיוק כמו בתמונה: מס' מדריכים ליום)" onclick="window.doClusterMatrixExportExcel()" style="background:#0284c7; border-color:#0369a1; color:#fff; font-weight:800; padding:7px 11px; font-size:0.8rem;">📑 מס' מדריכים (אשכולות)</button>
+            <button type="button" class="btn bg" data-tip="הורד קובץ אקסל מלא (3 גיליונות: מדריכים לפי ערים, בקרת עומסים וחוסרים)" onclick="window.doInstExportExcel()" style="background:#15803d; border-color:#166534; color:#fff; font-weight:800; padding:7px 11px; font-size:0.8rem;">📊 אקסל מדריכים ובקרה</button>
+            <button type="button" class="btn bp" data-tip="פתח דוח היערכות מדריכים להדפסה או שמירה כ-PDF" onclick="window.doInstExportPDF()" style="background:#1d4ed8; border-color:#1e40af; color:#fff; font-weight:800; padding:7px 11px; font-size:0.8rem;">🖨️ PDF / הדפסה</button>
+            <button type="button" class="btn bo" data-tip="הורד כרטיס תמונה מעוצב (JPG) של היערכות המדריכים" onclick="window.doInstExportImage('download')" style="background:#fdf2f8; border:1px solid #f472b6; color:#9d174d; font-weight:800; padding:7px 10px; font-size:0.79rem;">🖼️ תמונה (JPG)</button>
+            <button type="button" class="btn bo" data-tip="העתק כרטיס היערכות מדריכים כתמונה ללוח להדבקה ב-Ctrl+V בוואטסאפ" onclick="window.doInstExportImage('copy')" style="background:#ecfdf5; border:1px solid #34d399; color:#065f46; font-weight:800; padding:7px 10px; font-size:0.79rem;">📋 העתק תמונה</button>
           </div>
-          <button type="button" class="btn bo" onclick="window.CM('grid-export-m')" style="padding:8px 14px; font-size:0.82rem;">סגור</button>
+          <button type="button" class="btn bo" onclick="window.CM('grid-export-m')" style="padding:7px 13px; font-size:0.81rem;">סגור</button>
         </div>
 
         <!-- Footer Export Actions (Tab 3: Clusters & Gaps Control) -->
@@ -1911,10 +1917,139 @@
     }
   };
 
+  // ════════════════════════════════════════════════════════════════════
+  // TAB 1: FULL SCHEDULE WHATSAPP TEXT EXPORT
+  // ════════════════════════════════════════════════════════════════════
+  window.doGridExportWhatsAppText = async function () {
+    const data = _collectGridData();
+    if (!data.days.length || !data.totalGardens) {
+      window.spAlert('לא נמצאו נתוני שיבוצים להעתקה בטווח ובסינון שנבחרו.');
+      return;
+    }
+
+    const { days, citiesData, evsByCell, opts, title, dateRangePart } = data;
+    const RLM = '\u200F';
+    const lines = [];
+    lines.push(`${RLM}📅 *${title}*`);
+    lines.push(`${RLM}🗓️ *תאריכים: ${dateRangePart}*`);
+    lines.push('');
+
+    let totalPrinted = 0;
+
+    days.forEach(ds => {
+      const dayHasEvs = citiesData.some(cd => {
+        const gids = [
+          ...cd.groups.flatMap(grp => grp.gardens.map(g => Number(g.id))),
+          ...cd.solos.map(g => Number(g.id))
+        ];
+        return gids.some(gid => (evsByCell.get(`${gid}_${ds}`) || []).length > 0);
+      });
+      if (!dayHasEvs) return;
+
+      lines.push('━━━━━━━━━━━━━━━━━━━━');
+      const fullDayName = typeof window.dayN === 'function' ? `יום ${window.dayN(ds)}` : _shortDay(ds);
+      lines.push(`${RLM}🗓️ *${fullDayName} | ${window.fD(ds)}*`);
+
+      citiesData.forEach(cd => {
+        const cityHasEvs = [
+          ...cd.groups.flatMap(grp => grp.gardens.map(g => Number(g.id))),
+          ...cd.solos.map(g => Number(g.id))
+        ].some(gid => (evsByCell.get(`${gid}_${ds}`) || []).length > 0);
+        if (!cityHasEvs) return;
+
+        lines.push(`${RLM}🏙️ *${cd.city}*`);
+
+        const formatEvLinesForGarden = (g, indent) => {
+          const gid = Number(g.id);
+          const evs = evsByCell.get(`${gid}_${ds}`) || [];
+          if (!evs.length) return;
+          evs.forEach(ev => {
+            totalPrinted++;
+            const supAlias = _resolveSupplierAlias(ev.a);
+            const actName = ev.act || (typeof window.supAct === 'function' ? window.supAct(ev.a) : '') || '';
+            const actPart = actName && actName !== supAlias ? ` (${actName})` : '';
+            const supPhone = opts.incSupPhone
+              ? (typeof window.getSupPhone === 'function' ? window.getSupPhone(ev.a, ev) : (ev.p || ''))
+              : '';
+            const phonePart = supPhone ? ` · 📞 ${supPhone}` : '';
+
+            let actualGrp = ev.grp ? String(ev.grp).trim() : String(window.ggr ? window.ggr(g) || '' : '');
+            const grpPart = (actualGrp && actualGrp !== '1' && actualGrp !== '0')
+              ? ` · ${actualGrp.includes(',') ? "קב' " + actualGrp : actualGrp + " קב'"}`
+              : '';
+
+            const timeVal = ev.t ? (typeof window.fT === 'function' ? window.fT(ev.t) : ev.t) : '';
+            const timePart = timeVal ? ` · ⏰ ${timeVal}` : (ev.flexNote ? ` · ℹ️ ${ev.flexNote}` : '');
+            const addrPart = (opts.incAddr && g.st) ? ` · 📍 ${g.st}` : '';
+
+            lines.push(`${RLM}${indent}🏫 *${g.name}* – 📚 ${supAlias}${actPart}${grpPart}${timePart}${addrPart}${phonePart}`);
+
+            if (opts.incGardenMeta) {
+              const coord = _getCoordinatorLabel(gid);
+              const gPh = _getGardenPhone(g);
+              const metaParts = [];
+              if (coord) metaParts.push(`👤 רכז/ת: ${coord}`);
+              if (gPh) metaParts.push(`☎️ גן: ${gPh}`);
+              if (metaParts.length) {
+                lines.push(`${RLM}${indent}   ${metaParts.join(' · ')}`);
+              }
+            }
+          });
+        };
+
+        cd.groups.forEach(grp => {
+          const activeGardens = grp.gardens.filter(g => (evsByCell.get(`${Number(g.id)}_${ds}`) || []).length > 0);
+          if (!activeGardens.length) return;
+          // Sort gardens inside group by earliest event time on this day, then garden name
+          activeGardens.sort((ga, gb) => {
+            const tA = (evsByCell.get(`${Number(ga.id)}_${ds}`) || [])[0]?.t || '99:99';
+            const tB = (evsByCell.get(`${Number(gb.id)}_${ds}`) || [])[0]?.t || '99:99';
+            if (tA !== tB) return tA.localeCompare(tB);
+            return (ga.name || '').localeCompare(gb.name || '', 'he', { numeric: true });
+          });
+          const grpIcon = opts.groupMode === 'pairs' ? '⚖️' : '📦';
+          lines.push(`${RLM}${grpIcon} *${grp.name}:*`);
+          activeGardens.forEach(g => formatEvLinesForGarden(g, '  '));
+        });
+
+        const activeSolos = cd.solos.filter(g => (evsByCell.get(`${Number(g.id)}_${ds}`) || []).length > 0);
+        if (activeSolos.length) {
+          activeSolos.sort((ga, gb) => {
+            const tA = (evsByCell.get(`${Number(ga.id)}_${ds}`) || [])[0]?.t || '99:99';
+            const tB = (evsByCell.get(`${Number(gb.id)}_${ds}`) || [])[0]?.t || '99:99';
+            if (tA !== tB) return tA.localeCompare(tB);
+            return (ga.name || '').localeCompare(gb.name || '', 'he', { numeric: true });
+          });
+          activeSolos.forEach(g => formatEvLinesForGarden(g, ''));
+        }
+        lines.push('');
+      });
+    });
+
+    if (totalPrinted === 0) {
+      window.spAlert('לא נמצאו שיבוצים פעילים בטווח ובסינון שנבחרו.');
+      return;
+    }
+
+    const text = lines.join('\n').trim();
+    try {
+      await navigator.clipboard.writeText(text);
+      window.showToast?.(`📲 הלו"ז המלא (${totalPrinted} שיבוצים) הועתק לוואטסאפ!`);
+    } catch (e) {
+      window.spAlert(text);
+    }
+  };
+
   // ════════════════════════════════════════════════════════════════════════
   // TAB 2: INSTRUCTORS PER DAY FOR SUPPLIERS & CLUSTER/LOAD SANITY CONTROL
   // ════════════════════════════════════════════════════════════════════════
   const _HEB_DAYS_SHORT = ["יום א'", "יום ב'", "יום ג'", "יום ד'", "יום ה'", "יום ו'", 'שבת'];
+  let _instSubView = 'summary'; // 'summary' | 'full_sched'
+
+  window.setInstSubView = function (mode) {
+    _instSubView = mode === 'full_sched' ? 'full_sched' : 'summary';
+    _refreshInstructorsTab(true);
+  };
 
   function _shortDay(ds) {
     const d = window.s2d(ds);
@@ -1951,6 +2086,7 @@
     const statusFilter = document.getElementById('gexp-inst-status')?.value || 'all';
     const incDailyTot = document.getElementById('gexp-inst-inc-daily-tot') ? !!document.getElementById('gexp-inst-inc-daily-tot').checked : true;
     const incUnits = !!document.getElementById('gexp-inst-inc-units')?.checked;
+    const incCoord = !!document.getElementById('gexp-inst-inc-coord')?.checked;
     const bwMode = !!document.getElementById('gexp-bw-mode')?.checked;
 
     const days = _buildDaysArray(fromDs, toDs, incFri);
@@ -2289,6 +2425,7 @@
       statusFilter,
       incDailyTot,
       incUnits,
+      incCoord,
       bwMode,
       allSuppliers,
       filteredSuppliers,
@@ -2586,6 +2723,120 @@
     wrap.innerHTML = kpisHtml + sectionsHtml;
   }
 
+  // Collect full chronological schedule (gardens, addresses, hours, clusters) for a single supplier
+  function _collectSupplierFullSchedule(supBaseName, data) {
+    const days = data.days || [];
+    const daysSet = new Set(days);
+    const minDs = data.minDs || (days[0] || '');
+    const maxDs = data.maxDs || (days[days.length - 1] || '');
+    const allActiveGardens = _getAllActiveGardens();
+    const activeMap = new Map();
+    allActiveGardens.forEach(g => activeMap.set(Number(g.id), g));
+
+    const allClusters = typeof window.getClusters === 'function'
+      ? window.getClusters(minDs, maxDs)
+      : Object.values(window.clusters || {});
+
+    const byDayMap = new Map(); // ds -> Map(city -> Map(unitKey -> unitObj))
+    let totalEvents = 0;
+
+    (window.SCH || []).forEach(s => {
+      if (!s || !s.d || !daysSet.has(s.d)) return;
+      if (s.st === 'can' || s.st === 'post' || s.st === 'nohap') return;
+      const evBase = (typeof window.supBase === 'function' ? window.supBase(s.a) : String(s.a || '')).trim();
+      if (evBase !== supBaseName) return;
+
+      const gid = Number(s.g);
+      if (typeof window.isMorningDaycareGarden === 'function' && window.isMorningDaycareGarden(gid)) return;
+      const g = activeMap.get(gid) || (typeof window.G === 'function' ? window.G(gid) : null);
+      if (!g || g.isClosed || g.active === false) return;
+
+      const city = g.city || 'אחר';
+      if (data.cityFilter && city !== data.cityFilter) return;
+
+      if (!byDayMap.has(s.d)) byDayMap.set(s.d, new Map());
+      const citiesMap = byDayMap.get(s.d);
+      if (!citiesMap.has(city)) citiesMap.set(city, new Map());
+      const unitsMap = citiesMap.get(city);
+
+      const isSchool = _isSchoolGarden(g);
+      const cl = _resolveGardenCluster(gid, s.d, allClusters);
+      const pr = (!cl && !isSchool && typeof window.gardenPair === 'function') ? window.gardenPair(gid) : null;
+
+      let unitKey, unitType, unitName, orderIds, sortRank;
+      if (cl) {
+        unitKey = `cl_${cl.id}`;
+        unitType = 'cluster';
+        unitName = cl.name || 'אשכול';
+        orderIds = (cl.gardenIds || []).map(Number);
+        sortRank = 1;
+      } else if (isSchool) {
+        unitKey = `sch_${gid}`;
+        unitType = 'school';
+        unitName = g.name || `בי"ס ${gid}`;
+        orderIds = [gid];
+        sortRank = 2;
+      } else if (pr) {
+        unitKey = `pr_${pr.id}`;
+        unitType = 'pair';
+        unitName = pr.name || 'זוג גנים';
+        orderIds = (pr.ids || []).map(Number);
+        sortRank = 3;
+      } else {
+        unitKey = `solo_${gid}`;
+        unitType = 'solo';
+        unitName = g.name || '';
+        orderIds = [gid];
+        sortRank = 4;
+      }
+
+      if (!unitsMap.has(unitKey)) {
+        unitsMap.set(unitKey, {
+          key: unitKey,
+          type: unitType,
+          name: unitName,
+          orderIds,
+          sortRank,
+          events: []
+        });
+      }
+      unitsMap.get(unitKey).events.push({ ...s, gd: g, gid });
+      totalEvents++;
+    });
+
+    const daysList = [];
+    days.forEach(ds => {
+      const citiesMap = byDayMap.get(ds);
+      if (!citiesMap || citiesMap.size === 0) return;
+
+      const citiesList = Array.from(citiesMap.entries())
+        .sort((a, b) => a[0].localeCompare(b[0], 'he'))
+        .map(([city, unitsMap]) => {
+          const units = Array.from(unitsMap.values()).sort((u1, u2) => {
+            if (u1.sortRank !== u2.sortRank) return u1.sortRank - u2.sortRank;
+            return (u1.name || '').localeCompare(u2.name || '', 'he', { numeric: true });
+          });
+          units.forEach(u => {
+            u.events.sort((a, b) => {
+              const tA = a.t || '99:99';
+              const tB = b.t || '99:99';
+              if (tA !== tB) return tA.localeCompare(tB);
+              const idxA = u.orderIds.indexOf(a.gid);
+              const idxB = u.orderIds.indexOf(b.gid);
+              if (idxA !== -1 && idxB !== -1 && idxA !== idxB) return idxA - idxB;
+              return (a.gd.name || '').localeCompare(b.gd.name || '', 'he', { numeric: true });
+            });
+          });
+          const instCount = units.filter(u => u.type === 'cluster' || u.type === 'school').length;
+          return { city, units, instCount };
+        });
+
+      daysList.push({ ds, cities: citiesList });
+    });
+
+    return { daysList, totalEvents };
+  }
+
   function _renderInstructorsPreview(data) {
     const wrap = document.getElementById('gexp-inst-preview');
     if (!wrap) return;
@@ -2598,58 +2849,126 @@
     // SINGLE SUPPLIER VIEW
     if (data.supFilter) {
       const sup = data.filteredSuppliers[0];
-      if (!sup || sup.totalInstructorDays === 0) {
+      const fullSched = sup ? _collectSupplierFullSchedule(sup.base, data) : { daysList: [], totalEvents: 0 };
+      if (!sup || (sup.totalInstructorDays === 0 && fullSched.totalEvents === 0)) {
         wrap.innerHTML = `
           <div style="background:#fffbeb; border:1px solid #fde68a; color:#92400e; padding:14px; border-radius:9px; display:flex; justify-content:space-between; align-items:center;">
-            <span>⚠️ לספק שנבחר אין שיבוצים באשכולות/בתי ספר בטווח התאריכים הזה.</span>
+            <span>⚠️ לספק שנבחר אין שיבוצים פעילים בטווח התאריכים הזה.</span>
             <button type="button" onclick="window.instResetToAllSups()" class="btn bo bsm">חזרה לכל הספקים</button>
           </div>`;
         return;
       }
 
-      let citiesHtml = sup.cities.map(cb => {
-        const lines = cb.activeDays.map(ad => {
-          const unitsTxt = data.incUnits ? ` <span style="color:#64748b; font-size:0.75rem;">(${ad.units.map(u => _esc(u.name)).join(', ')})</span>` : '';
-          return `<div style="padding:3px 0; font-size:0.83rem; color:#1e293b; border-bottom:1px dashed #f1f5f9;">
-            <b>${_esc(cb.city)} ${_shortDate(ad.ds)}</b> <span style="color:#475569;">(${_shortDay(ad.ds)})</span> – <span style="color:#1565c0; font-weight:800;">${_fmtInstructors(ad.count)}</span>${unitsTxt}
+      const isFullSchedView = _instSubView === 'full_sched';
+      const subViewToggleHtml = `
+        <div style="display:inline-flex; background:#f1f5f9; border:1px solid #cbd5e1; border-radius:7px; padding:2px; gap:2px;">
+          <button type="button" onclick="window.setInstSubView('summary')" style="border:none; border-radius:5px; padding:4px 9px; font-size:0.75rem; font-weight:800; cursor:pointer; background:${!isFullSchedView ? '#1a237e' : 'transparent'}; color:${!isFullSchedView ? '#ffffff' : '#475569'};">🧑‍🏫 כמות מדריכים</button>
+          <button type="button" onclick="window.setInstSubView('full_sched')" style="border:none; border-radius:5px; padding:4px 9px; font-size:0.75rem; font-weight:800; cursor:pointer; background:${isFullSchedView ? '#0d9488' : 'transparent'}; color:${isFullSchedView ? '#ffffff' : '#475569'};">📅 לו"ז מלא (${fullSched.totalEvents})</button>
+        </div>`;
+
+      let bodyContentHtml = '';
+
+      if (isFullSchedView) {
+        const dayBlocksHtml = fullSched.daysList.map(dayObj => {
+          const fullDay = typeof window.dayN === 'function' ? `יום ${window.dayN(dayObj.ds)}` : _shortDay(dayObj.ds);
+          const citiesBlocks = dayObj.cities.map(cObj => {
+            const unitsBlocks = cObj.units.map(u => {
+              const unitHdr = u.type === 'cluster'
+                ? `<div style="font-size:0.76rem; font-weight:800; color:#1e40af; background:#eff6ff; border-radius:5px; padding:3px 8px; margin-bottom:4px; display:inline-block;">📦 אשכול: ${_esc(u.name)}</div>`
+                : (u.type === 'pair'
+                  ? `<div style="font-size:0.75rem; font-weight:800; color:#0f766e; background:#f0fdfa; border-radius:5px; padding:2px 8px; margin-bottom:4px; display:inline-block;">⚖️ זוג: ${_esc(u.name)}</div>`
+                  : '');
+              const evRows = u.events.map(ev => {
+                const timeStr = ev.t ? (typeof window.fT === 'function' ? window.fT(ev.t) : ev.t) : '';
+                const actName = ev.act || (typeof window.supAct === 'function' ? window.supAct(ev.a) : '') || '';
+                let actualGrp = ev.grp ? String(ev.grp).trim() : String(window.ggr ? window.ggr(ev.gd) || '' : '');
+                const grpBadge = (actualGrp && actualGrp !== '1' && actualGrp !== '0')
+                  ? `<span style="background:#fef3c7; color:#92400e; font-size:0.7rem; font-weight:800; padding:1px 6px; border-radius:4px;">${_esc(actualGrp.includes(',') ? "קב' " + actualGrp : actualGrp + " קב'")}</span>`
+                  : '';
+                const coordLbl = data.incCoord ? _getCoordinatorLabel(ev.gid) : '';
+                return `<div style="display:flex; flex-wrap:wrap; align-items:center; gap:6px; padding:4px 6px; border-bottom:1px dashed #e2e8f0; font-size:0.8rem;">
+                  ${timeStr ? `<span style="background:#dbeafe; color:#1e3a8a; font-weight:800; font-size:0.74rem; padding:1px 6px; border-radius:4px; direction:ltr;">⏰ ${_esc(timeStr)}</span>` : ''}
+                  <b style="color:#0f172a;">🏫 ${_esc(ev.gd.name)}</b>
+                  ${actName ? `<span style="color:#0369a1; font-size:0.74rem; font-weight:700;">(${_esc(actName)})</span>` : ''}
+                  ${grpBadge}
+                  ${ev.gd.st ? `<span style="color:#475569; font-size:0.75rem;">📍 ${_esc(ev.gd.st)}</span>` : ''}
+                  ${coordLbl ? `<span style="color:#0f766e; font-size:0.73rem; font-weight:700;">👤 ${_esc(coordLbl)}</span>` : ''}
+                </div>`;
+              }).join('');
+              return `<div style="margin-bottom:6px;">${unitHdr}${evRows}</div>`;
+            }).join('');
+
+            return `<div style="margin-top:6px; padding-right:4px;">
+              <div style="font-weight:800; color:#1a237e; font-size:0.83rem; margin-bottom:4px;">
+                🏙️ ${_esc(cObj.city)} ${cObj.instCount > 0 ? `<span style="font-size:0.73rem; color:#475569; font-weight:700;">(${_fmtInstructors(cObj.instCount)})</span>` : ''}
+              </div>
+              ${unitsBlocks}
+            </div>`;
+          }).join('');
+
+          return `<div style="background:#f8fafc; border:1px solid #cbd5e1; border-right:4px solid #0d9488; border-radius:8px; padding:8px 12px; margin-bottom:8px;">
+            <div style="font-weight:800; color:#0f766e; font-size:0.86rem; border-bottom:1px solid #e2e8f0; padding-bottom:4px;">
+              🗓️ ${_esc(fullDay)} – ${window.fD(dayObj.ds)}
+            </div>
+            ${citiesBlocks}
           </div>`;
         }).join('');
-        return `<div style="background:#f8fafc; border:1px solid #e2e8f0; border-right:4px solid #1a237e; border-radius:8px; padding:8px 12px;">
-          <div style="font-weight:800; color:#1a237e; font-size:0.88rem; margin-bottom:4px; display:flex; justify-content:space-between;">
-            <span>🏙️ ${_esc(cb.city)}</span>
-            <span style="font-size:0.74rem; color:#475569;">סה"כ ${cb.cityTotal} ימי מדריך בעיר</span>
-          </div>
-          ${lines}
-        </div>`;
-      }).join('');
 
-      let dailySummaryHtml = '';
-      if (data.incDailyTot) {
-        const activeTotals = data.days
-          .map(ds => ({ ds, cnt: sup.dailyTotals.get(ds) || 0 }))
-          .filter(x => x.cnt > 0);
-        dailySummaryHtml = `
-          <div style="background:#eef2ff; border:1px solid #c7d2fe; border-radius:8px; padding:8px 12px; margin-top:8px;">
-            <div style="font-weight:800; color:#1e3a8a; font-size:0.82rem; margin-bottom:5px;">📊 סה"כ מדריכים נדרשים ליום (כל הערים יחד):</div>
-            <div style="display:flex; flex-wrap:wrap; gap:6px;">
-              ${activeTotals.map(x => `<span style="background:#ffffff; border:1px solid #a5b4fc; color:#1e3a8a; border-radius:6px; padding:3px 9px; font-size:0.78rem; font-weight:800;">${_shortDate(x.ds)} (${_shortDay(x.ds)}): ${_fmtInstructors(x.cnt)}</span>`).join('')}
-            </div>
+        bodyContentHtml = `
+          <div style="max-height:335px; overflow-y:auto; padding-left:2px;">
+            ${dayBlocksHtml}
           </div>`;
+      } else {
+        let citiesHtml = sup.cities.map(cb => {
+          const lines = cb.activeDays.map(ad => {
+            const unitsTxt = data.incUnits ? ` <span style="color:#64748b; font-size:0.75rem;">(${ad.units.map(u => _esc(u.name)).join(', ')})</span>` : '';
+            return `<div style="padding:3px 0; font-size:0.83rem; color:#1e293b; border-bottom:1px dashed #f1f5f9;">
+              <b>${_esc(cb.city)} ${_shortDate(ad.ds)}</b> <span style="color:#475569;">(${_shortDay(ad.ds)})</span> – <span style="color:#1565c0; font-weight:800;">${_fmtInstructors(ad.count)}</span>${unitsTxt}
+            </div>`;
+          }).join('');
+          return `<div style="background:#f8fafc; border:1px solid #e2e8f0; border-right:4px solid #1a237e; border-radius:8px; padding:8px 12px;">
+            <div style="font-weight:800; color:#1a237e; font-size:0.88rem; margin-bottom:4px; display:flex; justify-content:space-between;">
+              <span>🏙️ ${_esc(cb.city)}</span>
+              <span style="font-size:0.74rem; color:#475569;">סה"כ ${cb.cityTotal} ימי מדריך בעיר</span>
+            </div>
+            ${lines}
+          </div>`;
+        }).join('');
+
+        let dailySummaryHtml = '';
+        if (data.incDailyTot) {
+          const activeTotals = data.days
+            .map(ds => ({ ds, cnt: sup.dailyTotals.get(ds) || 0 }))
+            .filter(x => x.cnt > 0);
+          dailySummaryHtml = `
+            <div style="background:#eef2ff; border:1px solid #c7d2fe; border-radius:8px; padding:8px 12px; margin-top:8px;">
+              <div style="font-weight:800; color:#1e3a8a; font-size:0.82rem; margin-bottom:5px;">📊 סה"כ מדריכים נדרשים ליום (כל הערים יחד):</div>
+              <div style="display:flex; flex-wrap:wrap; gap:6px;">
+                ${activeTotals.map(x => `<span style="background:#ffffff; border:1px solid #a5b4fc; color:#1e3a8a; border-radius:6px; padding:3px 9px; font-size:0.78rem; font-weight:800;">${_shortDate(x.ds)} (${_shortDay(x.ds)}): ${_fmtInstructors(x.cnt)}</span>`).join('')}
+              </div>
+            </div>`;
+        }
+
+        bodyContentHtml = `
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(250px, 1fr)); gap:8px; max-height:330px; overflow-y:auto;">
+            ${citiesHtml}
+          </div>
+          ${dailySummaryHtml}`;
       }
 
       wrap.innerHTML = `
         <div style="background:#ffffff; border:1px solid #cbd5e1; border-radius:10px; padding:12px;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:6px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:8px;">
             <div>
               <span style="font-size:0.98rem; font-weight:800; color:#1a237e;">🧑‍🏫 ${_esc(sup.dispName)}</span>
               <span style="background:#dbeafe; color:#1e40af; font-weight:800; font-size:0.75rem; padding:2px 8px; border-radius:999px; margin-right:6px;">סה"כ ${sup.totalInstructorDays} ימי מדריך · שיא יומי: ${_fmtInstructors(sup.peakDayCount)}</span>
             </div>
-            <button type="button" onclick="window.instResetToAllSups()" style="background:#f1f5f9; border:1px solid #cbd5e1; color:#334155; border-radius:6px; padding:4px 10px; font-size:0.75rem; font-weight:700; cursor:pointer;">⬅️ חזרה לבקרת כל הספקים</button>
+            <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+              ${subViewToggleHtml}
+              <button type="button" onclick="window.instResetToAllSups()" style="background:#f1f5f9; border:1px solid #cbd5e1; color:#334155; border-radius:6px; padding:4px 10px; font-size:0.75rem; font-weight:700; cursor:pointer;">⬅️ חזרה לבקרת כל הספקים</button>
+            </div>
           </div>
-          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(250px, 1fr)); gap:8px; max-height:330px; overflow-y:auto;">
-            ${citiesHtml}
-          </div>
-          ${dailySummaryHtml}
+          ${bodyContentHtml}
         </div>`;
       return;
     }
@@ -2682,12 +3001,12 @@
 
     const rowsHtml = data.filteredSuppliers.map(sup => {
       const idx = _instSupList.findIndex(x => x.base === sup.base);
-      const isZero = sup.totalInstructorDays === 0;
+      const isZero = sup.totalInstructorDays === 0 && (sup.unclusteredCount || 0) === 0;
       const isHigh = sup.peakDayCount >= 3;
       const rowBg = isZero ? '#fff5f5' : (isHigh ? '#fffaf5' : '#ffffff');
 
-      const citiesBreakdown = isZero
-        ? `<span style="color:#dc2626; font-weight:700; font-size:0.76rem;">🔴 לא שובץ כלל בטווח התאריכים</span>`
+      const citiesBreakdown = sup.totalInstructorDays === 0
+        ? `<span style="color:#dc2626; font-weight:700; font-size:0.76rem;">🔴 לא שובץ באשכולות בטווח התאריכים</span>`
         : sup.cities.map(cb => {
             const daysPills = cb.activeDays.map(ad => {
               const uStr = data.incUnits ? ` [${ad.units.map(u => _esc(u.name)).join(', ')}]` : '';
@@ -2696,16 +3015,17 @@
             return `<div style="margin-bottom:2px; font-size:0.76rem;"><b style="color:#1e293b;">${_esc(cb.city)}:</b> <span style="color:#334155;">${daysPills}</span></div>`;
           }).join('');
 
-      const peakBadge = isZero
+      const peakBadge = sup.totalInstructorDays === 0
         ? '—'
         : `<span style="background:${isHigh ? '#ffedd5' : '#e0f2fe'}; color:${isHigh ? '#c2410c' : '#0369a1'}; border:1px solid ${isHigh ? '#fdba74' : '#bae6fd'}; border-radius:6px; padding:2px 6px; font-size:0.73rem; font-weight:800; white-space:nowrap;">${isHigh ? '🔥 ' : ''}${sup.peakDayCount} (${_shortDate(sup.peakDayDs)})</span>`;
 
       const quickBtns = isZero
         ? ''
-        : `<div style="display:flex; gap:4px; justify-content:center; flex-wrap:nowrap;">
-            <button type="button" onclick="window.selectInstSupplierByIdx(${idx})" data-tip="הצג פירוט מלא של הספק לפי ערים, תאריכים וסה״כ יומי" aria-label="הצג פירוט מלא לספק" style="background:#eef2ff; border:1px solid #c7d2fe; color:#1e3a8a; border-radius:5px; padding:3px 6px; font-size:0.72rem; font-weight:700; cursor:pointer;">👁️</button>
-            <button type="button" onclick="window.doInstQuickWA(${idx})" data-tip="העתק הודעת וואטסאפ מוכנה עם כמות המדריכים ליום עבור ספק זה" aria-label="העתק הודעת וואטסאפ לספק" style="background:#dcfce7; border:1px solid #86efac; color:#166534; border-radius:5px; padding:3px 7px; font-size:0.72rem; font-weight:800; cursor:pointer;">💬</button>
-            <button type="button" onclick="window.doInstQuickImage(${idx})" data-tip="העתק כרטיס תמונה מעוצב של לו״ז המדריכים לספק זה (להדבקה ב-Ctrl+V בוואטסאפ)" aria-label="העתק כרטיס תמונה לוואטסאפ" style="background:#fdf2f8; border:1px solid #f9a8d4; color:#9d174d; border-radius:5px; padding:3px 7px; font-size:0.72rem; font-weight:800; cursor:pointer;">🖼️</button>
+        : `<div style="display:flex; gap:3px; justify-content:center; flex-wrap:nowrap;">
+            <button type="button" onclick="window.selectInstSupplierByIdx(${idx})" data-tip="הצג פירוט מלא ולו״ז שיבוצים של הספק" aria-label="הצג פירוט מלא לספק" style="background:#eef2ff; border:1px solid #c7d2fe; color:#1e3a8a; border-radius:5px; padding:3px 6px; font-size:0.72rem; font-weight:700; cursor:pointer;">👁️</button>
+            <button type="button" onclick="window.doInstQuickFullWA(${idx})" data-tip="העתק לו״ז שיבוצים מלא בהודעה לוואטסאפ (גנים, כתובות ושעות) עבור ספק זה" aria-label="העתק לו״ז מלא בהודעה" style="background:#ccfbf1; border:1px solid #5eead4; color:#0f766e; border-radius:5px; padding:3px 6px; font-size:0.72rem; font-weight:800; cursor:pointer;">📲</button>
+            <button type="button" onclick="window.doInstQuickWA(${idx})" data-tip="העתק הודעת כמות מדריכים ליום לוואטסאפ עבור ספק זה" aria-label="העתק הודעת כמות מדריכים" style="background:#dcfce7; border:1px solid #86efac; color:#166534; border-radius:5px; padding:3px 6px; font-size:0.72rem; font-weight:800; cursor:pointer;">💬</button>
+            <button type="button" onclick="window.doInstQuickImage(${idx})" data-tip="העתק כרטיס תמונה מעוצב של לו״ז המדריכים לספק זה (להדבקה ב-Ctrl+V בוואטסאפ)" aria-label="העתק כרטיס תמונה לוואטסאפ" style="background:#fdf2f8; border:1px solid #f9a8d4; color:#9d174d; border-radius:5px; padding:3px 6px; font-size:0.72rem; font-weight:800; cursor:pointer;">🖼️</button>
           </div>`;
 
       return `<tr style="background:${rowBg}; border-bottom:1px solid #e2e8f0;">
@@ -2727,11 +3047,11 @@
           <table style="width:100%; border-collapse:collapse;">
             <thead>
               <tr style="background:#e8eaf6; color:#1e3a8a; position:sticky; top:0; z-index:2; font-size:0.76rem;">
-                <th style="padding:6px 8px; text-align:right; width:22%;">מפעיל / ספק</th>
-                <th style="padding:6px 6px; text-align:center; width:11%;">ימי מדריך</th>
-                <th style="padding:6px 6px; text-align:center; width:15%;">שיא ליום</th>
+                <th style="padding:6px 8px; text-align:right; width:21%;">מפעיל / ספק</th>
+                <th style="padding:6px 6px; text-align:center; width:10%;">ימי מדריך</th>
+                <th style="padding:6px 6px; text-align:center; width:14%;">שיא ליום</th>
                 <th style="padding:6px 8px; text-align:right;">פירוט ערים ומס' מדריכים ליום</th>
-                <th style="padding:6px 6px; text-align:center; width:15%;">לספק</th>
+                <th style="padding:6px 6px; text-align:center; width:18%;">לספק</th>
               </tr>
             </thead>
             <tbody>${rowsHtml || '<tr><td colspan="5" style="text-align:center; padding:14px; color:#64748b;">אין ספקים להצגה בסינון זה</td></tr>'}</tbody>
@@ -2740,7 +3060,7 @@
       </div>`;
   }
 
-  // Build formatted WhatsApp text for one supplier (exact format requested by user)
+  // Build formatted WhatsApp text for one supplier (instructor count summary)
   function _buildSingleSupplierWAText(sup, data) {
     const titlePrefix = data.detectedHolName ? `${data.detectedHolName} – ` : '';
     let lines = [];
@@ -2770,6 +3090,81 @@
     return lines.join('\n').trim();
   }
 
+  // Build FULL detailed schedule WhatsApp text for one supplier (dates, cities, clusters, gardens, addresses, hours)
+  function _buildSupplierFullScheduleWAText(sup, sched, data) {
+    const RLM = '\u200F';
+    const titlePrefix = data.detectedHolName ? `${data.detectedHolName} – ` : '';
+    const lines = [];
+    lines.push(`${RLM}📅 *לו"ז שיבוצים מלא – ${titlePrefix}${sup.dispName}*`);
+    lines.push(`${RLM}🗓️ *תאריכים: ${data.dateRangePart}*`);
+    lines.push('');
+
+    sched.daysList.forEach(dayObj => {
+      const fullDay = typeof window.dayN === 'function' ? `יום ${window.dayN(dayObj.ds)}` : _shortDay(dayObj.ds);
+      lines.push('━━━━━━━━━━━━━━━━━━━━');
+      lines.push(`${RLM}🗓️ *${fullDay} | ${window.fD(dayObj.ds)}*`);
+
+      dayObj.cities.forEach(cObj => {
+        const instTag = cObj.instCount > 0 ? ` (${_fmtInstructors(cObj.instCount)})` : '';
+        lines.push(`${RLM}🏙️ *${cObj.city}*${instTag}`);
+
+        cObj.units.forEach(u => {
+          if (u.type === 'cluster') {
+            lines.push(`${RLM}📦 *אשכול: ${u.name}*`);
+          } else if (u.type === 'pair') {
+            lines.push(`${RLM}⚖️ *זוג: ${u.name}*`);
+          }
+
+          const unitCoords = data.incCoord
+            ? Array.from(new Set(u.events.map(ev => _getCoordinatorLabel(ev.gid)).filter(Boolean)))
+            : [];
+          const sharedUnitCoord = (u.events.length > 1 && unitCoords.length === 1) ? unitCoords[0] : '';
+
+          u.events.forEach(ev => {
+            const actName = ev.act || (typeof window.supAct === 'function' ? window.supAct(ev.a) : '') || '';
+            const actPart = actName && actName !== sup.dispName && actName !== sup.base ? ` (${actName})` : '';
+
+            let actualGrp = ev.grp ? String(ev.grp).trim() : String(window.ggr ? window.ggr(ev.gd) || '' : '');
+            const grpPart = (actualGrp && actualGrp !== '1' && actualGrp !== '0')
+              ? ` · ${actualGrp.includes(',') ? "קב' " + actualGrp : actualGrp + " קב'"}`
+              : '';
+
+            const timeVal = ev.t ? (typeof window.fT === 'function' ? window.fT(ev.t) : ev.t) : '';
+            const timePart = timeVal ? ` · ⏰ ${timeVal}` : (ev.flexNote ? ` · ℹ️ ${ev.flexNote}` : '');
+            const addrPart = ev.gd.st ? ` · 📍 ${ev.gd.st}` : '';
+            const indent = (u.type === 'cluster' || u.type === 'pair') ? '  ' : '';
+
+            lines.push(`${RLM}${indent}🏫 *${ev.gd.name}*${actPart}${grpPart}${timePart}${addrPart}`);
+
+            if (data.incCoord && !sharedUnitCoord) {
+              const cLbl = _getCoordinatorLabel(ev.gid);
+              if (cLbl) {
+                lines.push(`${RLM}${indent}   👤 רכז/ת: ${cLbl}`);
+              }
+            }
+          });
+
+          if (data.incCoord && sharedUnitCoord) {
+            lines.push(`${RLM}   👤 רכז/ת: ${sharedUnitCoord}`);
+          }
+        });
+        lines.push('');
+      });
+    });
+
+    if (data.incDailyTot && sup.cities && sup.cities.length > 0 && sched.daysList.length > 1) {
+      lines.push(`${RLM}📊 *סיכום מדריכים ליום:*`);
+      data.days.forEach(ds => {
+        const cnt = sup.dailyTotals.get(ds) || 0;
+        if (cnt > 0) {
+          lines.push(`${RLM}• ${_shortDate(ds)} (${_shortDay(ds)}) – ${_fmtInstructors(cnt)}`);
+        }
+      });
+    }
+
+    return lines.join('\n').trim();
+  }
+
   window.doInstQuickWA = async function (idx) {
     const sup = _instSupList[idx];
     if (!sup) return;
@@ -2780,6 +3175,25 @@
     try {
       await navigator.clipboard.writeText(text);
       window.showToast?.(`💬 הודעת היערכות מדריכים עבור "${targetSup.dispName}" הועתקה ללוח!`);
+    } catch (e) {
+      window.spAlert(text);
+    }
+  };
+
+  window.doInstQuickFullWA = async function (idx) {
+    const sup = _instSupList[idx];
+    if (!sup) return;
+    const data = _collectInstructorsData(sup.base);
+    const targetSup = data.filteredSuppliers[0] || sup;
+    const sched = _collectSupplierFullSchedule(sup.base, data);
+    if (!sched.totalEvents) {
+      window.spAlert('לא נמצאו שיבוצים פעילים לספק זה בטווח שנבחר.');
+      return;
+    }
+    const text = _buildSupplierFullScheduleWAText(targetSup, sched, data);
+    try {
+      await navigator.clipboard.writeText(text);
+      window.showToast?.(`📲 הלו"ז המלא (${sched.totalEvents} שיבוצים) עבור "${targetSup.dispName}" הועתק לוואטסאפ!`);
     } catch (e) {
       window.spAlert(text);
     }
@@ -2797,8 +3211,37 @@
     try {
       await navigator.clipboard.writeText(text);
       window.showToast?.(activeSups.length === 1
-        ? `💬 ההודעה עבור "${activeSups[0].dispName}" הועתקה לוואטסאפ!`
+        ? `💬 הודעת כמות מדריכים עבור "${activeSups[0].dispName}" הועתקה לוואטסאפ!`
         : `💬 הועתק פירוט מדריכים עבור ${activeSups.length} ספקים!`);
+    } catch (e) {
+      window.spAlert(text);
+    }
+  };
+
+  window.doInstExportFullScheduleWA = async function () {
+    const data = _collectInstructorsData();
+    const blocks = [];
+    let totalEvsCount = 0;
+
+    data.filteredSuppliers.forEach(sup => {
+      const sched = _collectSupplierFullSchedule(sup.base, data);
+      if (sched.totalEvents > 0) {
+        totalEvsCount += sched.totalEvents;
+        blocks.push({ sup, text: _buildSupplierFullScheduleWAText(sup, sched, data) });
+      }
+    });
+
+    if (!blocks.length) {
+      window.spAlert('אין שיבוצים פעילים להעתקת לו"ז מלא בטווח ובסינון שנבחרו.');
+      return;
+    }
+
+    const text = blocks.map(b => b.text).join('\n\n════════════════════\n\n');
+    try {
+      await navigator.clipboard.writeText(text);
+      window.showToast?.(blocks.length === 1
+        ? `📲 הלו"ז המלא של "${blocks[0].sup.dispName}" (${totalEvsCount} שיבוצים) הועתק לוואטסאפ!`
+        : `📲 הועתק הלו"ז המלא עבור ${blocks.length} ספקים (${totalEvsCount} שיבוצים)!`);
     } catch (e) {
       window.spAlert(text);
     }
