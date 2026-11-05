@@ -582,11 +582,12 @@ function omCalc() {
     // Input prices already include VAT
     const grossPerKit = Math.max(0, rowSumPerKit - discountPerKit);
     const grandGross = grossPerKit * kitsCount;
-    total = grandGross;
-    
-    const grandBase = vatRate > 0 ? (grandGross / (1 + vatRate / 100)) : grandGross;
-    vat = grandGross - grandBase;
-    grandTaxable = grandBase;
+    const calc = window.PurchasingCalc
+      ? window.PurchasingCalc.calcVat(grandGross, vatRate, 'inc')
+      : { base: (vatRate > 0 ? (grandGross / (1 + vatRate / 100)) : grandGross), vat: (grandGross - (vatRate > 0 ? (grandGross / (1 + vatRate / 100)) : grandGross)), total: grandGross };
+    total = calc.total;
+    vat = calc.vat;
+    grandTaxable = calc.base;
 
     const lblVat = document.getElementById('om-lbl-vat');
     if (lblVat) lblVat.innerText = 'מתוכו מע"מ';
@@ -595,8 +596,11 @@ function omCalc() {
     let taxablePerKit = rowSumPerKit - discountPerKit;
     if (taxablePerKit < 0) taxablePerKit = 0;
     grandTaxable = taxablePerKit * kitsCount;
-    vat = grandTaxable * (vatRate / 100);
-    total = grandTaxable + vat;
+    const calc = window.PurchasingCalc
+      ? window.PurchasingCalc.calcVat(grandTaxable, vatRate, 'ex')
+      : { base: grandTaxable, vat: grandTaxable * (vatRate / 100), total: grandTaxable * (1 + vatRate / 100) };
+    vat = calc.vat;
+    total = calc.total;
 
     const lblVat = document.getElementById('om-lbl-vat');
     if (lblVat) lblVat.innerText = 'מע"מ';
@@ -683,16 +687,21 @@ async function saveOrder(id) {
   if (isIncVat) {
     const grossPerKit = Math.max(0, subtotal - discount);
     const grandGross = grossPerKit * kitsCount;
-    total = grandGross;
-    const grandBase = vatRate > 0 ? (grandGross / (1 + vatRate / 100)) : grandGross;
-    vat = grandGross - grandBase;
-    grandTaxable = grandBase;
+    const calc = window.PurchasingCalc
+      ? window.PurchasingCalc.calcVat(grandGross, vatRate, 'inc')
+      : { base: (vatRate > 0 ? (grandGross / (1 + vatRate / 100)) : grandGross), vat: (grandGross - (vatRate > 0 ? (grandGross / (1 + vatRate / 100)) : grandGross)), total: grandGross };
+    total = calc.total;
+    vat = calc.vat;
+    grandTaxable = calc.base;
   } else {
     let taxable = subtotal - discount;
     if (taxable < 0) taxable = 0;
     grandTaxable = taxable * kitsCount;
-    vat = grandTaxable * (vatRate / 100);
-    total = grandTaxable + vat;
+    const calc = window.PurchasingCalc
+      ? window.PurchasingCalc.calcVat(grandTaxable, vatRate, 'ex')
+      : { base: grandTaxable, vat: grandTaxable * (vatRate / 100), total: grandTaxable * (1 + vatRate / 100) };
+    vat = calc.vat;
+    total = calc.total;
   }
   
   const orderDateStr = document.getElementById('om-date').value;
@@ -1086,16 +1095,21 @@ function previewOrder() {
   if (isIncVat) {
     const grossPerKit = Math.max(0, subtotal - discount);
     const grandGross = grossPerKit * kitsCount;
-    total = grandGross;
-    const grandBase = vatRate > 0 ? (grandGross / (1 + vatRate / 100)) : grandGross;
-    vat = grandGross - grandBase;
-    grandTaxable = grandBase;
+    const calc = window.PurchasingCalc
+      ? window.PurchasingCalc.calcVat(grandGross, vatRate, 'inc')
+      : { base: (vatRate > 0 ? (grandGross / (1 + vatRate / 100)) : grandGross), vat: (grandGross - (vatRate > 0 ? (grandGross / (1 + vatRate / 100)) : grandGross)), total: grandGross };
+    total = calc.total;
+    vat = calc.vat;
+    grandTaxable = calc.base;
   } else {
     let taxable = subtotal - discount;
     if (taxable < 0) taxable = 0;
     grandTaxable = taxable * kitsCount;
-    vat = grandTaxable * (vatRate / 100);
-    total = grandTaxable + vat;
+    const calc = window.PurchasingCalc
+      ? window.PurchasingCalc.calcVat(grandTaxable, vatRate, 'ex')
+      : { base: grandTaxable, vat: grandTaxable * (vatRate / 100), total: grandTaxable * (1 + vatRate / 100) };
+    vat = calc.vat;
+    total = calc.total;
   }
   
   const orderDateStr = document.getElementById('om-date').value;

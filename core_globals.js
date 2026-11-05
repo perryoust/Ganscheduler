@@ -326,6 +326,47 @@ window.syncExportSplitCheckboxes = function(val) { window.WAExport.setOption('sp
 window.syncExportClusterCheckboxes = function(val) { window.WAExport.setOption('incCluster', val); };
 window.syncExportAddrCheckboxes = function(val) { window.WAExport.setOption('incAddr', val); };
 
+// ═════════════════════════════════════════════════════════════════════════════
+// SINGLE SOURCE OF TRUTH: FIELD USER & ROLE DETECTION
+// ═════════════════════════════════════════════════════════════════════════════
+window.isFieldMode = function() {
+  if (window.permCoord) return true;
+  if (window.role === 'coordinator' || window.role === 'manager' || window.role === 'vp') return true;
+  if (document.body && document.body.classList.contains('coordinator-mode')) return true;
+  const root = document.getElementById('coordinator-app-root');
+  if (root && root.style.display !== 'none') return true;
+  const container = document.getElementById('coordinator-app-container');
+  if (container && container.style.display !== 'none') return true;
+  return false;
+};
+
+// ═════════════════════════════════════════════════════════════════════════════
+// SINGLE SOURCE OF TRUTH: PURCHASING & VAT CALCULATIONS
+// ═════════════════════════════════════════════════════════════════════════════
+window.PurchasingCalc = {
+  getVatRate: function(customRate) {
+    if (customRate !== undefined && !isNaN(parseFloat(customRate))) return parseFloat(customRate);
+    return window.VAT_RATE || 18;
+  },
+
+  calcVat: function(amount, vatRate = 18, mode = 'ex') {
+    const rate = parseFloat(vatRate) || 0;
+    const amt = parseFloat(amount) || 0;
+    if (rate <= 0 || amt <= 0) {
+      return { base: amt, vat: 0, total: amt };
+    }
+    if (mode === 'inc') {
+      const base = amt / (1 + rate / 100);
+      const vat = amt - base;
+      return { base: base, vat: vat, total: amt };
+    } else {
+      const vat = amt * (rate / 100);
+      const total = amt + vat;
+      return { base: amt, vat: vat, total: total };
+    }
+  }
+};
+
 
 window.debounce = function(func, wait) {
   let timeout;

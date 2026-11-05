@@ -1700,7 +1700,7 @@ function _exportPairWA(gids, isM, singleGid, targetDate){
 window._exportPairWA = _exportPairWA;
 
 window.setupExmFieldMode = function() {
-  const isFieldUser = !!(window.permCoord || ['coordinator', 'manager', 'vp'].includes(window.role) || document.body.classList.contains('coordinator-mode') || (document.getElementById('coordinator-app-root') && document.getElementById('coordinator-app-root').style.display !== 'none') || (document.getElementById('coordinator-app-container') && document.getElementById('coordinator-app-container').style.display !== 'none'));
+  const isFieldUser = typeof window.isFieldMode === 'function' ? window.isFieldMode() : false;
   const adminControls = document.getElementById('ex-admin-controls');
   if (adminControls) {
     adminControls.style.display = isFieldUser ? 'none' : '';
@@ -2440,7 +2440,7 @@ function genExport(){
     return '';
   };
 
-  const isFieldUser = !!(window.permCoord || ['coordinator', 'manager', 'vp'].includes(window.role) || document.body.classList.contains('coordinator-mode') || (document.getElementById('coordinator-app-root') && document.getElementById('coordinator-app-root').style.display !== 'none') || (document.getElementById('coordinator-app-container') && document.getElementById('coordinator-app-container').style.display !== 'none'));
+  const isFieldUser = typeof window.isFieldMode === 'function' ? window.isFieldMode() : false;
   const waOpts = window.WAExport ? window.WAExport.getAllOptions() : {};
   const incCoord = !isFieldUser && (document.getElementById('ex-inc-coord') ? document.getElementById('ex-inc-coord').checked : !!waOpts.incCoord);
   const incFreeDays = !isFieldUser && (document.getElementById('ex-inc-free-days') ? document.getElementById('ex-inc-free-days').checked : !!waOpts.incFreeDays);
