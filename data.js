@@ -300,13 +300,27 @@ function supDisplayName(nameOrBase){
     }
   }
 
-  // 3. Scan supEx for any entry whose key or base matches
+  // 3. Scan supEx for any entry whose key, base, keywords, or _mergedFrom matches
   if (typeof supEx !== 'undefined' && supEx) {
+    const normClean = (s) => String(s || '').replace(/[.'"`״״־\-\s]+/g, '').replace(/בעמ|בער|חברה/g, '').toLowerCase();
+    const rawClean = normClean(raw);
+    const baseClean = normClean(base);
+
     for (const k in supEx) {
       if (k === '__c' || k === '__merged_away') continue;
       const item = supEx[k];
       if (item && item.alias && item.alias.trim()) {
         if (k === raw || k === base || (typeof supBase === 'function' && (supBase(k) === base || supBase(k) === raw))) {
+          return item.alias.trim();
+        }
+        const kClean = normClean(k);
+        if (kClean && (kClean === rawClean || kClean === baseClean)) {
+          return item.alias.trim();
+        }
+        if (item.keywords && rawClean && normClean(item.keywords).includes(rawClean)) {
+          return item.alias.trim();
+        }
+        if (Array.isArray(item._mergedFrom) && item._mergedFrom.some(m => normClean(m) === rawClean || normClean(m) === baseClean)) {
           return item.alias.trim();
         }
       }

@@ -1254,10 +1254,11 @@ async function exportToExcel(data, filename, opts = {}) {
                   rowData = [(g.st || g.add || g.address || ''), g.name, ageVal, window.fD(s.d), dayStr, s.t, grpCount, displayStatus, formattedNote];
                 }
               } else {
+                const dispSup = (typeof window.supDisplayName === 'function' ? window.supDisplayName(s.a) : (window.supBase ? window.supBase(s.a) : s.a)) || s.a;
                 if (isClusterGroup) {
-                  rowData = [window.fD(s.d), dayStr, g.name, window.supBase ? window.supBase(s.a) : s.a, s.act || window.supAct(s.a) || '', s.t, grpCount, displayStatus, formattedNote, clusterName];
+                  rowData = [window.fD(s.d), dayStr, g.name, dispSup, s.act || window.supAct(s.a) || '', s.t, grpCount, displayStatus, formattedNote, clusterName];
                 } else {
-                  rowData = [window.fD(s.d), dayStr, g.name, window.supBase ? window.supBase(s.a) : s.a, s.act || window.supAct(s.a) || '', s.t, grpCount, displayStatus, formattedNote];
+                  rowData = [window.fD(s.d), dayStr, g.name, dispSup, s.act || window.supAct(s.a) || '', s.t, grpCount, displayStatus, formattedNote];
                 }
               }
               const row = ws.addRow(rowData);
@@ -1940,7 +1941,7 @@ window.exportBulkAnnualSchedule = async function() {
 
       if (gEvs.length > 0) {
         gEvs.forEach(ev => {
-           const supName = (typeof window.supBase === 'function' ? window.supBase(ev.a) : ev.a) || ev.a || '';
+           const supName = (typeof window.supDisplayName === 'function' ? window.supDisplayName(ev.a) : (typeof window.supBase === 'function' ? window.supBase(ev.a) : ev.a)) || ev.a || '';
            
            let phone = typeof window.getSupPhone === 'function' ? window.getSupPhone(ev.a, ev) : (ev.p || '');
            if (!phone && window.supEx && window.supEx[supName] && window.supEx[supName].ph1) {
@@ -2392,7 +2393,7 @@ window.generateMonthlyReport = async function() {
       }
       
       if(incSup && s.a) {
-        const supB = typeof window.supBase === 'function' ? window.supBase(s.a) : s.a;
+        const supB = typeof window.supDisplayName === 'function' ? window.supDisplayName(s.a) : (typeof window.supBase === 'function' ? window.supBase(s.a) : s.a);
         if(!agg[gKey].sups[supB]) agg[gKey].sups[supB] = 0;
         agg[gKey].sups[supB]++;
       }

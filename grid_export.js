@@ -3573,7 +3573,7 @@
                 else isTzaharon = true;
               }
 
-              const dispSup = window.supBase ? window.supBase(rawSup) : rawSup;
+              const dispSup = _resolveSupplierAlias(rawSup) || (window.supBase ? window.supBase(rawSup) : rawSup);
               const gid = Number(ev.g);
               const gName = cleanGardenName(gid);
 
