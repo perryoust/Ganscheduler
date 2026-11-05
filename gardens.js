@@ -1930,8 +1930,16 @@ function openExport(){
   document.getElementById('ex-d1').value=d1Val;
   document.getElementById('ex-d2').value=d2Val;
   
-  let ctx=isWeek?`${fD(d2s(ws))} – ${fD(d2s(we))}`:`תאריך: ${fD(d2s(calD))}`;
-  if(gids&&gids.length) ctx+=` | גנים: ${gids.map(id=>G(id).name||'').join(' + ')}`;
+  // Auto-enable free days checkbox if exporting missed / cancelled activities
+  const targetActs = (window.SCH || []).filter(x => numGids.includes(Number(x.g)) && (x.d === d1Val || (x.d >= d1Val && x.d <= d2Val)));
+  const isAnyMissed = targetActs.some(x => x.st === 'can' || x.st === 'nohap');
+  const incFreeDaysCb = document.getElementById('ex-inc-free-days');
+  if (incFreeDaysCb) {
+    incFreeDaysCb.checked = isAnyMissed;
+  }
+
+  let ctx=isWeek?`${fD(d2s(ws))} – ${fD(d2s(we))}`:(isAnyMissed ? `פעילות שלא התקיימה מ-${fD(d1Val)}` : `תאריך: ${fD(d2s(calD))}`);
+  if(gids&&gids.length) ctx+=` | גנים: ${gids.map(id=>(G(id)||{}).name||'').join(' + ')}`;
   (document.getElementById('ex-ctx')||{}).textContent =ctx;
 
   // Reset tab selection to 'all' by default on modal open
@@ -2630,7 +2638,7 @@ function genExport(){
             }
             if (incFreeDays) {
               const freeDaysStr = window.getGardenFreeDays(group.map(s => s.g), date);
-              if (freeDaysStr) text += `\n*ימים פנויים להשלמה: ${freeDaysStr}*\n`;
+              if (freeDaysStr) text += `\n*ימים פנויים להשלמה (מהיום והלאה): ${freeDaysStr}*\n`;
             }
             text+='\n';
           });
@@ -2721,7 +2729,7 @@ text+=`  ${stIcon}${mTag}${addr}${s.gd.name}${statusTag}${timeStr}${coordText}\n
             }
             if (incFreeDays) {
               const freeDaysStr = window.getGardenFreeDays(group.map(s => s.g), date);
-              if (freeDaysStr) text += `\n*ימים פנויים להשלמה: ${freeDaysStr}*\n`;
+              if (freeDaysStr) text += `\n*ימים פנויים להשלמה (מהיום והלאה): ${freeDaysStr}*\n`;
             }
             text+='\n';
           });
@@ -2744,7 +2752,7 @@ const timeStr = s.t ? grpStr + fT(s.t) : '';
 text+=`${stIcon}${mTag}${s.gd.name}${statusTag} - ${s.a}${timeStr}${coordText}\n`;
           if (incFreeDays) {
             const freeDaysStr = window.getGardenFreeDays(s.g, date);
-            if (freeDaysStr) text += `*ימים פנויים להשלמה: ${freeDaysStr}*\n`;
+            if (freeDaysStr) text += `\n*ימים פנויים להשלמה (מהיום והלאה): ${freeDaysStr}*\n`;
           }
         });
       }
