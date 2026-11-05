@@ -1959,7 +1959,23 @@
 
         lines.push(`${RLM}🏙️ *${cd.city}*`);
 
-        const formatEvLinesForGarden = (g, indent) => {
+        const normAddr = (st) => String(st || '').trim().replace(/\s+/g, ' ');
+        const groupGardensByConsecutiveAddr = (gardensArr) => {
+          const runs = [];
+          gardensArr.forEach(g => {
+            const rawSt = opts.incAddr ? String(g.st || '').trim() : '';
+            const nSt = normAddr(rawSt);
+            const prev = runs[runs.length - 1];
+            if (prev && nSt && prev.normAddr === nSt) {
+              prev.gardens.push(g);
+            } else {
+              runs.push({ normAddr: nSt, displayAddr: rawSt, gardens: [g] });
+            }
+          });
+          return runs;
+        };
+
+        const formatEvLinesForGarden = (g, indent, suppressAddr) => {
           const gid = Number(g.id);
           const evs = evsByCell.get(`${gid}_${ds}`) || [];
           if (!evs.length) return;
@@ -1980,7 +1996,7 @@
 
             const timeVal = ev.t ? (typeof window.fT === 'function' ? window.fT(ev.t) : ev.t) : '';
             const timePart = timeVal ? ` · ⏰ ${timeVal}` : (ev.flexNote ? ` · ℹ️ ${ev.flexNote}` : '');
-            const addrPart = (opts.incAddr && g.st) ? ` · 📍 ${g.st}` : '';
+            const addrPart = (!suppressAddr && opts.incAddr && g.st) ? ` · 📍 ${g.st}` : '';
 
             lines.push(`${RLM}${indent}🏫 *${g.name}* – 📚 ${supAlias}${actPart}${grpPart}${timePart}${addrPart}${phonePart}`);
 
@@ -2009,7 +2025,17 @@
           });
           const grpIcon = opts.groupMode === 'pairs' ? '⚖️' : '📦';
           lines.push(`${RLM}${grpIcon} *${grp.name}:*`);
-          activeGardens.forEach(g => formatEvLinesForGarden(g, '  '));
+          const runs = groupGardensByConsecutiveAddr(activeGardens);
+          runs.forEach(run => {
+            if (run.normAddr && run.gardens.length > 1) {
+              const addrPrefix = runs.length === 1 ? '' : '  ';
+              const gIndent = runs.length === 1 ? '  ' : '    ';
+              lines.push(`${RLM}${addrPrefix}📍 ${run.displayAddr}`);
+              run.gardens.forEach(g => formatEvLinesForGarden(g, gIndent, true));
+            } else {
+              run.gardens.forEach(g => formatEvLinesForGarden(g, '  ', false));
+            }
+          });
         });
 
         const activeSolos = cd.solos.filter(g => (evsByCell.get(`${Number(g.id)}_${ds}`) || []).length > 0);
@@ -2020,7 +2046,15 @@
             if (tA !== tB) return tA.localeCompare(tB);
             return (ga.name || '').localeCompare(gb.name || '', 'he', { numeric: true });
           });
-          activeSolos.forEach(g => formatEvLinesForGarden(g, ''));
+          const soloRuns = groupGardensByConsecutiveAddr(activeSolos);
+          soloRuns.forEach(run => {
+            if (run.normAddr && run.gardens.length > 1) {
+              lines.push(`${RLM}📍 ${run.displayAddr}`);
+              run.gardens.forEach(g => formatEvLinesForGarden(g, '  ', true));
+            } else {
+              run.gardens.forEach(g => formatEvLinesForGarden(g, '', false));
+            }
+          });
         }
         lines.push('');
       });
@@ -2878,24 +2912,47 @@
                 : (u.type === 'pair'
                   ? `<div style="font-size:0.75rem; font-weight:800; color:#0f766e; background:#f0fdfa; border-radius:5px; padding:2px 8px; margin-bottom:4px; display:inline-block;">⚖️ זוג: ${_esc(u.name)}</div>`
                   : '');
-              const evRows = u.events.map(ev => {
-                const timeStr = ev.t ? (typeof window.fT === 'function' ? window.fT(ev.t) : ev.t) : '';
-                const actName = ev.act || (typeof window.supAct === 'function' ? window.supAct(ev.a) : '') || '';
-                let actualGrp = ev.grp ? String(ev.grp).trim() : String(window.ggr ? window.ggr(ev.gd) || '' : '');
-                const grpBadge = (actualGrp && actualGrp !== '1' && actualGrp !== '0')
-                  ? `<span style="background:#fef3c7; color:#92400e; font-size:0.7rem; font-weight:800; padding:1px 6px; border-radius:4px;">${_esc(actualGrp.includes(',') ? "קב' " + actualGrp : actualGrp + " קב'")}</span>`
+
+              // Group consecutive events sharing the same address
+              const normAddr = (st) => String(st || '').trim().replace(/\s+/g, ' ');
+              const addrRuns = [];
+              u.events.forEach(ev => {
+                const rawSt = String(ev.gd.st || '').trim();
+                const nSt = normAddr(rawSt);
+                const prev = addrRuns[addrRuns.length - 1];
+                if (prev && nSt && prev.normAddr === nSt) {
+                  prev.events.push(ev);
+                } else {
+                  addrRuns.push({ normAddr: nSt, displayAddr: rawSt, events: [ev] });
+                }
+              });
+
+              const evRunsHtml = addrRuns.map(run => {
+                const isSharedAddr = !!(run.normAddr && run.events.length > 1);
+                const sharedAddrHdr = isSharedAddr
+                  ? `<div style="font-size:0.76rem; font-weight:700; color:#334155; padding:2px 6px 2px 0;">📍 ${_esc(run.displayAddr)}</div>`
                   : '';
-                const coordLbl = data.incCoord ? _getCoordinatorLabel(ev.gid) : '';
-                return `<div style="display:flex; flex-wrap:wrap; align-items:center; gap:6px; padding:4px 6px; border-bottom:1px dashed #e2e8f0; font-size:0.8rem;">
-                  ${timeStr ? `<span style="background:#dbeafe; color:#1e3a8a; font-weight:800; font-size:0.74rem; padding:1px 6px; border-radius:4px; direction:ltr;">⏰ ${_esc(timeStr)}</span>` : ''}
-                  <b style="color:#0f172a;">🏫 ${_esc(ev.gd.name)}</b>
-                  ${actName ? `<span style="color:#0369a1; font-size:0.74rem; font-weight:700;">(${_esc(actName)})</span>` : ''}
-                  ${grpBadge}
-                  ${ev.gd.st ? `<span style="color:#475569; font-size:0.75rem;">📍 ${_esc(ev.gd.st)}</span>` : ''}
-                  ${coordLbl ? `<span style="color:#0f766e; font-size:0.73rem; font-weight:700;">👤 ${_esc(coordLbl)}</span>` : ''}
-                </div>`;
+                const rows = run.events.map(ev => {
+                  const timeStr = ev.t ? (typeof window.fT === 'function' ? window.fT(ev.t) : ev.t) : '';
+                  const actName = ev.act || (typeof window.supAct === 'function' ? window.supAct(ev.a) : '') || '';
+                  let actualGrp = ev.grp ? String(ev.grp).trim() : String(window.ggr ? window.ggr(ev.gd) || '' : '');
+                  const grpBadge = (actualGrp && actualGrp !== '1' && actualGrp !== '0')
+                    ? `<span style="background:#fef3c7; color:#92400e; font-size:0.7rem; font-weight:800; padding:1px 6px; border-radius:4px;">${_esc(actualGrp.includes(',') ? "קב' " + actualGrp : actualGrp + " קב'")}</span>`
+                    : '';
+                  const coordLbl = data.incCoord ? _getCoordinatorLabel(ev.gid) : '';
+                  return `<div style="display:flex; flex-wrap:wrap; align-items:center; gap:6px; padding:4px 6px; ${isSharedAddr ? 'padding-right:16px;' : ''} border-bottom:1px dashed #e2e8f0; font-size:0.8rem;">
+                    ${timeStr ? `<span style="background:#dbeafe; color:#1e3a8a; font-weight:800; font-size:0.74rem; padding:1px 6px; border-radius:4px; direction:ltr;">⏰ ${_esc(timeStr)}</span>` : ''}
+                    <b style="color:#0f172a;">🏫 ${_esc(ev.gd.name)}</b>
+                    ${actName ? `<span style="color:#0369a1; font-size:0.74rem; font-weight:700;">(${_esc(actName)})</span>` : ''}
+                    ${grpBadge}
+                    ${(!isSharedAddr && ev.gd.st) ? `<span style="color:#475569; font-size:0.75rem;">📍 ${_esc(ev.gd.st)}</span>` : ''}
+                    ${coordLbl ? `<span style="color:#0f766e; font-size:0.73rem; font-weight:700;">👤 ${_esc(coordLbl)}</span>` : ''}
+                  </div>`;
+                }).join('');
+                return `${sharedAddrHdr}${rows}`;
               }).join('');
-              return `<div style="margin-bottom:6px;">${unitHdr}${evRows}</div>`;
+
+              return `<div style="margin-bottom:6px;">${unitHdr}${evRunsHtml}</div>`;
             }).join('');
 
             return `<div style="margin-top:6px; padding-right:4px;">
@@ -3120,28 +3177,54 @@
             : [];
           const sharedUnitCoord = (u.events.length > 1 && unitCoords.length === 1) ? unitCoords[0] : '';
 
+          // Group consecutive events that share the same normalized street address
+          const normAddr = (st) => String(st || '').trim().replace(/\s+/g, ' ');
+          const addrRuns = [];
           u.events.forEach(ev => {
-            const actName = ev.act || (typeof window.supAct === 'function' ? window.supAct(ev.a) : '') || '';
-            const actPart = actName && actName !== sup.dispName && actName !== sup.base ? ` (${actName})` : '';
-
-            let actualGrp = ev.grp ? String(ev.grp).trim() : String(window.ggr ? window.ggr(ev.gd) || '' : '');
-            const grpPart = (actualGrp && actualGrp !== '1' && actualGrp !== '0')
-              ? ` · ${actualGrp.includes(',') ? "קב' " + actualGrp : actualGrp + " קב'"}`
-              : '';
-
-            const timeVal = ev.t ? (typeof window.fT === 'function' ? window.fT(ev.t) : ev.t) : '';
-            const timePart = timeVal ? ` · ⏰ ${timeVal}` : (ev.flexNote ? ` · ℹ️ ${ev.flexNote}` : '');
-            const addrPart = ev.gd.st ? ` · 📍 ${ev.gd.st}` : '';
-            const indent = (u.type === 'cluster' || u.type === 'pair') ? '  ' : '';
-
-            lines.push(`${RLM}${indent}🏫 *${ev.gd.name}*${actPart}${grpPart}${timePart}${addrPart}`);
-
-            if (data.incCoord && !sharedUnitCoord) {
-              const cLbl = _getCoordinatorLabel(ev.gid);
-              if (cLbl) {
-                lines.push(`${RLM}${indent}   👤 רכז/ת: ${cLbl}`);
-              }
+            const rawSt = String(ev.gd.st || '').trim();
+            const nSt = normAddr(rawSt);
+            const prev = addrRuns[addrRuns.length - 1];
+            if (prev && nSt && prev.normAddr === nSt) {
+              prev.events.push(ev);
+            } else {
+              addrRuns.push({ normAddr: nSt, displayAddr: rawSt, events: [ev] });
             }
+          });
+
+          const baseIndent = (u.type === 'cluster' || u.type === 'pair') ? '  ' : '';
+
+          addrRuns.forEach(run => {
+            const isSharedAddr = !!(run.normAddr && run.events.length > 1);
+            let evIndent = baseIndent;
+            if (isSharedAddr) {
+              // If the entire cluster/pair shares one address, print 📍 right under the cluster header; otherwise indent slightly
+              const addrHeaderIndent = addrRuns.length === 1 ? '' : baseIndent;
+              evIndent = addrRuns.length === 1 ? (baseIndent || '  ') : (baseIndent + '  ');
+              lines.push(`${RLM}${addrHeaderIndent}📍 ${run.displayAddr}`);
+            }
+
+            run.events.forEach(ev => {
+              const actName = ev.act || (typeof window.supAct === 'function' ? window.supAct(ev.a) : '') || '';
+              const actPart = actName && actName !== sup.dispName && actName !== sup.base ? ` (${actName})` : '';
+
+              let actualGrp = ev.grp ? String(ev.grp).trim() : String(window.ggr ? window.ggr(ev.gd) || '' : '');
+              const grpPart = (actualGrp && actualGrp !== '1' && actualGrp !== '0')
+                ? ` · ${actualGrp.includes(',') ? "קב' " + actualGrp : actualGrp + " קב'"}`
+                : '';
+
+              const timeVal = ev.t ? (typeof window.fT === 'function' ? window.fT(ev.t) : ev.t) : '';
+              const timePart = timeVal ? ` · ⏰ ${timeVal}` : (ev.flexNote ? ` · ℹ️ ${ev.flexNote}` : '');
+              const addrPart = (!isSharedAddr && ev.gd.st) ? ` · 📍 ${ev.gd.st}` : '';
+
+              lines.push(`${RLM}${evIndent}🏫 *${ev.gd.name}*${actPart}${grpPart}${timePart}${addrPart}`);
+
+              if (data.incCoord && !sharedUnitCoord) {
+                const cLbl = _getCoordinatorLabel(ev.gid);
+                if (cLbl) {
+                  lines.push(`${RLM}${evIndent}   👤 רכז/ת: ${cLbl}`);
+                }
+              }
+            });
           });
 
           if (data.incCoord && sharedUnitCoord) {
