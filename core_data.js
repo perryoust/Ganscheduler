@@ -1218,6 +1218,20 @@ function gardenPair(gid, targetDate){
   return pairsList.find(p=>p.ids.map(x=>parseInt(x)).includes(n))||null;
 }
 window.getGardenGroup = function(gid, targetDate = null) {
+  if (typeof window.resolveGardenUnit === 'function') {
+    const isClusterMode = window._listGroupMode === 'clusters' || window._dashTab === 'clusters';
+    const unit = window.resolveGardenUnit(gid, targetDate, { mode: isClusterMode ? 'clusters' : undefined });
+    if (unit && !unit.isSolo && unit.gids && unit.gids.length > 1) {
+      return {
+        type: unit.type,
+        id: unit.id,
+        ids: unit.gids,
+        name: unit.name,
+        ...(unit.raw || {})
+      };
+    }
+    return null;
+  }
   const n = parseInt(gid);
   const isClusterMode = window._listGroupMode === 'clusters' || window._dashTab === 'clusters';
   

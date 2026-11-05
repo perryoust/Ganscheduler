@@ -367,6 +367,153 @@ window.PurchasingCalc = {
   }
 };
 
+// ═════════════════════════════════════════════════════════════════════════════
+// SINGLE SOURCE OF TRUTH: GARDEN UNITS, CLUSTERS & PAIRS RESOLUTION
+// ═════════════════════════════════════════════════════════════════════════════
+
+window.isSchoolGarden = function(gOrId) {
+  if (!gOrId) return false;
+  const g = (typeof gOrId === 'object') ? gOrId : (typeof window.G === 'function' ? window.G(gOrId) : null);
+  if (!g) return false;
+  const cls = (typeof window.getGardenClass === 'function'
+    ? window.getGardenClass(g)
+    : (typeof window.gcls === 'function' ? window.gcls(g) : (g.cls || ''))).trim();
+  if (cls === 'ביה"ס' || cls === 'בית ספר') return true;
+  return /בית ספר|ביה"ס|בי"ס|בי״ס|ביה״ס/i.test(g.name || '') || /בית ספר|ביה"ס|בי"ס|בי״ס|ביה״ס/i.test(g.cls || '');
+};
+
+window.getGardenPhone = function(gOrId) {
+  if (!gOrId) return '';
+  const gid = (typeof gOrId === 'object') ? gOrId.id : gOrId;
+  const g = (typeof gOrId === 'object') ? gOrId : (typeof window.G === 'function' ? window.G(gid) : null);
+  const ex = (window.supEx && window.supEx['g_' + gid]) || {};
+  if (ex.coph && String(ex.coph).trim()) return String(ex.coph).trim();
+  if (g && g.coph && String(g.coph).trim()) return String(g.coph).trim();
+  if (g && g.phone && String(g.phone).trim()) return String(g.phone).trim();
+  if (window.GARDEN_PHONES && window.GARDEN_PHONES[String(gid)] && window.GARDEN_PHONES[String(gid)].ph1) {
+    return String(window.GARDEN_PHONES[String(gid)].ph1).trim();
+  }
+  return '';
+};
+
+window.isPairBrokenOnDate = function(pairId, dateStr) {
+  if (!pairId || !dateStr) return false;
+  if (typeof window.isPairBroken === 'function') {
+    return !!window.isPairBroken(pairId, dateStr);
+  }
+  const k = pairId + '_' + dateStr;
+  return !!(window.pairBreaks && window.pairBreaks[k]);
+};
+
+window.resolveGardenUnit = function(gid, targetDate, opts = {}) {
+  const numId = Number(gid);
+  const g = typeof window.G === 'function' ? window.G(numId) : null;
+  const gName = (g && g.name) ? g.name : `גן ${numId}`;
+  const ds = targetDate ? (typeof targetDate === 'string' ? targetDate : (window.d2s ? window.d2s(targetDate) : String(targetDate))) : null;
+
+  // 1. Check if garden is in a Cluster (on this date or globally)
+  if (opts.mode !== 'pairs') {
+    let cl = null;
+    if (ds && typeof window.gardenClusters === 'function') {
+      const res = window.gardenClusters(numId, ds);
+      if (res && res.length > 0) cl = res[0];
+    }
+    if (!cl) {
+      const clustersList = (ds && typeof window.getClusters === 'function')
+        ? window.getClusters(ds, ds)
+        : (typeof window.getClusters === 'function' ? window.getClusters() : Object.values(window.clusters || {}));
+      cl = (clustersList || []).find(c => (c.gardenIds || []).map(Number).includes(numId)) || null;
+    }
+    if (cl) {
+      const clGids = (cl.gardenIds || []).map(Number);
+      return {
+        type: 'cluster',
+        id: cl.id || cl.name,
+        key: `cl_${cl.id || cl.name}`,
+        name: cl.name || 'אשכול',
+        gids: clGids,
+        ids: clGids, // for backward compatibility with getGardenGroup
+        partnerGids: clGids.filter(x => x !== numId),
+        isSolo: false,
+        isBroken: false,
+        sortRank: 1,
+        raw: cl
+      };
+    }
+  }
+
+  // 2. Check if garden is a School
+  if (window.isSchoolGarden(g)) {
+    return {
+      type: 'school',
+      id: `sch_${numId}`,
+      key: `sch_${numId}`,
+      name: gName || `בי"ס ${numId}`,
+      gids: [numId],
+      ids: [numId],
+      partnerGids: [],
+      isSolo: true,
+      isBroken: false,
+      sortRank: 2,
+      raw: g
+    };
+  }
+
+  // 3. Check if garden is in a Pair
+  const pairsList = (ds && typeof window.getPairs === 'function')
+    ? window.getPairs(ds, ds)
+    : (window.pairs || []);
+  const pr = (pairsList || []).find(p => (p.ids || []).map(Number).includes(numId));
+
+  if (pr) {
+    const prGids = (pr.ids || []).map(Number);
+    const broken = ds ? window.isPairBrokenOnDate(pr.id, ds) : false;
+    if (broken) {
+      return {
+        type: 'pair',
+        id: pr.id,
+        key: `pr_${pr.id}`,
+        name: gName,
+        gids: [numId],
+        ids: [numId],
+        partnerGids: prGids.filter(x => x !== numId),
+        isSolo: true,
+        isBroken: true,
+        sortRank: 3,
+        raw: pr
+      };
+    }
+    return {
+      type: 'pair',
+      id: pr.id,
+      key: `pr_${pr.id}`,
+      name: pr.name || 'זוג גנים',
+      gids: prGids,
+      ids: prGids,
+      partnerGids: prGids.filter(x => x !== numId),
+      isSolo: false,
+      isBroken: false,
+      sortRank: 3,
+      raw: pr
+    };
+  }
+
+  // 4. Default: Solo garden
+  return {
+    type: 'solo',
+    id: `solo_${numId}`,
+    key: `solo_${numId}`,
+    name: gName,
+    gids: [numId],
+    ids: [numId],
+    partnerGids: [],
+    isSolo: true,
+    isBroken: false,
+    sortRank: 4,
+    raw: g
+  };
+};
+
 
 window.debounce = function(func, wait) {
   let timeout;
