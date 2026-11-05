@@ -750,13 +750,18 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
       </div>
 
       <div style="margin-top: auto; padding-top: 4px; border-top: 2px solid ${isBW ? '#000000' : '#e2e8f0'};">
-        <div style="font-size: 13.5px; font-weight: 700; color: ${isBW ? '#000000' : '#334155'}; text-align: right; line-height: 1.2;">
-          ${(() => {
-            if (!mgrStr) return '';
-            const isSchool = _isSchool(g);
-            const coordLabel = isSchool ? 'רכז/ת ביה"ס' : 'רכז/ת';
-            return `👩‍💼 ${coordLabel}: ${_esc(mgrStr)}`;
-          })()}
+        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 13.5px; font-weight: 700; color: ${isBW ? '#000000' : '#334155'}; line-height: 1.2;">
+          <div>
+            ${(() => {
+              if (!mgrStr) return '';
+              const isSchool = _isSchool(g);
+              const coordLabel = isSchool ? 'רכז/ת ביה"ס' : 'רכז/ת';
+              return `👩‍💼 ${coordLabel}: ${_esc(mgrStr)}`;
+            })()}
+          </div>
+          <div style="font-size: 11px; font-weight: 600; color: ${isBW ? '#000000' : '#64748b'};" dir="rtl">
+            📅 תאריך הפקה: <span dir="ltr">${(typeof window.getNowDateTimeString === 'function') ? window.getNowDateTimeString() : (new Date().toLocaleDateString('he-IL'))}</span>
+          </div>
         </div>
         <div style="text-align: center; margin-top: 4px;">
           <div class="vp-footer">* שימו לב: ייתכנו שינויים בתוכנית החוגים</div>
