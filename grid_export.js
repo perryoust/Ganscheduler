@@ -390,12 +390,41 @@
                 </div>
               </div>
 
-              <!-- Options Checkboxes -->
-              <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px 12px; font-size:0.8rem; color:#334155; padding-top:4px;">
-                <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
-                  <input type="checkbox" id="gexp-inc-addr" checked onchange="window.updateGridExportSummary()">
-                  <span>הצג כתובת גן</span>
-                </label>
+              <!-- Dedicated WhatsApp Message Options Box (Matching Regular Export) -->
+              <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; padding:8px 12px; margin-top:8px; margin-bottom:8px;">
+                <div style="font-size:0.77rem; font-weight:800; color:#166534; margin-bottom:6px; display:flex; align-items:center; gap:5px;">
+                  <span>📱 אפשרויות להודעת וואטסאפ (בדיוק כמו בהודעה רגילה):</span>
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px 12px; font-size:0.79rem; font-weight:600; color:#1e293b;">
+                  <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
+                    <input type="checkbox" id="gexp-inc-cluster" checked onchange="if(window.syncExportClusterCheckboxes) window.syncExportClusterCheckboxes(this.checked); window.updateGridExportSummary();">
+                    <span>כלול זוג / אשכול גנים</span>
+                  </label>
+                  <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
+                    <input type="checkbox" id="gexp-inc-garden-meta" onchange="if(window.syncExportCoordCheckboxes) window.syncExportCoordCheckboxes(this.checked); window.updateGridExportSummary();">
+                    <span>הוסף שם וטלפון רכז להודעה</span>
+                  </label>
+                  <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
+                    <input type="checkbox" id="gexp-inc-age" onchange="if(window.syncExportAgeCheckboxes) window.syncExportAgeCheckboxes(this.checked); window.updateGridExportSummary();">
+                    <span>הוסף גיל ילדים להודעה (👶)</span>
+                  </label>
+                  <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
+                    <input type="checkbox" id="gexp-inc-addr" checked onchange="if(window.syncExportAddrCheckboxes) window.syncExportAddrCheckboxes(this.checked); window.updateGridExportSummary();">
+                    <span>הצג כתובת גן ומתחם (📍)</span>
+                  </label>
+                  <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
+                    <input type="checkbox" id="gexp-inc-free-days" onchange="if(window.syncExportFreeDaysCheckboxes) window.syncExportFreeDaysCheckboxes(this.checked); window.updateGridExportSummary();">
+                    <span>הוסף ימים פנויים להשלמה</span>
+                  </label>
+                  <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
+                    <input type="checkbox" id="gexp-split-msg" onchange="if(window.syncExportSplitCheckboxes) window.syncExportSplitCheckboxes(this.checked); window.updateGridExportSummary();">
+                    <span>פיצול - הודעה נפרדת לכל גן</span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- General Table & Print Options -->
+              <div style="display:flex; flex-wrap:wrap; gap:12px; font-size:0.77rem; color:#475569; padding-top:2px;">
                 <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
                   <input type="checkbox" id="gexp-inc-sup-phone" onchange="window.updateGridExportSummary()">
                   <span>הצג טלפון ספק בתא</span>
@@ -403,14 +432,6 @@
                 <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
                   <input type="checkbox" id="gexp-inc-empty-gardens" onchange="window.updateGridExportSummary()">
                   <span>הצג גם גנים ללא שיבוץ בטווח</span>
-                </label>
-                <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
-                  <input type="checkbox" id="gexp-inc-garden-meta" onchange="window.updateGridExportSummary()">
-                  <span>הצג רכז/ת וטלפון גן</span>
-                </label>
-                <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
-                  <input type="checkbox" id="gexp-inc-age" onchange="if(window.syncExportAgeCheckboxes) window.syncExportAgeCheckboxes(this.checked); else try{localStorage.setItem('gan_inc_age',this.checked?'true':'false');}catch(e){}; window.updateGridExportSummary();">
-                  <span>הצג גיל ילדים (👶)</span>
                 </label>
                 <label id="gexp-split-sheets-wrap" style="display:flex; align-items:center; gap:6px; cursor:pointer;">
                   <input type="checkbox" id="gexp-split-sheets" checked>
@@ -454,6 +475,7 @@
                   </select>
                 </div>
               </div>
+              <!-- General Instructors Table Options -->
               <div style="display:flex; flex-wrap:wrap; gap:14px; font-size:0.77rem; color:#334155; padding-top:4px; border-top:1px dashed #e2e8f0;">
                 <label style="display:inline-flex; align-items:center; gap:5px; cursor:pointer;">
                   <input type="checkbox" id="gexp-inst-inc-daily-tot" checked onchange="window.onInstFilterChange(true)">
@@ -463,14 +485,39 @@
                   <input type="checkbox" id="gexp-inst-inc-units" onchange="window.onInstFilterChange(true)">
                   <span>הצג פירוט שמות אשכולות / בתי ספר בסוגריים</span>
                 </label>
-                <label style="display:inline-flex; align-items:center; gap:5px; cursor:pointer;">
-                  <input type="checkbox" id="gexp-inst-inc-coord" onchange="window.onInstFilterChange(true)">
-                  <span>בלו"ז מלא: כלול שם וטלפון רכז/ת</span>
-                </label>
-                <label style="display:inline-flex; align-items:center; gap:5px; cursor:pointer;">
-                  <input type="checkbox" id="gexp-inst-inc-age" onchange="if(window.syncExportAgeCheckboxes) window.syncExportAgeCheckboxes(this.checked); else try{localStorage.setItem('gan_inc_age',this.checked?'true':'false');}catch(e){}; window.onInstFilterChange(true);">
-                  <span>בלו"ז מלא: כלול גיל ילדים (👶)</span>
-                </label>
+              </div>
+
+              <!-- Dedicated WhatsApp Message & Full Schedule Options Box (Matching Regular Export) -->
+              <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; padding:8px 12px; margin-top:8px;">
+                <div style="font-size:0.77rem; font-weight:800; color:#166534; margin-bottom:6px; display:flex; align-items:center; gap:5px;">
+                  <span>📱 אפשרויות להודעת וואטסאפ ולו"ז מלא (בדיוק כמו בהודעה רגילה):</span>
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px 12px; font-size:0.79rem; font-weight:600; color:#1e293b;">
+                  <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
+                    <input type="checkbox" id="gexp-inst-inc-cluster" checked onchange="if(window.syncExportClusterCheckboxes) window.syncExportClusterCheckboxes(this.checked); window.onInstFilterChange(true);">
+                    <span>כלול זוג / אשכול גנים</span>
+                  </label>
+                  <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
+                    <input type="checkbox" id="gexp-inst-inc-coord" onchange="if(window.syncExportCoordCheckboxes) window.syncExportCoordCheckboxes(this.checked); window.onInstFilterChange(true);">
+                    <span>הוסף שם וטלפון רכז להודעה</span>
+                  </label>
+                  <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
+                    <input type="checkbox" id="gexp-inst-inc-age" onchange="if(window.syncExportAgeCheckboxes) window.syncExportAgeCheckboxes(this.checked); window.onInstFilterChange(true);">
+                    <span>הוסף גיל ילדים להודעה (👶)</span>
+                  </label>
+                  <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
+                    <input type="checkbox" id="gexp-inst-inc-addr" checked onchange="if(window.syncExportAddrCheckboxes) window.syncExportAddrCheckboxes(this.checked); window.onInstFilterChange(true);">
+                    <span>הצג כתובת גן ומתחם (📍)</span>
+                  </label>
+                  <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
+                    <input type="checkbox" id="gexp-inst-inc-free-days" onchange="if(window.syncExportFreeDaysCheckboxes) window.syncExportFreeDaysCheckboxes(this.checked); window.onInstFilterChange(true);">
+                    <span>הוסף ימים פנויים להשלמה</span>
+                  </label>
+                  <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
+                    <input type="checkbox" id="gexp-inst-split-msg" onchange="if(window.syncExportSplitCheckboxes) window.syncExportSplitCheckboxes(this.checked); window.onInstFilterChange(true);">
+                    <span>פיצול - הודעה נפרדת לכל גן</span>
+                  </label>
+                </div>
               </div>
             </div>
 
@@ -666,14 +713,39 @@
     const reqTab = (opts.tab === 'instructors' || opts.tab === 'gaps') ? opts.tab : 'grid';
     window.setGridExportTab(reqTab);
     try {
-      const savedAge = localStorage.getItem('gan_inc_age');
-      if (savedAge !== null) {
-        const isChecked = (savedAge === 'true');
-        const c1 = document.getElementById('gexp-inc-age');
-        if (c1) c1.checked = isChecked;
-        const c2 = document.getElementById('gexp-inst-inc-age');
-        if (c2) c2.checked = isChecked;
-      }
+      const getStoredBool = (key, defaultVal) => {
+        const v = localStorage.getItem(key);
+        return v !== null ? (v === 'true') : defaultVal;
+      };
+
+      const setCheck = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.checked = !!val;
+      };
+
+      const incClusterVal = getStoredBool('gan_inc_cluster', true);
+      setCheck('gexp-inc-cluster', incClusterVal);
+      setCheck('gexp-inst-inc-cluster', incClusterVal);
+
+      const incCoordVal = getStoredBool('gan_inc_coord', false);
+      setCheck('gexp-inc-garden-meta', incCoordVal);
+      setCheck('gexp-inst-inc-coord', incCoordVal);
+
+      const incAgeVal = getStoredBool('gan_inc_age', false);
+      setCheck('gexp-inc-age', incAgeVal);
+      setCheck('gexp-inst-inc-age', incAgeVal);
+
+      const incAddrVal = getStoredBool('gan_inc_addr', true);
+      setCheck('gexp-inc-addr', incAddrVal);
+      setCheck('gexp-inst-inc-addr', incAddrVal);
+
+      const incFreeDaysVal = getStoredBool('gan_inc_free_days', false);
+      setCheck('gexp-inc-free-days', incFreeDaysVal);
+      setCheck('gexp-inst-inc-free-days', incFreeDaysVal);
+
+      const splitMsgVal = getStoredBool('gan_split_msg', false);
+      setCheck('gexp-split-msg', splitMsgVal);
+      setCheck('gexp-inst-split-msg', splitMsgVal);
     } catch(e) {}
     modal.classList.add('open');
   };
@@ -855,13 +927,24 @@
     const groupMode = document.getElementById('gexp-group-mode')?.value || 'clusters';
     const cityFilter = document.getElementById('gexp-city')?.value || '';
     const clsFilter = document.getElementById('gexp-cls')?.value || 'gan';
-    const incAddr = !!document.getElementById('gexp-inc-addr')?.checked;
+    const incCluster = document.getElementById('gexp-inc-cluster')
+      ? !!document.getElementById('gexp-inc-cluster').checked
+      : (localStorage.getItem('gan_inc_cluster') !== 'false');
+    const incAddr = document.getElementById('gexp-inc-addr')
+      ? !!document.getElementById('gexp-inc-addr').checked
+      : (localStorage.getItem('gan_inc_addr') !== 'false');
     const incSupPhone = !!document.getElementById('gexp-inc-sup-phone')?.checked;
     const incEmptyGardens = !!document.getElementById('gexp-inc-empty-gardens')?.checked;
     const incGardenMeta = !!document.getElementById('gexp-inc-garden-meta')?.checked;
     const incAge = document.getElementById('gexp-inc-age')
       ? !!document.getElementById('gexp-inc-age').checked
       : (localStorage.getItem('gan_inc_age') === 'true');
+    const incFreeDays = document.getElementById('gexp-inc-free-days')
+      ? !!document.getElementById('gexp-inc-free-days').checked
+      : (localStorage.getItem('gan_inc_free_days') === 'true');
+    const splitMsg = document.getElementById('gexp-split-msg')
+      ? !!document.getElementById('gexp-split-msg').checked
+      : (localStorage.getItem('gan_split_msg') === 'true');
     const splitSheets = !!document.getElementById('gexp-split-sheets')?.checked;
     const bwMode = !!document.getElementById('gexp-bw-mode')?.checked;
 
@@ -1076,11 +1159,14 @@
       totalGroups,
       opts: {
         groupMode,
+        incCluster,
         incAddr,
         incSupPhone,
         incEmptyGardens,
         incGardenMeta,
         incAge,
+        incFreeDays,
+        splitMsg,
         splitSheets,
         bwMode
       }
@@ -1985,7 +2071,7 @@
         const groupGardensByConsecutiveAddr = (gardensArr) => {
           const runs = [];
           gardensArr.forEach(g => {
-            const rawSt = opts.incAddr ? String(g.st || '').trim() : '';
+            const rawSt = (opts.incAddr !== false) ? String(g.st || '').trim() : '';
             const nSt = normAddr(rawSt);
             const prev = runs[runs.length - 1];
             if (prev && nSt && prev.normAddr === nSt) {
@@ -2018,7 +2104,7 @@
 
             const timeVal = ev.t ? (typeof window.fT === 'function' ? window.fT(ev.t) : ev.t) : '';
             const timePart = timeVal ? ` · ⏰ ${timeVal}` : (ev.flexNote ? ` · ℹ️ ${ev.flexNote}` : '');
-            const addrPart = (!suppressAddr && opts.incAddr && g.st) ? ` · 📍 ${g.st}` : '';
+            const addrPart = (!suppressAddr && opts.incAddr !== false && g.st) ? ` · 📍 ${g.st}` : '';
             const ageTag = opts.incAge ? (typeof window.getGardenAgeTag === 'function' ? window.getGardenAgeTag(g) : '') : '';
 
             lines.push(`${RLM}${indent}🏫 *${(g.name || '').trimEnd()}*${ageTag} – 📚 ${supAlias}${actPart}${grpPart}${timePart}${addrPart}${phonePart}`);
@@ -2036,6 +2122,28 @@
           });
         };
 
+        if (opts.splitMsg) {
+          const allActiveCityGardens = [
+            ...cd.groups.flatMap(grp => grp.gardens),
+            ...cd.solos
+          ].filter(g => (evsByCell.get(`${Number(g.id)}_${ds}`) || []).length > 0);
+          allActiveCityGardens.sort((ga, gb) => (ga.name || '').localeCompare(gb.name || '', 'he', { numeric: true }));
+
+          allActiveCityGardens.forEach(g => {
+            const gid = Number(g.id);
+            if (opts.incAddr !== false && g.st) {
+              lines.push(`${RLM}📍 ${g.st}`);
+            }
+            formatEvLinesForGarden(g, '', true);
+            if (opts.incFreeDays && typeof window.getGardenFreeDays === 'function') {
+              const freeDaysStr = window.getGardenFreeDays(gid, ds);
+              if (freeDaysStr) lines.push(`${RLM}*ימים פנויים להשלמה (מהיום והלאה): ${freeDaysStr}*`);
+            }
+            lines.push('');
+          });
+          return;
+        }
+
         cd.groups.forEach(grp => {
           const activeGardens = grp.gardens.filter(g => (evsByCell.get(`${Number(g.id)}_${ds}`) || []).length > 0);
           if (!activeGardens.length) return;
@@ -2047,18 +2155,27 @@
             return (ga.name || '').localeCompare(gb.name || '', 'he', { numeric: true });
           });
           const grpIcon = opts.groupMode === 'pairs' ? '⚖️' : '📦';
-          lines.push(`${RLM}${grpIcon} *${grp.name}:*`);
+          if (opts.incCluster !== false) {
+            lines.push(`${RLM}${grpIcon} *${grp.name}:*`);
+          }
+          const baseIndent = (opts.incCluster !== false) ? '  ' : '';
           const runs = groupGardensByConsecutiveAddr(activeGardens);
           runs.forEach(run => {
-            if (run.normAddr && run.gardens.length > 1) {
-              const addrPrefix = runs.length === 1 ? '' : '  ';
-              const gIndent = runs.length === 1 ? '  ' : '    ';
+            if (opts.incAddr !== false && run.normAddr && run.gardens.length > 1) {
+              const addrPrefix = (runs.length === 1 && opts.incCluster !== false) ? '' : baseIndent;
+              const gIndent = (runs.length === 1 && opts.incCluster !== false) ? baseIndent : (baseIndent + '  ');
               lines.push(`${RLM}${addrPrefix}📍 ${run.displayAddr}`);
               run.gardens.forEach(g => formatEvLinesForGarden(g, gIndent, true));
             } else {
-              run.gardens.forEach(g => formatEvLinesForGarden(g, '  ', false));
+              run.gardens.forEach(g => formatEvLinesForGarden(g, baseIndent, false));
             }
           });
+
+          if (opts.incFreeDays && typeof window.getGardenFreeDays === 'function') {
+            const grpGids = activeGardens.map(g => Number(g.id));
+            const freeDaysStr = window.getGardenFreeDays(grpGids, ds);
+            if (freeDaysStr) lines.push(`${RLM}${baseIndent}*ימים פנויים להשלמה (מהיום והלאה): ${freeDaysStr}*`);
+          }
         });
 
         const activeSolos = cd.solos.filter(g => (evsByCell.get(`${Number(g.id)}_${ds}`) || []).length > 0);
@@ -2071,13 +2188,19 @@
           });
           const soloRuns = groupGardensByConsecutiveAddr(activeSolos);
           soloRuns.forEach(run => {
-            if (run.normAddr && run.gardens.length > 1) {
+            if (opts.incAddr !== false && run.normAddr && run.gardens.length > 1) {
               lines.push(`${RLM}📍 ${run.displayAddr}`);
               run.gardens.forEach(g => formatEvLinesForGarden(g, '  ', true));
             } else {
               run.gardens.forEach(g => formatEvLinesForGarden(g, '', false));
             }
           });
+
+          if (opts.incFreeDays && typeof window.getGardenFreeDays === 'function') {
+            const soloGids = activeSolos.map(g => Number(g.id));
+            const freeDaysStr = window.getGardenFreeDays(soloGids, ds);
+            if (freeDaysStr) lines.push(`${RLM}*ימים פנויים להשלמה (מהיום והלאה): ${freeDaysStr}*`);
+          }
         }
         lines.push('');
       });
@@ -2143,10 +2266,22 @@
     const statusFilter = document.getElementById('gexp-inst-status')?.value || 'all';
     const incDailyTot = document.getElementById('gexp-inst-inc-daily-tot') ? !!document.getElementById('gexp-inst-inc-daily-tot').checked : true;
     const incUnits = !!document.getElementById('gexp-inst-inc-units')?.checked;
+    const incCluster = document.getElementById('gexp-inst-inc-cluster')
+      ? !!document.getElementById('gexp-inst-inc-cluster').checked
+      : (localStorage.getItem('gan_inc_cluster') !== 'false');
     const incCoord = !!document.getElementById('gexp-inst-inc-coord')?.checked;
     const incAge = document.getElementById('gexp-inst-inc-age')
       ? !!document.getElementById('gexp-inst-inc-age').checked
       : (localStorage.getItem('gan_inc_age') === 'true');
+    const incAddr = document.getElementById('gexp-inst-inc-addr')
+      ? !!document.getElementById('gexp-inst-inc-addr').checked
+      : (localStorage.getItem('gan_inc_addr') !== 'false');
+    const incFreeDays = document.getElementById('gexp-inst-inc-free-days')
+      ? !!document.getElementById('gexp-inst-inc-free-days').checked
+      : (localStorage.getItem('gan_inc_free_days') === 'true');
+    const splitMsg = document.getElementById('gexp-inst-split-msg')
+      ? !!document.getElementById('gexp-inst-split-msg').checked
+      : (localStorage.getItem('gan_split_msg') === 'true');
     const bwMode = !!document.getElementById('gexp-bw-mode')?.checked;
 
     const days = _buildDaysArray(fromDs, toDs, incFri);
@@ -2485,8 +2620,12 @@
       statusFilter,
       incDailyTot,
       incUnits,
+      incCluster,
       incCoord,
       incAge,
+      incAddr,
+      incFreeDays,
+      splitMsg,
       bwMode,
       allSuppliers,
       filteredSuppliers,
@@ -2934,17 +3073,17 @@
           const fullDay = typeof window.dayN === 'function' ? `יום ${window.dayN(dayObj.ds)}` : _shortDay(dayObj.ds);
           const citiesBlocks = dayObj.cities.map(cObj => {
             const unitsBlocks = cObj.units.map(u => {
-              const unitHdr = u.type === 'cluster'
+              const unitHdr = (data.incCluster !== false) ? (u.type === 'cluster'
                 ? `<div style="font-size:0.76rem; font-weight:800; color:#1e40af; background:#eff6ff; border-radius:5px; padding:3px 8px; margin-bottom:4px; display:inline-block;">📦 אשכול: ${_esc(u.name)}</div>`
                 : (u.type === 'pair'
                   ? `<div style="font-size:0.75rem; font-weight:800; color:#0f766e; background:#f0fdfa; border-radius:5px; padding:2px 8px; margin-bottom:4px; display:inline-block;">⚖️ זוג: ${_esc(u.name)}</div>`
-                  : '');
+                  : '')) : '';
 
               // Group consecutive events sharing the same address
               const normAddr = (st) => String(st || '').trim().replace(/\s+/g, ' ');
               const addrRuns = [];
               u.events.forEach(ev => {
-                const rawSt = String(ev.gd.st || '').trim();
+                const rawSt = (data.incAddr !== false) ? String(ev.gd.st || '').trim() : '';
                 const nSt = normAddr(rawSt);
                 const prev = addrRuns[addrRuns.length - 1];
                 if (prev && nSt && prev.normAddr === nSt) {
@@ -2955,7 +3094,7 @@
               });
 
               const evRunsHtml = addrRuns.map(run => {
-                const isSharedAddr = !!(run.normAddr && run.events.length > 1);
+                const isSharedAddr = data.incAddr !== false && !!(run.normAddr && run.events.length > 1);
                 const sharedAddrHdr = isSharedAddr
                   ? `<div style="font-size:0.76rem; font-weight:700; color:#334155; padding:2px 6px 2px 0;">📍 ${_esc(run.displayAddr)}</div>`
                   : '';
@@ -2975,14 +3114,21 @@
                     <b style="color:#0f172a;">🏫 ${_esc(ev.gd.name)}</b>${ageBadge ? ' ' + ageBadge : ''}
                     ${actName ? `<span style="color:#0369a1; font-size:0.74rem; font-weight:700;">(${_esc(actName)})</span>` : ''}
                     ${grpBadge}
-                    ${(!isSharedAddr && ev.gd.st) ? `<span style="color:#475569; font-size:0.75rem;">📍 ${_esc(ev.gd.st)}</span>` : ''}
+                    ${(!isSharedAddr && data.incAddr !== false && ev.gd.st) ? `<span style="color:#475569; font-size:0.75rem;">📍 ${_esc(ev.gd.st)}</span>` : ''}
                     ${coordLbl ? `<span style="color:#0f766e; font-size:0.73rem; font-weight:700;">👤 ${_esc(coordLbl)}</span>` : ''}
                   </div>`;
                 }).join('');
                 return `${sharedAddrHdr}${rows}`;
               }).join('');
 
-              return `<div style="margin-bottom:6px;">${unitHdr}${evRunsHtml}</div>`;
+              const freeDaysStr = (data.incFreeDays && typeof window.getGardenFreeDays === 'function')
+                ? window.getGardenFreeDays(u.orderIds || u.events.map(ev => ev.gid), dayObj.ds)
+                : '';
+              const freeDaysHtml = freeDaysStr
+                ? `<div style="font-size:0.73rem; font-weight:700; color:#059669; background:#ecfdf5; border:1px solid #a7f3d0; border-radius:5px; padding:2px 8px; margin-top:4px;">🗓️ ימים פנויים להשלמה (מהיום והלאה): ${_esc(freeDaysStr)}</div>`
+                : '';
+
+              return `<div style="margin-bottom:6px;">${unitHdr}${evRunsHtml}${freeDaysHtml}</div>`;
             }).join('');
 
             return `<div style="margin-top:6px; padding-right:4px;">
@@ -3196,10 +3342,48 @@
         lines.push(`${RLM}🏙️ *${cObj.city}*${instTag}`);
 
         cObj.units.forEach(u => {
-          if (u.type === 'cluster') {
-            lines.push(`${RLM}📦 *אשכול: ${u.name}*`);
-          } else if (u.type === 'pair') {
-            lines.push(`${RLM}⚖️ *זוג: ${u.name}*`);
+          if (data.splitMsg) {
+            u.events.forEach(ev => {
+              if (data.incCluster !== false) {
+                if (u.type === 'cluster') lines.push(`${RLM}📦 *אשכול: ${u.name}*`);
+                else if (u.type === 'pair') lines.push(`${RLM}⚖️ *זוג: ${u.name}*`);
+              }
+              if (data.incAddr !== false && ev.gd.st) {
+                lines.push(`${RLM}📍 ${ev.gd.st}`);
+              }
+              const actName = ev.act || (typeof window.supAct === 'function' ? window.supAct(ev.a) : '') || '';
+              const actPart = actName && actName !== sup.dispName && actName !== sup.base ? ` (${actName})` : '';
+
+              let actualGrp = ev.grp ? String(ev.grp).trim() : String(window.ggr ? window.ggr(ev.gd) || '' : '');
+              const grpPart = (actualGrp && actualGrp !== '1' && actualGrp !== '0')
+                ? ` · ${actualGrp.includes(',') ? "קב' " + actualGrp : actualGrp + " קב'"}`
+                : '';
+
+              const timeVal = ev.t ? (typeof window.fT === 'function' ? window.fT(ev.t) : ev.t) : '';
+              const timePart = timeVal ? ` · ⏰ ${timeVal}` : (ev.flexNote ? ` · ℹ️ ${ev.flexNote}` : '');
+              const ageTag = data.incAge ? (typeof window.getGardenAgeTag === 'function' ? window.getGardenAgeTag(ev.gd) : '') : '';
+
+              lines.push(`${RLM}🏫 *${(ev.gd.name || '').trimEnd()}*${ageTag}${actPart}${grpPart}${timePart}`);
+
+              if (data.incCoord) {
+                const cLbl = _getCoordinatorLabel(ev.gid);
+                if (cLbl) lines.push(`${RLM}   👤 רכז/ת: ${cLbl}`);
+              }
+              if (data.incFreeDays && typeof window.getGardenFreeDays === 'function') {
+                const freeDaysStr = window.getGardenFreeDays(ev.gid, dayObj.ds);
+                if (freeDaysStr) lines.push(`${RLM}*ימים פנויים להשלמה (מהיום והלאה): ${freeDaysStr}*`);
+              }
+              lines.push('');
+            });
+            return;
+          }
+
+          if (data.incCluster !== false) {
+            if (u.type === 'cluster') {
+              lines.push(`${RLM}📦 *אשכול: ${u.name}*`);
+            } else if (u.type === 'pair') {
+              lines.push(`${RLM}⚖️ *זוג: ${u.name}*`);
+            }
           }
 
           const unitCoords = data.incCoord
@@ -3211,7 +3395,7 @@
           const normAddr = (st) => String(st || '').trim().replace(/\s+/g, ' ');
           const addrRuns = [];
           u.events.forEach(ev => {
-            const rawSt = String(ev.gd.st || '').trim();
+            const rawSt = (data.incAddr !== false) ? String(ev.gd.st || '').trim() : '';
             const nSt = normAddr(rawSt);
             const prev = addrRuns[addrRuns.length - 1];
             if (prev && nSt && prev.normAddr === nSt) {
@@ -3221,10 +3405,10 @@
             }
           });
 
-          const baseIndent = (u.type === 'cluster' || u.type === 'pair') ? '  ' : '';
+          const baseIndent = (data.incCluster !== false && (u.type === 'cluster' || u.type === 'pair')) ? '  ' : '';
 
           addrRuns.forEach(run => {
-            const isSharedAddr = !!(run.normAddr && run.events.length > 1);
+            const isSharedAddr = data.incAddr !== false && !!(run.normAddr && run.events.length > 1);
             let evIndent = baseIndent;
             if (isSharedAddr) {
               // If the entire cluster/pair shares one address, print 📍 right under the cluster header; otherwise indent slightly
@@ -3244,7 +3428,7 @@
 
               const timeVal = ev.t ? (typeof window.fT === 'function' ? window.fT(ev.t) : ev.t) : '';
               const timePart = timeVal ? ` · ⏰ ${timeVal}` : (ev.flexNote ? ` · ℹ️ ${ev.flexNote}` : '');
-              const addrPart = (!isSharedAddr && ev.gd.st) ? ` · 📍 ${ev.gd.st}` : '';
+              const addrPart = (data.incAddr !== false && !isSharedAddr && ev.gd.st) ? ` · 📍 ${ev.gd.st}` : '';
               const ageTag = data.incAge ? (typeof window.getGardenAgeTag === 'function' ? window.getGardenAgeTag(ev.gd) : '') : '';
 
               lines.push(`${RLM}${evIndent}🏫 *${(ev.gd.name || '').trimEnd()}*${ageTag}${actPart}${grpPart}${timePart}${addrPart}`);
@@ -3260,6 +3444,14 @@
 
           if (data.incCoord && sharedUnitCoord) {
             lines.push(`${RLM}   👤 רכז/ת: ${sharedUnitCoord}`);
+          }
+
+          if (data.incFreeDays && typeof window.getGardenFreeDays === 'function') {
+            const unitGids = u.events.map(ev => ev.gid);
+            const freeDaysStr = window.getGardenFreeDays(unitGids, dayObj.ds);
+            if (freeDaysStr) {
+              lines.push(`${RLM}${baseIndent}*ימים פנויים להשלמה (מהיום והלאה): ${freeDaysStr}*`);
+            }
           }
         });
         lines.push('');
