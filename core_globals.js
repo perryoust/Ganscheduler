@@ -191,65 +191,140 @@ window.getGardenAgeTag = function(gardenOrId) {
   return `  (${cleanAge}👶)`;
 };
 
-window.syncExportAgeCheckboxes = function(val) {
-  try {
-    localStorage.setItem('gan_inc_age', val ? 'true' : 'false');
-  } catch(e) {}
-  ['ex-inc-age', 'gexp-inc-age', 'gexp-inst-inc-age'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.checked = !!val;
-  });
+// ═════════════════════════════════════════════════════════════════════════════
+// UNIFIED WHATSAPP & SCHEDULE EXPORT ENGINE (Single Source of Truth)
+// ═════════════════════════════════════════════════════════════════════════════
+window.WAExport = {
+  KEYS: {
+    incCluster: 'gan_inc_cluster',
+    incCoord: 'gan_inc_coord',
+    incAge: 'gan_inc_age',
+    incAddr: 'gan_inc_addr',
+    incFreeDays: 'gan_inc_free_days',
+    splitMsg: 'gan_split_msg'
+  },
+
+  DEFAULTS: {
+    incCluster: true,
+    incCoord: false,
+    incAge: false,
+    incAddr: true,
+    incFreeDays: false,
+    splitMsg: false
+  },
+
+  CHECKBOX_IDS: {
+    incCluster: ['ex-inc-pair', 'gexp-inc-cluster', 'gexp-inst-inc-cluster'],
+    incCoord: ['ex-inc-coord', 'gexp-inc-garden-meta', 'gexp-inst-inc-coord'],
+    incAge: ['ex-inc-age', 'gexp-inc-age', 'gexp-inst-inc-age'],
+    incAddr: ['ex-inc-addr', 'gexp-inc-addr', 'gexp-inst-inc-addr'],
+    incFreeDays: ['ex-inc-free-days', 'gexp-inc-free-days', 'gexp-inst-inc-free-days'],
+    splitMsg: ['ex-split-msg', 'gexp-split-msg', 'gexp-inst-split-msg']
+  },
+
+  getOption: function(key) {
+    try {
+      const storageKey = this.KEYS[key];
+      if (storageKey) {
+        const v = localStorage.getItem(storageKey);
+        if (v !== null) return v === 'true';
+      }
+    } catch(e) {}
+    return this.DEFAULTS[key] ?? false;
+  },
+
+  setOption: function(key, val) {
+    const boolVal = !!val;
+    try {
+      const storageKey = this.KEYS[key];
+      if (storageKey) localStorage.setItem(storageKey, boolVal ? 'true' : 'false');
+    } catch(e) {}
+    this.syncDOM(key, boolVal);
+  },
+
+  syncDOM: function(key, val) {
+    const ids = this.CHECKBOX_IDS[key] || [];
+    ids.forEach(id => {
+      const el = document.getElementById(id);
+      if (el && el.checked !== !!val) el.checked = !!val;
+    });
+  },
+
+  syncAllFromStorage: function() {
+    const self = this;
+    Object.keys(this.KEYS).forEach(k => {
+      self.syncDOM(k, self.getOption(k));
+    });
+  },
+
+  getAllOptions: function() {
+    return {
+      incCluster: this.getOption('incCluster'),
+      incCoord: this.getOption('incCoord'),
+      incAge: this.getOption('incAge'),
+      incAddr: this.getOption('incAddr'),
+      incFreeDays: this.getOption('incFreeDays'),
+      splitMsg: this.getOption('splitMsg')
+    };
+  },
+
+  formatGardenName: function(gd, opts = {}) {
+    if (!gd) return '';
+    const name = (gd.name || '').trimEnd();
+    const incAge = (opts.incAge !== undefined) ? opts.incAge : this.getOption('incAge');
+    const ageTag = incAge ? (typeof window.getGardenAgeTag === 'function' ? window.getGardenAgeTag(gd) : '') : '';
+    return `${name}${ageTag}`;
+  },
+
+  getCoordinatorLabel: function(gid) {
+    if (typeof window.getGardenCoordinator === 'function') {
+      const ci = window.getGardenCoordinator(gid);
+      if (ci && ci.name && ci.role !== 'manager' && ci.role !== 'vp') {
+        const p = (ci.phone || '').trim();
+        return p ? `${ci.name} (${p})` : ci.name;
+      }
+    }
+    const numId = Number(gid);
+    const mgr = Object.values(window.managers || {}).find(
+      m => m && m.role !== 'manager' && m.role !== 'vp' && Array.isArray(m.gardenIds) && m.gardenIds.map(Number).includes(numId)
+    );
+    if (mgr && mgr.name) {
+      const p = (mgr.phone || '').trim();
+      return p ? `${mgr.name} (${p})` : mgr.name;
+    }
+    return '';
+  },
+
+  getFreeDaysText: function(gardenIds, targetDateStr) {
+    if (typeof window.getGardenFreeDays !== 'function') return '';
+    return window.getGardenFreeDays(gardenIds, targetDateStr) || '';
+  },
+
+  groupByConsecutiveAddress: function(items, getAddrFn, opts = {}) {
+    const incAddr = (opts.incAddr !== undefined) ? opts.incAddr : this.getOption('incAddr');
+    const norm = (st) => String(st || '').trim().replace(/\s+/g, ' ');
+    const runs = [];
+    (items || []).forEach(item => {
+      const rawSt = incAddr ? String(getAddrFn(item) || '').trim() : '';
+      const nSt = norm(rawSt);
+      const prev = runs[runs.length - 1];
+      if (prev && nSt && prev.normAddr === nSt) {
+        prev.items.push(item);
+      } else {
+        runs.push({ normAddr: nSt, displayAddr: rawSt, items: [item] });
+      }
+    });
+    return runs;
+  }
 };
 
-window.syncExportCoordCheckboxes = function(val) {
-  try {
-    localStorage.setItem('gan_inc_coord', val ? 'true' : 'false');
-  } catch(e) {}
-  ['ex-inc-coord', 'gexp-inc-garden-meta', 'gexp-inst-inc-coord'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.checked = !!val;
-  });
-};
-
-window.syncExportFreeDaysCheckboxes = function(val) {
-  try {
-    localStorage.setItem('gan_inc_free_days', val ? 'true' : 'false');
-  } catch(e) {}
-  ['ex-inc-free-days', 'gexp-inc-free-days', 'gexp-inst-inc-free-days'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.checked = !!val;
-  });
-};
-
-window.syncExportSplitCheckboxes = function(val) {
-  try {
-    localStorage.setItem('gan_split_msg', val ? 'true' : 'false');
-  } catch(e) {}
-  ['ex-split-msg', 'gexp-split-msg', 'gexp-inst-split-msg'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.checked = !!val;
-  });
-};
-
-window.syncExportClusterCheckboxes = function(val) {
-  try {
-    localStorage.setItem('gan_inc_cluster', val ? 'true' : 'false');
-  } catch(e) {}
-  ['ex-inc-pair', 'gexp-inc-cluster', 'gexp-inst-inc-cluster'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.checked = !!val;
-  });
-};
-
-window.syncExportAddrCheckboxes = function(val) {
-  try {
-    localStorage.setItem('gan_inc_addr', val ? 'true' : 'false');
-  } catch(e) {}
-  ['gexp-inc-addr', 'gexp-inst-inc-addr'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.checked = !!val;
-  });
-};
+// Backward compatible sync functions
+window.syncExportAgeCheckboxes = function(val) { window.WAExport.setOption('incAge', val); };
+window.syncExportCoordCheckboxes = function(val) { window.WAExport.setOption('incCoord', val); };
+window.syncExportFreeDaysCheckboxes = function(val) { window.WAExport.setOption('incFreeDays', val); };
+window.syncExportSplitCheckboxes = function(val) { window.WAExport.setOption('splitMsg', val); };
+window.syncExportClusterCheckboxes = function(val) { window.WAExport.setOption('incCluster', val); };
+window.syncExportAddrCheckboxes = function(val) { window.WAExport.setOption('incAddr', val); };
 
 
 window.debounce = function(func, wait) {

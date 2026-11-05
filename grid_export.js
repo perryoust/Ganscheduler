@@ -78,6 +78,9 @@
   }
 
   function _getCoordinatorLabel(gid) {
+    if (window.WAExport && typeof window.WAExport.getCoordinatorLabel === 'function') {
+      return window.WAExport.getCoordinatorLabel(gid);
+    }
     if (typeof window.getGardenCoordinator === 'function') {
       const ci = window.getGardenCoordinator(gid);
       if (ci && ci.name) return ci.phone ? `${ci.name} (${ci.phone})` : ci.name;
@@ -712,41 +715,7 @@
 
     const reqTab = (opts.tab === 'instructors' || opts.tab === 'gaps') ? opts.tab : 'grid';
     window.setGridExportTab(reqTab);
-    try {
-      const getStoredBool = (key, defaultVal) => {
-        const v = localStorage.getItem(key);
-        return v !== null ? (v === 'true') : defaultVal;
-      };
-
-      const setCheck = (id, val) => {
-        const el = document.getElementById(id);
-        if (el) el.checked = !!val;
-      };
-
-      const incClusterVal = getStoredBool('gan_inc_cluster', true);
-      setCheck('gexp-inc-cluster', incClusterVal);
-      setCheck('gexp-inst-inc-cluster', incClusterVal);
-
-      const incCoordVal = getStoredBool('gan_inc_coord', false);
-      setCheck('gexp-inc-garden-meta', incCoordVal);
-      setCheck('gexp-inst-inc-coord', incCoordVal);
-
-      const incAgeVal = getStoredBool('gan_inc_age', false);
-      setCheck('gexp-inc-age', incAgeVal);
-      setCheck('gexp-inst-inc-age', incAgeVal);
-
-      const incAddrVal = getStoredBool('gan_inc_addr', true);
-      setCheck('gexp-inc-addr', incAddrVal);
-      setCheck('gexp-inst-inc-addr', incAddrVal);
-
-      const incFreeDaysVal = getStoredBool('gan_inc_free_days', false);
-      setCheck('gexp-inc-free-days', incFreeDaysVal);
-      setCheck('gexp-inst-inc-free-days', incFreeDaysVal);
-
-      const splitMsgVal = getStoredBool('gan_split_msg', false);
-      setCheck('gexp-split-msg', splitMsgVal);
-      setCheck('gexp-inst-split-msg', splitMsgVal);
-    } catch(e) {}
+    if (window.WAExport) window.WAExport.syncAllFromStorage();
     modal.classList.add('open');
   };
 
@@ -927,24 +896,25 @@
     const groupMode = document.getElementById('gexp-group-mode')?.value || 'clusters';
     const cityFilter = document.getElementById('gexp-city')?.value || '';
     const clsFilter = document.getElementById('gexp-cls')?.value || 'gan';
+    const waOpts = window.WAExport ? window.WAExport.getAllOptions() : {};
     const incCluster = document.getElementById('gexp-inc-cluster')
       ? !!document.getElementById('gexp-inc-cluster').checked
-      : (localStorage.getItem('gan_inc_cluster') !== 'false');
+      : (waOpts.incCluster !== false);
     const incAddr = document.getElementById('gexp-inc-addr')
       ? !!document.getElementById('gexp-inc-addr').checked
-      : (localStorage.getItem('gan_inc_addr') !== 'false');
+      : (waOpts.incAddr !== false);
     const incSupPhone = !!document.getElementById('gexp-inc-sup-phone')?.checked;
     const incEmptyGardens = !!document.getElementById('gexp-inc-empty-gardens')?.checked;
     const incGardenMeta = !!document.getElementById('gexp-inc-garden-meta')?.checked;
     const incAge = document.getElementById('gexp-inc-age')
       ? !!document.getElementById('gexp-inc-age').checked
-      : (localStorage.getItem('gan_inc_age') === 'true');
+      : !!waOpts.incAge;
     const incFreeDays = document.getElementById('gexp-inc-free-days')
       ? !!document.getElementById('gexp-inc-free-days').checked
-      : (localStorage.getItem('gan_inc_free_days') === 'true');
+      : !!waOpts.incFreeDays;
     const splitMsg = document.getElementById('gexp-split-msg')
       ? !!document.getElementById('gexp-split-msg').checked
-      : (localStorage.getItem('gan_split_msg') === 'true');
+      : !!waOpts.splitMsg;
     const splitSheets = !!document.getElementById('gexp-split-sheets')?.checked;
     const bwMode = !!document.getElementById('gexp-bw-mode')?.checked;
 
@@ -2105,9 +2075,11 @@
             const timeVal = ev.t ? (typeof window.fT === 'function' ? window.fT(ev.t) : ev.t) : '';
             const timePart = timeVal ? ` · ⏰ ${timeVal}` : (ev.flexNote ? ` · ℹ️ ${ev.flexNote}` : '');
             const addrPart = (!suppressAddr && opts.incAddr !== false && g.st) ? ` · 📍 ${g.st}` : '';
-            const ageTag = opts.incAge ? (typeof window.getGardenAgeTag === 'function' ? window.getGardenAgeTag(g) : '') : '';
+            const gNameFormatted = (window.WAExport && window.WAExport.formatGardenName)
+              ? window.WAExport.formatGardenName(g, { incAge: opts.incAge })
+              : `${(g.name || '').trimEnd()}${opts.incAge ? (window.getGardenAgeTag?.(g) || '') : ''}`;
 
-            lines.push(`${RLM}${indent}🏫 *${(g.name || '').trimEnd()}*${ageTag} – 📚 ${supAlias}${actPart}${grpPart}${timePart}${addrPart}${phonePart}`);
+            lines.push(`${RLM}${indent}🏫 *${gNameFormatted}* – 📚 ${supAlias}${actPart}${grpPart}${timePart}${addrPart}${phonePart}`);
 
             if (opts.incGardenMeta) {
               const coord = _getCoordinatorLabel(gid);
@@ -2135,8 +2107,10 @@
               lines.push(`${RLM}📍 ${g.st}`);
             }
             formatEvLinesForGarden(g, '', true);
-            if (opts.incFreeDays && typeof window.getGardenFreeDays === 'function') {
-              const freeDaysStr = window.getGardenFreeDays(gid, ds);
+            if (opts.incFreeDays) {
+              const freeDaysStr = (window.WAExport && window.WAExport.getFreeDaysText)
+                ? window.WAExport.getFreeDaysText(gid, ds)
+                : (typeof window.getGardenFreeDays === 'function' ? window.getGardenFreeDays(gid, ds) : '');
               if (freeDaysStr) lines.push(`${RLM}*ימים פנויים להשלמה (מהיום והלאה): ${freeDaysStr}*`);
             }
             lines.push('');
@@ -2171,9 +2145,11 @@
             }
           });
 
-          if (opts.incFreeDays && typeof window.getGardenFreeDays === 'function') {
+          if (opts.incFreeDays) {
             const grpGids = activeGardens.map(g => Number(g.id));
-            const freeDaysStr = window.getGardenFreeDays(grpGids, ds);
+            const freeDaysStr = (window.WAExport && window.WAExport.getFreeDaysText)
+              ? window.WAExport.getFreeDaysText(grpGids, ds)
+              : (typeof window.getGardenFreeDays === 'function' ? window.getGardenFreeDays(grpGids, ds) : '');
             if (freeDaysStr) lines.push(`${RLM}${baseIndent}*ימים פנויים להשלמה (מהיום והלאה): ${freeDaysStr}*`);
           }
         });
@@ -2196,9 +2172,11 @@
             }
           });
 
-          if (opts.incFreeDays && typeof window.getGardenFreeDays === 'function') {
+          if (opts.incFreeDays) {
             const soloGids = activeSolos.map(g => Number(g.id));
-            const freeDaysStr = window.getGardenFreeDays(soloGids, ds);
+            const freeDaysStr = (window.WAExport && window.WAExport.getFreeDaysText)
+              ? window.WAExport.getFreeDaysText(soloGids, ds)
+              : (typeof window.getGardenFreeDays === 'function' ? window.getGardenFreeDays(soloGids, ds) : '');
             if (freeDaysStr) lines.push(`${RLM}*ימים פנויים להשלמה (מהיום והלאה): ${freeDaysStr}*`);
           }
         }
@@ -2264,24 +2242,25 @@
       : (document.getElementById('gexp-inst-sup')?.value || '');
     const cityFilter = document.getElementById('gexp-inst-city')?.value || '';
     const statusFilter = document.getElementById('gexp-inst-status')?.value || 'all';
+    const waOpts = window.WAExport ? window.WAExport.getAllOptions() : {};
     const incDailyTot = document.getElementById('gexp-inst-inc-daily-tot') ? !!document.getElementById('gexp-inst-inc-daily-tot').checked : true;
     const incUnits = !!document.getElementById('gexp-inst-inc-units')?.checked;
     const incCluster = document.getElementById('gexp-inst-inc-cluster')
       ? !!document.getElementById('gexp-inst-inc-cluster').checked
-      : (localStorage.getItem('gan_inc_cluster') !== 'false');
+      : (waOpts.incCluster !== false);
     const incCoord = !!document.getElementById('gexp-inst-inc-coord')?.checked;
     const incAge = document.getElementById('gexp-inst-inc-age')
       ? !!document.getElementById('gexp-inst-inc-age').checked
-      : (localStorage.getItem('gan_inc_age') === 'true');
+      : !!waOpts.incAge;
     const incAddr = document.getElementById('gexp-inst-inc-addr')
       ? !!document.getElementById('gexp-inst-inc-addr').checked
-      : (localStorage.getItem('gan_inc_addr') !== 'false');
+      : (waOpts.incAddr !== false);
     const incFreeDays = document.getElementById('gexp-inst-inc-free-days')
       ? !!document.getElementById('gexp-inst-inc-free-days').checked
-      : (localStorage.getItem('gan_inc_free_days') === 'true');
+      : !!waOpts.incFreeDays;
     const splitMsg = document.getElementById('gexp-inst-split-msg')
       ? !!document.getElementById('gexp-inst-split-msg').checked
-      : (localStorage.getItem('gan_split_msg') === 'true');
+      : !!waOpts.splitMsg;
     const bwMode = !!document.getElementById('gexp-bw-mode')?.checked;
 
     const days = _buildDaysArray(fromDs, toDs, incFri);
@@ -3361,16 +3340,20 @@
 
               const timeVal = ev.t ? (typeof window.fT === 'function' ? window.fT(ev.t) : ev.t) : '';
               const timePart = timeVal ? ` · ⏰ ${timeVal}` : (ev.flexNote ? ` · ℹ️ ${ev.flexNote}` : '');
-              const ageTag = data.incAge ? (typeof window.getGardenAgeTag === 'function' ? window.getGardenAgeTag(ev.gd) : '') : '';
+              const gNameFormatted = (window.WAExport && window.WAExport.formatGardenName)
+                ? window.WAExport.formatGardenName(ev.gd, { incAge: data.incAge })
+                : `${(ev.gd.name || '').trimEnd()}${data.incAge ? (window.getGardenAgeTag?.(ev.gd) || '') : ''}`;
 
-              lines.push(`${RLM}🏫 *${(ev.gd.name || '').trimEnd()}*${ageTag}${actPart}${grpPart}${timePart}`);
+              lines.push(`${RLM}🏫 *${gNameFormatted}*${actPart}${grpPart}${timePart}`);
 
               if (data.incCoord) {
                 const cLbl = _getCoordinatorLabel(ev.gid);
                 if (cLbl) lines.push(`${RLM}   👤 רכז/ת: ${cLbl}`);
               }
-              if (data.incFreeDays && typeof window.getGardenFreeDays === 'function') {
-                const freeDaysStr = window.getGardenFreeDays(ev.gid, dayObj.ds);
+              if (data.incFreeDays) {
+                const freeDaysStr = (window.WAExport && window.WAExport.getFreeDaysText)
+                  ? window.WAExport.getFreeDaysText(ev.gid, dayObj.ds)
+                  : (typeof window.getGardenFreeDays === 'function' ? window.getGardenFreeDays(ev.gid, dayObj.ds) : '');
                 if (freeDaysStr) lines.push(`${RLM}*ימים פנויים להשלמה (מהיום והלאה): ${freeDaysStr}*`);
               }
               lines.push('');
@@ -3429,9 +3412,11 @@
               const timeVal = ev.t ? (typeof window.fT === 'function' ? window.fT(ev.t) : ev.t) : '';
               const timePart = timeVal ? ` · ⏰ ${timeVal}` : (ev.flexNote ? ` · ℹ️ ${ev.flexNote}` : '');
               const addrPart = (data.incAddr !== false && !isSharedAddr && ev.gd.st) ? ` · 📍 ${ev.gd.st}` : '';
-              const ageTag = data.incAge ? (typeof window.getGardenAgeTag === 'function' ? window.getGardenAgeTag(ev.gd) : '') : '';
+              const gNameFormatted = (window.WAExport && window.WAExport.formatGardenName)
+                ? window.WAExport.formatGardenName(ev.gd, { incAge: data.incAge })
+                : `${(ev.gd.name || '').trimEnd()}${data.incAge ? (window.getGardenAgeTag?.(ev.gd) || '') : ''}`;
 
-              lines.push(`${RLM}${evIndent}🏫 *${(ev.gd.name || '').trimEnd()}*${ageTag}${actPart}${grpPart}${timePart}${addrPart}`);
+              lines.push(`${RLM}${evIndent}🏫 *${gNameFormatted}*${actPart}${grpPart}${timePart}${addrPart}`);
 
               if (data.incCoord && !sharedUnitCoord) {
                 const cLbl = _getCoordinatorLabel(ev.gid);
@@ -3446,9 +3431,11 @@
             lines.push(`${RLM}   👤 רכז/ת: ${sharedUnitCoord}`);
           }
 
-          if (data.incFreeDays && typeof window.getGardenFreeDays === 'function') {
+          if (data.incFreeDays) {
             const unitGids = u.events.map(ev => ev.gid);
-            const freeDaysStr = window.getGardenFreeDays(unitGids, dayObj.ds);
+            const freeDaysStr = (window.WAExport && window.WAExport.getFreeDaysText)
+              ? window.WAExport.getFreeDaysText(unitGids, dayObj.ds)
+              : (typeof window.getGardenFreeDays === 'function' ? window.getGardenFreeDays(unitGids, dayObj.ds) : '');
             if (freeDaysStr) {
               lines.push(`${RLM}${baseIndent}*ימים פנויים להשלמה (מהיום והלאה): ${freeDaysStr}*`);
             }

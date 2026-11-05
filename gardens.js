@@ -1770,18 +1770,12 @@ function openExportForEvents(eventIds) {
   setupExPairUI(gids, window._exSingleGid);
   if(window.setupExmFieldMode) window.setupExmFieldMode();
   
+  if (window.WAExport) window.WAExport.syncAllFromStorage();
   // Auto-enable free days checkbox if exporting missed / cancelled activities
   const isAnyMissed = acts.some(x => x.st === 'can' || x.st === 'nohap');
   const incFreeDaysCb = document.getElementById('ex-inc-free-days');
   if (incFreeDaysCb) {
     incFreeDaysCb.checked = isAnyMissed;
-  }
-  const incAgeCb = document.getElementById('ex-inc-age');
-  if (incAgeCb) {
-    try {
-      const savedAge = localStorage.getItem('gan_inc_age');
-      if (savedAge !== null) incAgeCb.checked = (savedAge === 'true');
-    } catch(e) {}
   }
 
   const exm = document.getElementById('exm');
@@ -1937,19 +1931,13 @@ function openExport(){
   document.getElementById('ex-d1').value=d1Val;
   document.getElementById('ex-d2').value=d2Val;
   
+  if (window.WAExport) window.WAExport.syncAllFromStorage();
   // Auto-enable free days checkbox if exporting missed / cancelled activities
   const targetActs = (window.SCH || []).filter(x => numGids.includes(Number(x.g)) && (x.d === d1Val || (x.d >= d1Val && x.d <= d2Val)));
   const isAnyMissed = targetActs.some(x => x.st === 'can' || x.st === 'nohap');
   const incFreeDaysCb = document.getElementById('ex-inc-free-days');
   if (incFreeDaysCb) {
     incFreeDaysCb.checked = isAnyMissed;
-  }
-  const incAgeCb = document.getElementById('ex-inc-age');
-  if (incAgeCb) {
-    try {
-      const savedAge = localStorage.getItem('gan_inc_age');
-      if (savedAge !== null) incAgeCb.checked = (savedAge === 'true');
-    } catch(e) {}
   }
 
   let ctx=isWeek?`${fD(d2s(ws))} – ${fD(d2s(we))}`:(isAnyMissed ? `פעילות שלא התקיימה מ-${fD(d1Val)}` : `תאריך: ${fD(d2s(calD))}`);
@@ -2453,27 +2441,21 @@ function genExport(){
   };
 
   const isFieldUser = !!(window.permCoord || ['coordinator', 'manager', 'vp'].includes(window.role) || document.body.classList.contains('coordinator-mode') || (document.getElementById('coordinator-app-root') && document.getElementById('coordinator-app-root').style.display !== 'none') || (document.getElementById('coordinator-app-container') && document.getElementById('coordinator-app-container').style.display !== 'none'));
-  const incCoord = !isFieldUser && document.getElementById('ex-inc-coord') && document.getElementById('ex-inc-coord').checked;
-  const incFreeDays = !isFieldUser && document.getElementById('ex-inc-free-days') && document.getElementById('ex-inc-free-days').checked;
-  const incAge = document.getElementById('ex-inc-age')
-    ? document.getElementById('ex-inc-age').checked
-    : (localStorage.getItem('gan_inc_age') === 'true');
-  const getAgePart = (gd) => {
-    if (!incAge) return '';
-    return typeof window.getGardenAgeTag === 'function' ? window.getGardenAgeTag(gd) : '';
-  };
-  const gNameWithAge = (gd) => `${((gd && gd.name) || '').trimEnd()}${getAgePart(gd)}`;
+  const waOpts = window.WAExport ? window.WAExport.getAllOptions() : {};
+  const incCoord = !isFieldUser && (document.getElementById('ex-inc-coord') ? document.getElementById('ex-inc-coord').checked : !!waOpts.incCoord);
+  const incFreeDays = !isFieldUser && (document.getElementById('ex-inc-free-days') ? document.getElementById('ex-inc-free-days').checked : !!waOpts.incFreeDays);
+  const incAge = document.getElementById('ex-inc-age') ? document.getElementById('ex-inc-age').checked : !!waOpts.incAge;
+  const incAddr = document.getElementById('ex-inc-addr') ? document.getElementById('ex-inc-addr').checked : (waOpts.incAddr !== false);
+  const splitPairs = document.getElementById('ex-split-msg') ? document.getElementById('ex-split-msg').checked : !!waOpts.splitMsg;
+
+  const gNameWithAge = (gd) => (window.WAExport && window.WAExport.formatGardenName) ? window.WAExport.formatGardenName(gd, { incAge }) : `${((gd && gd.name) || '').trimEnd()}`;
   const getCoordStr = (gid) => {
     if (!incCoord || isFieldUser) return '';
-    const ci = typeof window.getGardenCoordinator === 'function' ? window.getGardenCoordinator(gid) : null;
-    if (ci && ci.name && ci.role !== 'manager' && ci.role !== 'vp') {
-      const p = (ci.phone || '').trim();
-      return ` (רכז/ת: ${ci.name}${p ? ' - ' + p : ''} )`.trimEnd();
-    }
-    return '';
+    const lbl = (window.WAExport && window.WAExport.getCoordinatorLabel) ? window.WAExport.getCoordinatorLabel(gid) : '';
+    return lbl ? ` (רכז/ת: ${lbl})` : '';
   };
 
-  const splitPairs = document.getElementById('ex-split-msg') && document.getElementById('ex-split-msg').checked;
+
   const byDate={};rel.forEach(s=>{if(!byDate[s.d])byDate[s.d]=[];byDate[s.d].push(s);});
   let text = headerTitle;
   const dates=Object.keys(byDate).sort();
@@ -2601,7 +2583,7 @@ function genExport(){
                     const mTag = skipInlineMTag ? '' : getRowTag(s);
                     const isNohapRow = isNohapFunc(s);
                     const stIcon = getEvIcon(s);
-                    const addrStr = `📍 ${addr} · `;
+                    const addrStr = (incAddr && addr) ? `📍 ${addr} · ` : '';
                     const statusTag = (!skipInlineNohap && isNohapRow && !isAllCan && !isAllNohap && !isAllPreponedOut) ? ` *(${getNohapLabel(s.d)})*` : '';
                     const rawCoord = isPairWithSameMgr ? '' : getCoordStr(s.g);
                     const coordText = rawCoord ? `\n  ${rawCoord.trim()}` : '';
@@ -2615,7 +2597,7 @@ function genExport(){
                     
                     text+=`  ${stIcon}${mTag}${addrStr}${gNameWithAge(s.gd)}${statusTag}${timeStr}${coordText}\n`;
                   } else {
-                    text+=`  📍 ${addr}\n`;
+                    if (incAddr) text+=`  📍 ${addr}\n`;
                     byAddr[addr].forEach(s => {
                       const mTag = skipInlineMTag ? '' : getRowTag(s);
                       const isNohapRow = isNohapFunc(s);
@@ -2659,7 +2641,7 @@ function genExport(){
                text+=`     👤 ${sharedMgrStr.replace(' (', '').replace(')', '')}\n`;
             }
             if (incFreeDays) {
-              const freeDaysStr = window.getGardenFreeDays(group.map(s => s.g), date);
+              const freeDaysStr = (window.WAExport && window.WAExport.getFreeDaysText) ? window.WAExport.getFreeDaysText(group.map(s => s.g), date) : window.getGardenFreeDays(group.map(s => s.g), date);
               if (freeDaysStr) text += `\n*ימים פנויים להשלמה (מהיום והלאה): ${freeDaysStr}*\n`;
             }
             text+='\n';
@@ -2736,7 +2718,7 @@ text+=`     ${stIcon}${mTag}${gNameWithAge(s.gd)}${statusTag}${timeStr}${coordTe
                 const mTag = skipInlineMTag ? '' : getRowTag(s);
                 const isNohapRow = isNohapFunc(s);
                 const stIcon = getEvIcon(s);
-                const addr=s.gd.st?`📍 ${s.gd.st} · `:'';
+                const addr=(incAddr && s.gd.st)?`📍 ${s.gd.st} · `:'';
                 const statusTag = (!skipInlineNohap && isNohapRow && !isAllCan && !isAllNohap && !isAllPreponedOut) ? ` *(${getNohapLabel(s.d)})*` : '';
                 const rawCoord = getCoordStr(s.g);
                 const coordText = rawCoord ? `\n  ${rawCoord.trim()}` : '';
@@ -2750,7 +2732,7 @@ text+=`  ${stIcon}${mTag}${addr}${gNameWithAge(s.gd)}${statusTag}${timeStr}${coo
               });
             }
             if (incFreeDays) {
-              const freeDaysStr = window.getGardenFreeDays(group.map(s => s.g), date);
+              const freeDaysStr = (window.WAExport && window.WAExport.getFreeDaysText) ? window.WAExport.getFreeDaysText(group.map(s => s.g), date) : window.getGardenFreeDays(group.map(s => s.g), date);
               if (freeDaysStr) text += `\n*ימים פנויים להשלמה (מהיום והלאה): ${freeDaysStr}*\n`;
             }
             text+='\n';
@@ -2773,7 +2755,7 @@ if (actualGrp && actualGrp !== '1' && actualGrp !== '0') {
 const timeStr = s.t ? grpStr + fT(s.t) : '';
 text+=`${stIcon}${mTag}${gNameWithAge(s.gd)}${statusTag} - ${s.a}${timeStr}${coordText}\n`;
           if (incFreeDays) {
-            const freeDaysStr = window.getGardenFreeDays(s.g, date);
+            const freeDaysStr = (window.WAExport && window.WAExport.getFreeDaysText) ? window.WAExport.getFreeDaysText(s.g, date) : window.getGardenFreeDays(s.g, date);
             if (freeDaysStr) text += `\n*ימים פנויים להשלמה (מהיום והלאה): ${freeDaysStr}*\n`;
           }
         });
