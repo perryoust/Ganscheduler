@@ -1769,6 +1769,14 @@ function openExportForEvents(eventIds) {
   }
   setupExPairUI(gids, window._exSingleGid);
   if(window.setupExmFieldMode) window.setupExmFieldMode();
+  
+  // Auto-enable free days checkbox if exporting missed / cancelled activities
+  const isAnyMissed = acts.some(x => x.st === 'can' || x.st === 'nohap');
+  const incFreeDaysCb = document.getElementById('ex-inc-free-days');
+  if (incFreeDaysCb) {
+    incFreeDaysCb.checked = isAnyMissed;
+  }
+
   const exm = document.getElementById('exm');
   if (exm) exm.classList.add('open');
   
@@ -1969,20 +1977,6 @@ window.getGardenFreeDays = function(gardenIds, targetDateStr) {
     baseDateStr = typeof window.td === 'function' ? window.td() : new Date().toISOString().split('T')[0];
   }
 
-  // Calculate start of the target week (Sunday)
-  let baseObj;
-  try {
-    const parts = baseDateStr.split('-');
-    baseObj = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
-  } catch(e) {
-    baseObj = new Date();
-  }
-  
-  // Start from Sunday of this week (or base date)
-  const sundayObj = new Date(baseObj);
-  sundayObj.setDate(baseObj.getDate() - baseObj.getDay());
-  sundayObj.setHours(0, 0, 0, 0);
-
   // Helper to format date string
   const d2sHelper = (d) => {
     const y = d.getFullYear();
@@ -1993,38 +1987,46 @@ window.getGardenFreeDays = function(gardenIds, targetDateStr) {
 
   const todayStr = typeof window.td === 'function' ? window.td() : d2sHelper(new Date());
 
-  // Check each weekday in the forward window (current week + next week)
-  // A weekday is considered blocked/busy if in that forward window:
-  // 1. It is already in the past (before today)
-  // 2. The day of the cancelled activity itself (cannot make up on the same day it didn't happen)
-  // 3. Any garden in the group has an active activity on that date
-  // 4. Any garden is blocked or there is a full-date holiday/vacation/block on that date
-  const busyDays = new Set();
+  // CRITICAL FIX: Makeups must be scheduled in the future!
+  // If the cancelled event was in the past (e.g. 29/10/2026), search forward starting from TODAY.
+  // If the cancelled event is in the future, search forward starting from that event date.
+  const searchStartStr = (baseDateStr && baseDateStr > todayStr) ? baseDateStr : todayStr;
 
-  // The weekday of the base activity itself is excluded
-  busyDays.add(baseObj.getDay());
+  let searchStartObj;
+  try {
+    const parts = searchStartStr.split('-');
+    searchStartObj = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+  } catch(e) {
+    searchStartObj = new Date();
+  }
 
-  // Check each weekday 0..4 across the two weeks
+  // Start from Sunday of the search start week
+  const sundayObj = new Date(searchStartObj);
+  sundayObj.setDate(searchStartObj.getDate() - searchStartObj.getDay());
+  sundayObj.setHours(0, 0, 0, 0);
+
+  // Check the next 4 weeks forward to ensure we find regular free days
+  const weekOffsets = [0, 7, 14, 21];
+
+  const freeDays = [];
+
   workDays.forEach(wd => {
-    if (busyDays.has(wd)) return;
-
-    // We check occurrences of this weekday in week 1 and week 2
     let hasAvailableOccurrence = false;
 
-    [0, 7].forEach(offsetDays => {
+    for (const offsetDays of weekOffsets) {
       const checkDateObj = new Date(sundayObj);
       checkDateObj.setDate(sundayObj.getDate() + wd + offsetDays);
       const ds = d2sHelper(checkDateObj);
 
-      // Don't consider days in the past or on/before the cancelled date
-      if (ds < todayStr || ds <= baseDateStr) return;
+      // Do not consider days in the past or the cancelled date itself
+      if (ds <= todayStr || ds <= baseDateStr) continue;
 
       // Check holidays and global blocks
       if (typeof window.getHolidayInfo === 'function') {
         const hol = window.getHolidayInfo(ds);
-        if (hol && (hol.type === 'vacation' || hol.type === 'noact' || hol.isOff)) return;
+        if (hol && (hol.type === 'vacation' || hol.type === 'noact' || hol.isOff)) continue;
       }
-      if (window.blockedDates && window.blockedDates[ds]) return;
+      if (window.blockedDates && window.blockedDates[ds]) continue;
 
       // Check per-garden blocks and active activities
       let gardenBlocked = false;
@@ -2043,16 +2045,16 @@ window.getGardenFreeDays = function(gardenIds, targetDateStr) {
 
       if (!gardenBlocked) {
         hasAvailableOccurrence = true;
+        break; // Found an available slot for this weekday!
       }
-    });
+    }
 
-    if (!hasAvailableOccurrence) {
-      busyDays.add(wd);
+    if (hasAvailableOccurrence) {
+      freeDays.push(wd);
     }
   });
 
-  const freeDays = workDays.filter(wd => !busyDays.has(wd));
-  if (!freeDays.length) return '';
+  if (!freeDays.length) return 'לא נמצאו ימים פנויים';
 
   return freeDays.map(wd => dayNames[wd]).join(' | ');
 };
@@ -2061,6 +2063,10 @@ window.setExTypeTab = function(type) {
   const typeFltEl = document.getElementById('ex-type-flt');
   if (typeFltEl) {
     typeFltEl.value = type;
+  }
+  const incFreeDaysCb = document.getElementById('ex-inc-free-days');
+  if (incFreeDaysCb && type === 'missed') {
+    incFreeDaysCb.checked = true;
   }
   window._syncExTabsUI(type);
   genExport();
