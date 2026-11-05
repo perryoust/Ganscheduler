@@ -1776,6 +1776,13 @@ function openExportForEvents(eventIds) {
   if (incFreeDaysCb) {
     incFreeDaysCb.checked = isAnyMissed;
   }
+  const incAgeCb = document.getElementById('ex-inc-age');
+  if (incAgeCb) {
+    try {
+      const savedAge = localStorage.getItem('gan_inc_age');
+      if (savedAge !== null) incAgeCb.checked = (savedAge === 'true');
+    } catch(e) {}
+  }
 
   const exm = document.getElementById('exm');
   if (exm) exm.classList.add('open');
@@ -1936,6 +1943,13 @@ function openExport(){
   const incFreeDaysCb = document.getElementById('ex-inc-free-days');
   if (incFreeDaysCb) {
     incFreeDaysCb.checked = isAnyMissed;
+  }
+  const incAgeCb = document.getElementById('ex-inc-age');
+  if (incAgeCb) {
+    try {
+      const savedAge = localStorage.getItem('gan_inc_age');
+      if (savedAge !== null) incAgeCb.checked = (savedAge === 'true');
+    } catch(e) {}
   }
 
   let ctx=isWeek?`${fD(d2s(ws))} – ${fD(d2s(we))}`:(isAnyMissed ? `פעילות שלא התקיימה מ-${fD(d1Val)}` : `תאריך: ${fD(d2s(calD))}`);
@@ -2441,6 +2455,14 @@ function genExport(){
   const isFieldUser = !!(window.permCoord || ['coordinator', 'manager', 'vp'].includes(window.role) || document.body.classList.contains('coordinator-mode') || (document.getElementById('coordinator-app-root') && document.getElementById('coordinator-app-root').style.display !== 'none') || (document.getElementById('coordinator-app-container') && document.getElementById('coordinator-app-container').style.display !== 'none'));
   const incCoord = !isFieldUser && document.getElementById('ex-inc-coord') && document.getElementById('ex-inc-coord').checked;
   const incFreeDays = !isFieldUser && document.getElementById('ex-inc-free-days') && document.getElementById('ex-inc-free-days').checked;
+  const incAge = document.getElementById('ex-inc-age')
+    ? document.getElementById('ex-inc-age').checked
+    : (localStorage.getItem('gan_inc_age') === 'true');
+  const getAgePart = (gd) => {
+    if (!incAge) return '';
+    return typeof window.getGardenAgeTag === 'function' ? window.getGardenAgeTag(gd) : '';
+  };
+  const gNameWithAge = (gd) => `${((gd && gd.name) || '').trimEnd()}${getAgePart(gd)}`;
   const getCoordStr = (gid) => {
     if (!incCoord || isFieldUser) return '';
     const ci = typeof window.getGardenCoordinator === 'function' ? window.getGardenCoordinator(gid) : null;
@@ -2563,7 +2585,7 @@ function genExport(){
                 }
                 const timeStr = s.t ? grpStr + fT(s.t) : '';
                 
-                text+=`     ${stIcon}${mTag}${s.gd.name}${statusTag}${timeStr}${coordText}\n`; 
+                text+=`     ${stIcon}${mTag}${gNameWithAge(s.gd)}${statusTag}${timeStr}${coordText}\n`; 
               });
             } else {
               const byAddr = {};
@@ -2591,7 +2613,7 @@ function genExport(){
                 }
                     const timeStr = s.t ? grpStr + fT(s.t) : '';
                     
-                    text+=`  ${stIcon}${mTag}${addrStr}${s.gd.name}${statusTag}${timeStr}${coordText}\n`;
+                    text+=`  ${stIcon}${mTag}${addrStr}${gNameWithAge(s.gd)}${statusTag}${timeStr}${coordText}\n`;
                   } else {
                     text+=`  📍 ${addr}\n`;
                     byAddr[addr].forEach(s => {
@@ -2609,7 +2631,7 @@ function genExport(){
                 }
                       const timeStr = s.t ? grpStr + fT(s.t) : '';
                       
-                      text+=`     ${stIcon}${mTag}${s.gd.name}${statusTag}${timeStr}${coordText}\n`;
+                      text+=`     ${stIcon}${mTag}${gNameWithAge(s.gd)}${statusTag}${timeStr}${coordText}\n`;
                     });
                   }
                 } else {
@@ -2628,7 +2650,7 @@ function genExport(){
                 }
                     const timeStr = s.t ? grpStr + fT(s.t) : '';
                     
-                    text+=`  ${stIcon}${mTag}${s.gd.name}${statusTag}${timeStr}${coordText}\n`;
+                    text+=`  ${stIcon}${mTag}${gNameWithAge(s.gd)}${statusTag}${timeStr}${coordText}\n`;
                   });
                 }
               });
@@ -2707,7 +2729,7 @@ if (actualGrp && actualGrp !== '1' && actualGrp !== '0') {
     grpStr = ` · ${actualGrp.includes(',') ? "קב' " + actualGrp : actualGrp + " קב'"}` + ' · ⏰ ';
 }
 const timeStr = s.t ? grpStr + fT(s.t) : '';
-text+=`     ${stIcon}${mTag}${s.gd.name}${statusTag}${timeStr}${coordText}\n`; 
+text+=`     ${stIcon}${mTag}${gNameWithAge(s.gd)}${statusTag}${timeStr}${coordText}\n`; 
               });
             } else {
               group.forEach(s=>{
@@ -2724,7 +2746,7 @@ if (actualGrp && actualGrp !== '1' && actualGrp !== '0') {
     grpStr = ` · ${actualGrp.includes(',') ? "קב' " + actualGrp : actualGrp + " קב'"}` + ' · ⏰ ';
 }
 const timeStr = s.t ? grpStr + fT(s.t) : '';
-text+=`  ${stIcon}${mTag}${addr}${s.gd.name}${statusTag}${timeStr}${coordText}\n`;
+text+=`  ${stIcon}${mTag}${addr}${gNameWithAge(s.gd)}${statusTag}${timeStr}${coordText}\n`;
               });
             }
             if (incFreeDays) {
@@ -2749,7 +2771,7 @@ if (actualGrp && actualGrp !== '1' && actualGrp !== '0') {
     grpStr = ` · ${actualGrp.includes(',') ? "קב' " + actualGrp : actualGrp + " קב'"}` + ' · ⏰ ';
 }
 const timeStr = s.t ? grpStr + fT(s.t) : '';
-text+=`${stIcon}${mTag}${s.gd.name}${statusTag} - ${s.a}${timeStr}${coordText}\n`;
+text+=`${stIcon}${mTag}${gNameWithAge(s.gd)}${statusTag} - ${s.a}${timeStr}${coordText}\n`;
           if (incFreeDays) {
             const freeDaysStr = window.getGardenFreeDays(s.g, date);
             if (freeDaysStr) text += `\n*ימים פנויים להשלמה (מהיום והלאה): ${freeDaysStr}*\n`;
@@ -3549,6 +3571,13 @@ window.exportSingleRecurringWA = function(sid) {
   text += `${supLine}\n`;
   text += `📍 ${g.city || ''}\n`;
 
+  const incAge = localStorage.getItem('gan_inc_age') === 'true';
+  const getAgePart = (gardenObj) => {
+    if (!incAge) return '';
+    return typeof window.getGardenAgeTag === 'function' ? window.getGardenAgeTag(gardenObj) : '';
+  };
+  const gNameWithAge = (gardenObj) => `${((gardenObj && gardenObj.name) || '').trimEnd()}${getAgePart(gardenObj)}`;
+
   const addrs = [...new Set(rel.map(x => window.G(x.g).st || ''))].filter(Boolean);
   const sameAddr = addrs.length === 1 && rel.every(x => window.G(x.g).st === addrs[0]);
 
@@ -3556,7 +3585,7 @@ window.exportSingleRecurringWA = function(sid) {
     text += `  📍 ${addrs[0]}\n`;
     rel.forEach(x => {
       const gd = window.G(x.g);
-      const gardenName = gd.name;
+      const gardenName = gNameWithAge(gd);
       let gS = '';
       if(x.grp && String(x.grp).trim() && String(x.grp).trim() !== '1'){
         const sg = String(x.grp).trim();
@@ -3581,7 +3610,7 @@ window.exportSingleRecurringWA = function(sid) {
         if(gC>1) gS = ` · ${gC} קב'`;
       }
       const tS = x.t ? ' · ⏰ ' + window.fT(x.t) : '';
-      text += `  🏫 ${addr}${gd.name}${gS}${tS}\n`;
+      text += `  🏫 ${addr}${gNameWithAge(gd)}${gS}${tS}\n`;
     });
   }
 
@@ -3656,6 +3685,13 @@ window.exportRecurringWA = function(key, gid) {
     }
   });
 
+  const incAge = localStorage.getItem('gan_inc_age') === 'true';
+  const getAgePart = (gardenObj) => {
+    if (!incAge) return '';
+    return typeof window.getGardenAgeTag === 'function' ? window.getGardenAgeTag(gardenObj) : '';
+  };
+  const gNameWithAge = (gardenObj) => `${((gardenObj && gardenObj.name) || '').trimEnd()}${getAgePart(gardenObj)}`;
+
   const addrs = [...new Set(group.map(s => s.gd.st || ''))].filter(Boolean);
   const sameAddr = addrs.length === 1 && group.every(s => s.gd.st === addrs[0]);
 
@@ -3665,7 +3701,7 @@ window.exportRecurringWA = function(key, gid) {
       const gC = parseInt(s.grp, 10) || window.ggr(s.gd) || 0;
       const gS = gC > 0 ? ` · ${gC} קב'` : '';
       const tS = s.t ? ' · ⏰ ' + window.fT(s.t) : '';
-      text += `     🏫 ${s.gd.name}${gS}${tS}\n`;
+      text += `     🏫 ${gNameWithAge(s.gd)}${gS}${tS}\n`;
     });
   } else {
     group.forEach(s => {
@@ -3673,7 +3709,7 @@ window.exportRecurringWA = function(key, gid) {
       const gC = parseInt(s.grp, 10) || window.ggr(s.gd) || 0;
       const gS = gC > 0 ? ` · ${gC} קב'` : '';
       const tS = s.t ? ' · ⏰ ' + window.fT(s.t) : '';
-      text += `  🏫 ${addr}${s.gd.name}${gS}${tS}\n`;
+      text += `  🏫 ${addr}${gNameWithAge(s.gd)}${gS}${tS}\n`;
     });
   }
 
@@ -3721,7 +3757,9 @@ window.exportAllRecurringWA = function(gid, sendDirect = false) {
   }
 
   const daysHe = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
-  let text = `🏫 *מערכת חוגים קבועה - ${gd.name || g.name}*\n`;
+  const incAge = localStorage.getItem('gan_inc_age') === 'true';
+  const ageTag = incAge && typeof window.getGardenAgeTag === 'function' ? window.getGardenAgeTag(gd || g) : '';
+  let text = `🏫 *מערכת חוגים קבועה - ${((gd.name || g.name) || '').trimEnd()}*${ageTag}\n`;
   const addrParts = [g.city, gd.st || g.st].filter(Boolean);
   if (addrParts.length) text += `📍 ${addrParts.join(', ')}\n`;
   text += `\n`;

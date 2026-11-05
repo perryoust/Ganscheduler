@@ -167,11 +167,38 @@ window.isDataSafeForExport = function() {
 // --- Utilities ---
 window.extractGardenAge = function(garden) {
   if (!garden) return '***';
+  if (typeof garden === 'number' || (typeof garden === 'string' && /^\d+$/.test(garden))) {
+    garden = (typeof window.G === 'function' ? window.G(Number(garden)) : null) || (window.getAllGardens && window.getAllGardens().find(x => Number(x.id) === Number(garden))) || { id: garden };
+  }
   const ex = (window.supEx && window.supEx['g_' + garden.id]) || {};
   if (ex.age && String(ex.age).trim()) return String(ex.age).trim();
   if (garden.age && String(garden.age).trim()) return String(garden.age).trim();
   const m = (garden.name||'').match(/(?:גילאי|גיל|כיתה|כיתות|שכבת)\s*([א-ת0-9\-\.\s]+?)(?=\)|$)/);
   return m ? m[1].trim() : '***';
+};
+
+window.getGardenAgeTag = function(gardenOrId) {
+  if (!gardenOrId) return '';
+  let g = gardenOrId;
+  if (typeof g === 'number' || (typeof g === 'string' && /^\d+$/.test(g))) {
+    g = (typeof window.G === 'function' ? window.G(Number(g)) : null) || (window.getAllGardens && window.getAllGardens().find(x => Number(x.id) === Number(g))) || { id: g };
+  }
+  const rawAge = typeof window.extractGardenAge === 'function' ? window.extractGardenAge(g) : (g && g.age);
+  if (!rawAge || rawAge === '***') return '';
+  const cleanAge = String(rawAge).trim();
+  if (!cleanAge) return '';
+  if (g && g.name && g.name.includes('👶')) return '';
+  return `  (${cleanAge}👶)`;
+};
+
+window.syncExportAgeCheckboxes = function(val) {
+  try {
+    localStorage.setItem('gan_inc_age', val ? 'true' : 'false');
+  } catch(e) {}
+  ['ex-inc-age', 'gexp-inc-age', 'gexp-inst-inc-age'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.checked = !!val;
+  });
 };
 
 
