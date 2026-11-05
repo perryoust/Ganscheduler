@@ -1218,39 +1218,19 @@ function gardenPair(gid, targetDate){
   return pairsList.find(p=>p.ids.map(x=>parseInt(x)).includes(n))||null;
 }
 window.getGardenGroup = function(gid, targetDate = null) {
-  if (typeof window.resolveGardenUnit === 'function') {
-    const isClusterMode = window._listGroupMode === 'clusters' || window._dashTab === 'clusters';
-    const unit = window.resolveGardenUnit(gid, targetDate, { mode: isClusterMode ? 'clusters' : undefined });
-    if (unit && !unit.isSolo && unit.gids && unit.gids.length > 1) {
-      return {
-        type: unit.type,
-        id: unit.id,
-        ids: unit.gids,
-        name: unit.name,
-        ...(unit.raw || {})
-      };
-    }
-    return null;
-  }
-  const n = parseInt(gid);
   const isClusterMode = window._listGroupMode === 'clusters' || window._dashTab === 'clusters';
-  
-  const cls = (targetDate && typeof window.getClusters === 'function') ? window.getClusters(targetDate, targetDate) : Object.values(window.clusters || {});
-  const pairsList = (targetDate && typeof window.getPairs === 'function') ? window.getPairs(targetDate, targetDate) : (window.pairs || []);
-
-  if (isClusterMode) {
-    const cl = cls.find(c => (c.gardenIds || []).map(x=>parseInt(x)).includes(n));
-    if (cl) return { type: 'cluster', id: cl.id || cl.name, ids: cl.gardenIds.map(x=>parseInt(x)), name: cl.name };
+  const unit = (typeof window.resolveGardenUnit === 'function')
+    ? window.resolveGardenUnit(gid, targetDate, { mode: isClusterMode ? 'clusters' : undefined })
+    : null;
+  if (unit && !unit.isSolo && unit.gids && unit.gids.length > 1) {
+    return {
+      type: unit.type,
+      id: unit.id,
+      ids: unit.gids,
+      name: unit.name,
+      ...(unit.raw || {})
+    };
   }
-
-  const pair = pairsList.find(p => p.ids.map(x => parseInt(x)).includes(n));
-  if (pair) return { type: 'pair', ...pair };
-  
-  if (!isClusterMode) {
-    const cl = cls.find(c => (c.gardenIds || []).map(x=>parseInt(x)).includes(n));
-    if (cl) return { type: 'cluster', id: cl.id || cl.name, ids: cl.gardenIds.map(x=>parseInt(x)), name: cl.name };
-  }
-  
   return null;
 };
 window.compareActivities = function(a, b) {

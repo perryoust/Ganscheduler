@@ -57,26 +57,11 @@
   }
 
   function _isSchoolGarden(g) {
-    if (typeof window.isSchoolGarden === 'function') return window.isSchoolGarden(g);
-    if (!g) return false;
-    const cls = (typeof window.getGardenClass === 'function'
-      ? window.getGardenClass(g)
-      : (typeof window.gcls === 'function' ? window.gcls(g) : (g.cls || ''))).trim();
-    if (cls === 'ביה"ס' || cls === 'בית ספר') return true;
-    return /בית ספר|ביה"ס|בי"ס|בי״ס|ביה״ס/i.test(g.name || '') || /בית ספר|ביה"ס|בי"ס|בי״ס|ביה״ס/i.test(g.cls || '');
+    return typeof window.isSchoolGarden === 'function' ? window.isSchoolGarden(g) : false;
   }
 
   function _getGardenPhone(g) {
-    if (typeof window.getGardenPhone === 'function') return window.getGardenPhone(g);
-    if (!g) return '';
-    const ex = (window.supEx && window.supEx['g_' + g.id]) || {};
-    if (ex.coph && String(ex.coph).trim()) return String(ex.coph).trim();
-    if (g.coph && String(g.coph).trim()) return String(g.coph).trim();
-    if (g.phone && String(g.phone).trim()) return String(g.phone).trim();
-    if (window.GARDEN_PHONES && window.GARDEN_PHONES[String(g.id)] && window.GARDEN_PHONES[String(g.id)].ph1) {
-      return String(window.GARDEN_PHONES[String(g.id)].ph1).trim();
-    }
-    return '';
+    return typeof window.getGardenPhone === 'function' ? window.getGardenPhone(g) : '';
   }
 
   function _getCoordinatorLabel(gid) {
@@ -2948,43 +2933,11 @@
         ? window.resolveGardenUnit(gid, s.d)
         : null;
 
-      let unitKey, unitType, unitName, orderIds, sortRank;
-      if (unit) {
-        unitKey = unit.key;
-        unitType = unit.type;
-        unitName = unit.name;
-        orderIds = unit.gids;
-        sortRank = unit.sortRank;
-      } else {
-        const isSchool = _isSchoolGarden(g);
-        const cl = _resolveGardenCluster(gid, s.d, allClusters);
-        const pr = (!cl && !isSchool && typeof window.gardenPair === 'function') ? window.gardenPair(gid) : null;
-        if (cl) {
-          unitKey = `cl_${cl.id}`;
-          unitType = 'cluster';
-          unitName = cl.name || 'אשכול';
-          orderIds = (cl.gardenIds || []).map(Number);
-          sortRank = 1;
-        } else if (isSchool) {
-          unitKey = `sch_${gid}`;
-          unitType = 'school';
-          unitName = g.name || `בי"ס ${gid}`;
-          orderIds = [gid];
-          sortRank = 2;
-        } else if (pr) {
-          unitKey = `pr_${pr.id}`;
-          unitType = 'pair';
-          unitName = pr.name || 'זוג גנים';
-          orderIds = (pr.ids || []).map(Number);
-          sortRank = 3;
-        } else {
-          unitKey = `solo_${gid}`;
-          unitType = 'solo';
-          unitName = g.name || '';
-          orderIds = [gid];
-          sortRank = 4;
-        }
-      }
+      const unitKey = unit ? unit.key : `solo_${gid}`;
+      const unitType = unit ? unit.type : 'solo';
+      const unitName = unit ? unit.name : (g.name || '');
+      const orderIds = unit ? unit.gids : [gid];
+      const sortRank = unit ? unit.sortRank : 4;
 
       if (!unitsMap.has(unitKey)) {
         unitsMap.set(unitKey, {
