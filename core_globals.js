@@ -300,6 +300,11 @@ window.WAExport = {
     return window.getGardenFreeDays(gardenIds, targetDateStr) || '';
   },
 
+  formatFreeDaysLine: function(freeDaysStr) {
+    if (!freeDaysStr) return '';
+    return `*ימים פנויים : ${freeDaysStr}*`;
+  },
+
   groupByConsecutiveAddress: function(items, getAddrFn, opts = {}) {
     const incAddr = (opts.incAddr !== undefined) ? opts.incAddr : this.getOption('incAddr');
     const norm = (st) => String(st || '').trim().replace(/\s+/g, ' ');

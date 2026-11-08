@@ -2098,7 +2098,7 @@
               const freeDaysStr = (window.WAExport && window.WAExport.getFreeDaysText)
                 ? window.WAExport.getFreeDaysText(gid, ds)
                 : (typeof window.getGardenFreeDays === 'function' ? window.getGardenFreeDays(gid, ds) : '');
-              if (freeDaysStr) lines.push(`${RLM}*ימים פנויים להשלמה (מהיום והלאה): ${freeDaysStr}*`);
+              if (freeDaysStr) lines.push(`${RLM}*ימים פנויים : ${freeDaysStr}*`);
             }
             lines.push('');
           });
@@ -2137,7 +2137,7 @@
             const freeDaysStr = (window.WAExport && window.WAExport.getFreeDaysText)
               ? window.WAExport.getFreeDaysText(grpGids, ds)
               : (typeof window.getGardenFreeDays === 'function' ? window.getGardenFreeDays(grpGids, ds) : '');
-            if (freeDaysStr) lines.push(`${RLM}${baseIndent}*ימים פנויים להשלמה (מהיום והלאה): ${freeDaysStr}*`);
+            if (freeDaysStr) lines.push(`${RLM}${baseIndent}*ימים פנויים : ${freeDaysStr}*`);
           }
         });
 
@@ -2164,7 +2164,7 @@
             const freeDaysStr = (window.WAExport && window.WAExport.getFreeDaysText)
               ? window.WAExport.getFreeDaysText(soloGids, ds)
               : (typeof window.getGardenFreeDays === 'function' ? window.getGardenFreeDays(soloGids, ds) : '');
-            if (freeDaysStr) lines.push(`${RLM}*ימים פנויים להשלמה (מהיום והלאה): ${freeDaysStr}*`);
+            if (freeDaysStr) lines.push(`${RLM}*ימים פנויים : ${freeDaysStr}*`);
           }
         }
         lines.push('');
@@ -3074,7 +3074,7 @@
                 ? window.getGardenFreeDays(u.orderIds || u.events.map(ev => ev.gid), dayObj.ds)
                 : '';
               const freeDaysHtml = freeDaysStr
-                ? `<div style="font-size:0.73rem; font-weight:700; color:#059669; background:#ecfdf5; border:1px solid #a7f3d0; border-radius:5px; padding:2px 8px; margin-top:4px;">🗓️ ימים פנויים להשלמה (מהיום והלאה): ${_esc(freeDaysStr)}</div>`
+                ? `<div style="font-size:0.73rem; font-weight:700; color:#059669; background:#ecfdf5; border:1px solid #a7f3d0; border-radius:5px; padding:2px 8px; margin-top:4px;">🗓️ ימים פנויים : ${_esc(freeDaysStr)}</div>`
                 : '';
 
               return `<div style="margin-bottom:6px;">${unitHdr}${evRunsHtml}${freeDaysHtml}</div>`;
@@ -3324,7 +3324,7 @@
                 const freeDaysStr = (window.WAExport && window.WAExport.getFreeDaysText)
                   ? window.WAExport.getFreeDaysText(ev.gid, dayObj.ds)
                   : (typeof window.getGardenFreeDays === 'function' ? window.getGardenFreeDays(ev.gid, dayObj.ds) : '');
-                if (freeDaysStr) lines.push(`${RLM}*ימים פנויים להשלמה (מהיום והלאה): ${freeDaysStr}*`);
+                if (freeDaysStr) lines.push(`${RLM}*ימים פנויים : ${freeDaysStr}*`);
               }
               lines.push('');
             });
@@ -3407,7 +3407,7 @@
               ? window.WAExport.getFreeDaysText(unitGids, dayObj.ds)
               : (typeof window.getGardenFreeDays === 'function' ? window.getGardenFreeDays(unitGids, dayObj.ds) : '');
             if (freeDaysStr) {
-              lines.push(`${RLM}${baseIndent}*ימים פנויים להשלמה (מהיום והלאה): ${freeDaysStr}*`);
+              lines.push(`${RLM}${baseIndent}*ימים פנויים : ${freeDaysStr}*`);
             }
           }
         });

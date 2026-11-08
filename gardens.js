@@ -2642,7 +2642,7 @@ function genExport(){
             }
             if (incFreeDays) {
               const freeDaysStr = (window.WAExport && window.WAExport.getFreeDaysText) ? window.WAExport.getFreeDaysText(group.map(s => s.g), date) : window.getGardenFreeDays(group.map(s => s.g), date);
-              if (freeDaysStr) text += `\n*ימים פנויים להשלמה (מהיום והלאה): ${freeDaysStr}*\n`;
+              if (freeDaysStr) text += `\n*ימים פנויים : ${freeDaysStr}*\n`;
             }
             text+='\n';
           });
@@ -2733,7 +2733,7 @@ text+=`  ${stIcon}${mTag}${addr}${gNameWithAge(s.gd)}${statusTag}${timeStr}${coo
             }
             if (incFreeDays) {
               const freeDaysStr = (window.WAExport && window.WAExport.getFreeDaysText) ? window.WAExport.getFreeDaysText(group.map(s => s.g), date) : window.getGardenFreeDays(group.map(s => s.g), date);
-              if (freeDaysStr) text += `\n*ימים פנויים להשלמה (מהיום והלאה): ${freeDaysStr}*\n`;
+              if (freeDaysStr) text += `\n*ימים פנויים : ${freeDaysStr}*\n`;
             }
             text+='\n';
           });
@@ -2756,7 +2756,7 @@ const timeStr = s.t ? grpStr + fT(s.t) : '';
 text+=`${stIcon}${mTag}${gNameWithAge(s.gd)}${statusTag} - ${s.a}${timeStr}${coordText}\n`;
           if (incFreeDays) {
             const freeDaysStr = (window.WAExport && window.WAExport.getFreeDaysText) ? window.WAExport.getFreeDaysText(s.g, date) : window.getGardenFreeDays(s.g, date);
-            if (freeDaysStr) text += `\n*ימים פנויים להשלמה (מהיום והלאה): ${freeDaysStr}*\n`;
+            if (freeDaysStr) text += `\n*ימים פנויים : ${freeDaysStr}*\n`;
           }
         });
       }
