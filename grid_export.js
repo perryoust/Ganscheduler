@@ -304,7 +304,7 @@
             ▦ גריד שיבוצים (יומי / שבועי)
           </button>
           <button type="button" id="gexp-tab-btn-instructors" onclick="window.setGridExportTab('instructors')" style="padding:10px 10px; border:none; border-bottom:3px solid transparent; background:transparent; color:#475569; font-weight:800; font-size:0.84rem; cursor:pointer; transition:all 0.15s;">
-            🧑‍🏫 מדריכים לספקים ועומסים
+            🧑‍🏫 ריכוז מדריכים לפי עיר ויום
           </button>
           <button type="button" id="gexp-tab-btn-gaps" onclick="window.setGridExportTab('gaps')" style="padding:10px 10px; border:none; border-bottom:3px solid transparent; background:transparent; color:#475569; font-weight:800; font-size:0.84rem; cursor:pointer; transition:all 0.15s; display:inline-flex; align-items:center; justify-content:center; gap:5px;">
             <span>🔍 בקרת אשכולות וחוסרים</span>
@@ -536,7 +536,8 @@
           <div style="display:flex; flex-wrap:wrap; gap:7px; flex:1;">
             <button type="button" class="btn bg" data-tip="העתק הודעת טקסט מפורטת לוואטסאפ של כל הלו״ז המלא בטווח ובסינון שנבחרו" onclick="window.doGridExportWhatsAppText()" style="background:#0d9488; border-color:#0f766e; color:#fff; font-weight:800; padding:7px 12px; font-size:0.81rem;">📲 העתק לו"ז מלא בהודעה</button>
             <button type="button" class="btn bg" data-tip="הורד דוח שבועי מרוכז של אשכולות ומדריכים (בדיוק כמו בתמונה: מס' מדריכים ליום)" onclick="window.doClusterMatrixExportExcel()" style="background:#0284c7; border-color:#0369a1; color:#fff; font-weight:800; padding:7px 12px; font-size:0.81rem;">📑 מס' מדריכים (אשכולות)</button>
-            <button type="button" class="btn bg" data-tip="הורד קובץ אקסל מעוצב (RTL) של טבלת השיבוצים בטווח שנבחר" onclick="window.doGridExportExcel()" style="background:#15803d; border-color:#166534; color:#fff; font-weight:800; padding:7px 12px; font-size:0.81rem;">📊 אקסל (Excel)</button>
+            <button type="button" class="btn bg" data-tip="הורד דוח ריכוז מדריכים לפי עיר ויום (מפעילי חוגים, ערים וימים - גיליון אקסל מלא)" onclick="window.doInstExportExcel()" style="background:#059669; border-color:#047857; color:#fff; font-weight:800; padding:7px 12px; font-size:0.81rem;">📊 ריכוז מדריכים לפי עיר ויום</button>
+            <button type="button" class="btn bg" data-tip="הורד קובץ אקסל מעוצב (RTL) של טבלת השיבוצים בטווח שנבחר" onclick="window.doGridExportExcel()" style="background:#15803d; border-color:#166534; color:#fff; font-weight:800; padding:7px 12px; font-size:0.81rem;">📊 אקסל גריד (Excel)</button>
             <button type="button" class="btn bp" data-tip="פתח תצוגת הדפסה ושמירה ל-PDF מותאמת לרוחב עמוד A4" onclick="window.doGridExportPDF()" style="background:#1d4ed8; border-color:#1e40af; color:#fff; font-weight:800; padding:7px 12px; font-size:0.81rem;">🖨️ PDF / הדפסה</button>
             <button type="button" class="btn bo" data-tip="הורד את טבלת השיבוצים כתמונת JPG (או קובץ ZIP למספר ערים)" onclick="window.doGridExportImage('download')" style="background:#fdf2f8; border:1px solid #f472b6; color:#9d174d; font-weight:800; padding:7px 11px; font-size:0.8rem;">🖼️ תמונה (JPG)</button>
             <button type="button" class="btn bo" data-tip="העתק את הטבלה כתמונה ללוח להדבקה ישירה (Ctrl+V) בוואטסאפ" onclick="window.doGridExportImage('copy')" style="background:#ecfdf5; border:1px solid #34d399; color:#065f46; font-weight:800; padding:7px 11px; font-size:0.8rem;">📋 העתק תמונה</button>
@@ -549,8 +550,8 @@
           <div style="display:flex; flex-wrap:wrap; gap:6px; flex:1;">
             <button type="button" class="btn bg" data-tip="העתק הודעת טקסט מוכנה לוואטסאפ עם הלו״ז המלא והמפורט לספק (תאריכים, ערים, אשכולות, גנים, כתובות ושעות)" onclick="window.doInstExportFullScheduleWA()" style="background:#0d9488; border-color:#0f766e; color:#fff; font-weight:800; padding:7px 12px; font-size:0.81rem;">📲 העתק לו"ז מלא בהודעה</button>
             <button type="button" class="btn bg" data-tip="העתק הודעת טקסט מרוכזת לוואטסאפ עם כמות המדריכים הנדרשת ליום לפי עיר" onclick="window.doInstExportWhatsAppText()" style="background:#16a34a; border-color:#15803d; color:#fff; font-weight:800; padding:7px 12px; font-size:0.81rem;">💬 הודעת כמות מדריכים</button>
+            <button type="button" class="btn bg" data-tip="הורד קובץ אקסל מלא: ריכוז מדריכים לפי עיר ויום, בקרת עומסים וחוסרים" onclick="window.doInstExportExcel()" style="background:#15803d; border-color:#166534; color:#fff; font-weight:800; padding:7px 11px; font-size:0.8rem;">📊 ריכוז מדריכים לפי עיר ויום (Excel)</button>
             <button type="button" class="btn bg" data-tip="הורד דוח שבועי מרוכז של אשכולות ומדריכים (בדיוק כמו בתמונה: מס' מדריכים ליום)" onclick="window.doClusterMatrixExportExcel()" style="background:#0284c7; border-color:#0369a1; color:#fff; font-weight:800; padding:7px 11px; font-size:0.8rem;">📑 מס' מדריכים (אשכולות)</button>
-            <button type="button" class="btn bg" data-tip="הורד קובץ אקסל מלא (3 גיליונות: מדריכים לפי ערים, בקרת עומסים וחוסרים)" onclick="window.doInstExportExcel()" style="background:#15803d; border-color:#166534; color:#fff; font-weight:800; padding:7px 11px; font-size:0.8rem;">📊 אקסל מדריכים ובקרה</button>
             <button type="button" class="btn bp" data-tip="פתח דוח היערכות מדריכים להדפסה או שמירה כ-PDF" onclick="window.doInstExportPDF()" style="background:#1d4ed8; border-color:#1e40af; color:#fff; font-weight:800; padding:7px 11px; font-size:0.8rem;">🖨️ PDF / הדפסה</button>
             <button type="button" class="btn bo" data-tip="הורד כרטיס תמונה מעוצב (JPG) של היערכות המדריכים" onclick="window.doInstExportImage('download')" style="background:#fdf2f8; border:1px solid #f472b6; color:#9d174d; font-weight:800; padding:7px 10px; font-size:0.79rem;">🖼️ תמונה (JPG)</button>
             <button type="button" class="btn bo" data-tip="העתק כרטיס היערכות מדריכים כתמונה ללוח להדבקה ב-Ctrl+V בוואטסאפ" onclick="window.doInstExportImage('copy')" style="background:#ecfdf5; border:1px solid #34d399; color:#065f46; font-weight:800; padding:7px 10px; font-size:0.79rem;">📋 העתק תמונה</button>
@@ -562,7 +563,7 @@
         <div id="gexp-footer-gaps" style="display:none; background:#f8fafc; border-top:1px solid #e2e8f0; padding:11px 18px; flex-wrap:wrap; gap:8px; justify-content:space-between; align-items:center; direction:rtl;">
           <div style="display:flex; flex-wrap:wrap; gap:8px; flex:1;">
             <button type="button" class="btn bg" data-tip="הורד לאקסל את דוח הבקרה המלא כולל גנים ללא אשכול ופספוסי שיבוץ" onclick="window.doInstExportExcel()" style="background:#15803d; border-color:#166534; color:#fff; font-weight:800; padding:8px 14px; font-size:0.83rem;">📊 ייצוא דוח בקרה וחוסרים (Excel)</button>
-            <button type="button" class="btn bo" onclick="window.setGridExportTab('instructors')" style="background:#eef2ff; border:1px solid #a5b4fc; color:#1e3a8a; font-weight:800; padding:8px 13px; font-size:0.82rem;">🧑‍🏫 מעבר למדריכים לספקים</button>
+            <button type="button" class="btn bo" onclick="window.setGridExportTab('instructors')" style="background:#eef2ff; border:1px solid #a5b4fc; color:#1e3a8a; font-weight:800; padding:8px 13px; font-size:0.82rem;">🧑‍🏫 מעבר לריכוז מדריכים לפי עיר ויום</button>
           </div>
           <button type="button" class="btn bo" onclick="window.CM('grid-export-m')" style="padding:8px 14px; font-size:0.82rem;">סגור</button>
         </div>
