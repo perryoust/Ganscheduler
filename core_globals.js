@@ -429,8 +429,14 @@ window.resolveGardenUnit = function(gid, targetDate, opts = {}) {
   const gName = (g && g.name) ? g.name : `גן ${numId}`;
   const ds = targetDate ? (typeof targetDate === 'string' ? targetDate : (window.d2s ? window.d2s(targetDate) : String(targetDate))) : null;
 
-  // 1. Check if garden is in a Cluster (on this date or globally)
-  if (opts.mode !== 'pairs') {
+  // Determine effective grouping mode:
+  // Explicitly passed opts.mode ('clusters' | 'pairs') takes precedence.
+  // Otherwise, respect active system mode (window._listGroupMode / window._dashTab).
+  const isClusterActive = (typeof window !== 'undefined') && (window._listGroupMode === 'clusters' || window._dashTab === 'clusters');
+  const effectiveMode = opts.mode || (isClusterActive ? 'clusters' : 'pairs');
+
+  // Helper: check Cluster
+  const resolveCluster = () => {
     let cl = null;
     if (ds && typeof window.gardenClusters === 'function') {
       const res = window.gardenClusters(numId, ds);
@@ -458,65 +464,90 @@ window.resolveGardenUnit = function(gid, targetDate, opts = {}) {
         raw: cl
       };
     }
-  }
+    return null;
+  };
 
-  // 2. Check if garden is a School
-  if (window.isSchoolGarden(g)) {
-    return {
-      type: 'school',
-      id: `sch_${numId}`,
-      key: `sch_${numId}`,
-      name: gName || `בי"ס ${numId}`,
-      gids: [numId],
-      ids: [numId],
-      partnerGids: [],
-      isSolo: true,
-      isBroken: false,
-      sortRank: 2,
-      raw: g
-    };
-  }
+  // Helper: check School
+  const resolveSchool = () => {
+    if (window.isSchoolGarden(g)) {
+      return {
+        type: 'school',
+        id: `sch_${numId}`,
+        key: `sch_${numId}`,
+        name: gName || `בי"ס ${numId}`,
+        gids: [numId],
+        ids: [numId],
+        partnerGids: [],
+        isSolo: true,
+        isBroken: false,
+        sortRank: 2,
+        raw: g
+      };
+    }
+    return null;
+  };
 
-  // 3. Check if garden is in a Pair
-  const pairsList = (ds && typeof window.getPairs === 'function')
-    ? window.getPairs(ds, ds)
-    : (window.pairs || []);
-  const pr = (pairsList || []).find(p => (p.ids || []).map(Number).includes(numId));
-
-  if (pr) {
-    const prGids = (pr.ids || []).map(Number);
-    const broken = ds ? window.isPairBrokenOnDate(pr.id, ds) : false;
-    if (broken) {
+  // Helper: check Pair
+  const resolvePair = () => {
+    const pairsList = (ds && typeof window.getPairs === 'function')
+      ? window.getPairs(ds, ds)
+      : (window.pairs || []);
+    const pr = (pairsList || []).find(p => (p.ids || []).map(Number).includes(numId));
+    if (pr) {
+      const prGids = (pr.ids || []).map(Number);
+      const broken = ds ? window.isPairBrokenOnDate(pr.id, ds) : false;
+      if (broken) {
+        return {
+          type: 'pair',
+          id: pr.id,
+          key: `pr_${pr.id}`,
+          name: gName,
+          gids: [numId],
+          ids: [numId],
+          partnerGids: prGids.filter(x => x !== numId),
+          isSolo: true,
+          isBroken: true,
+          sortRank: 3,
+          raw: pr
+        };
+      }
       return {
         type: 'pair',
         id: pr.id,
         key: `pr_${pr.id}`,
-        name: gName,
-        gids: [numId],
-        ids: [numId],
+        name: pr.name || 'זוג גנים',
+        gids: prGids,
+        ids: prGids,
         partnerGids: prGids.filter(x => x !== numId),
-        isSolo: true,
-        isBroken: true,
+        isSolo: false,
+        isBroken: false,
         sortRank: 3,
         raw: pr
       };
     }
-    return {
-      type: 'pair',
-      id: pr.id,
-      key: `pr_${pr.id}`,
-      name: pr.name || 'זוג גנים',
-      gids: prGids,
-      ids: prGids,
-      partnerGids: prGids.filter(x => x !== numId),
-      isSolo: false,
-      isBroken: false,
-      sortRank: 3,
-      raw: pr
-    };
+    return null;
+  };
+
+  // Prioritize matching based on effectiveMode
+  if (effectiveMode === 'clusters') {
+    const cl = resolveCluster();
+    if (cl) return cl;
+    const sch = resolveSchool();
+    if (sch) return sch;
+    const pr = resolvePair();
+    if (pr) return pr;
+  } else {
+    // effectiveMode === 'pairs'
+    const sch = resolveSchool();
+    if (sch) return sch;
+    const pr = resolvePair();
+    if (pr) return pr;
+    // Fallback: If not assigned to any pair, check cluster
+    const cl = resolveCluster();
+    if (cl) return cl;
   }
 
-  // 4. Default: Solo garden
+  // Default: Solo garden
   return {
     type: 'solo',
     id: `solo_${numId}`,

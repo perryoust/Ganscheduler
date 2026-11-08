@@ -1220,7 +1220,7 @@ function gardenPair(gid, targetDate){
 window.getGardenGroup = function(gid, targetDate = null) {
   const isClusterMode = window._listGroupMode === 'clusters' || window._dashTab === 'clusters';
   const unit = (typeof window.resolveGardenUnit === 'function')
-    ? window.resolveGardenUnit(gid, targetDate, { mode: isClusterMode ? 'clusters' : undefined })
+    ? window.resolveGardenUnit(gid, targetDate, { mode: isClusterMode ? 'clusters' : 'pairs' })
     : null;
   if (unit && !unit.isSolo && unit.gids && unit.gids.length > 1) {
     return {
