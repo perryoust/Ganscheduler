@@ -1274,6 +1274,24 @@ async function exportToExcel(data, filename, opts = {}) {
                  } else {
                    cell.alignment = { horizontal: 'right', vertical: 'middle', wrapText: true };
                  }
+                 // Soft pastel color separation for 'סוג פעילות' (Col 6)
+                 if (isPlacement && colNumber === 6) {
+                   const val = String(cell.value || '').trim();
+                   let fillArgb = null;
+                   if (val.includes('בוקר')) {
+                     fillArgb = 'FFFCE5CD'; // Soft light peach/orange
+                   } else if (val.includes('צהרון') || val.includes('צהריים')) {
+                     fillArgb = 'FFD9E1F2'; // Soft light blue
+                   } else if (val.includes('קייטנה')) {
+                     fillArgb = 'FFF3E5F5'; // Soft lavender
+                   } else if (val.includes('מופע') || val.includes('הפעלה')) {
+                     fillArgb = 'FFFFF2CC'; // Soft light yellow
+                   }
+                   if (fillArgb) {
+                     cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: fillArgb } };
+                     cell.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FF000000' } };
+                   }
+                 }
               });
             });
 
