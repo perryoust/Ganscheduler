@@ -1017,14 +1017,24 @@ async function exportToExcel(data, filename, opts = {}) {
         margins: { left: 0.3/2.54, right: 0.3/2.54, top: 0.4/2.54, bottom: 0.4/2.54, header: 0.8/2.54, footer: 0.8/2.54 }
       };
       
+      const mergedRows = new Set();
+      const doMerge = (r1, c1, r2, c2) => {
+        ws.mergeCells(r1, c1, r2, c2);
+        if (c2 > c1 || r2 > r1) {
+          for (let r = r1; r <= r2; r++) mergedRows.add(r);
+        }
+      };
+      
       if(opts.title){
         const isPlacementOpts = opts.type === 'supplier_placement';
         const groupByOpts = opts.groupBy || 'pairs';
         const isClusterGroupOpts = (groupByOpts === 'clusters');
         const colCountOpts = isPlacementOpts ? (isClusterGroupOpts ? 11 : 10) : (isClusterGroupOpts ? 10 : 9);
         const titleRow = ws.addRow([opts.title]);
+        titleRow.height = 32;
         titleRow.font = { name: 'Arial', size: 16, bold: true };
-        ws.mergeCells(1, 1, 1, colCountOpts);
+        titleRow.alignment = { horizontal: 'center', vertical: 'middle' };
+        doMerge(1, 1, 1, colCountOpts);
         ws.pageSetup.printTitlesRow = '1:1';
       }
 
@@ -1096,14 +1106,15 @@ async function exportToExcel(data, filename, opts = {}) {
                 }
             }
             const titleRow = ws.addRow([`${actualName} - ${city} - ${type}`]);
+            titleRow.height = 28;
             titleRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
                 cell.font = { name: 'Arial', bold: true, size: 14 };
                 if (colNumber <= colCount) {
                     cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8EAF6' } };
                 }
             });
-            titleRow.alignment = { horizontal: 'right' };
-            ws.mergeCells(ws.lastRow.number, 1, ws.lastRow.number, colCount);
+            titleRow.alignment = { horizontal: 'right', vertical: 'middle' };
+            doMerge(ws.lastRow.number, 1, ws.lastRow.number, colCount);
 
             let headRowData;
             if (isPlacement) {
@@ -1116,6 +1127,7 @@ async function exportToExcel(data, filename, opts = {}) {
                 : ['תאריך', 'יום', 'גן/בי"ס', 'שם ספק החוגים', 'פעילות', 'שעה', 'קבוצות', 'סטטוס', 'הערות'];
             }
             const headRow = ws.addRow(headRowData);
+            headRow.height = 26;
             headRow.font = { bold: true };
             headRow.eachCell((cell, colNumber) => {
                cell.border = { top: {style:'thin'}, bottom: {style:'thin'}, left: {style:'thin'}, right: {style:'thin'} };
@@ -1267,6 +1279,7 @@ async function exportToExcel(data, filename, opts = {}) {
                 }
               }
               const row = ws.addRow(rowData);
+              row.height = 22;
               row.eachCell((cell, colNumber) => {
                  cell.border = { top: {style:'thin'}, bottom: {style:'thin'}, left: {style:'thin'}, right: {style:'thin'} };
                  if (isPlacement && (colNumber >= 3 && colNumber <= 8)) {
@@ -1300,17 +1313,19 @@ async function exportToExcel(data, filename, opts = {}) {
             // Section Sub-Summary
             const typeSumText = isPlacement ? `📌 ${city} - ${type}: ${typeGroups} פעילויות לביצוע (כולל השלמות)` : `📌 ${city} - ${type}: בוצעו ${typeGroups} פעילויות (כולל השלמות)`;
             const typeSum = ws.addRow([typeSumText]);
+            typeSum.height = 24;
             typeSum.font = { bold: true, size: 12, color: { argb: 'FF1A237E' } };
             typeSum.eachCell((cell) => {
-              cell.alignment = { horizontal: 'right' };
+              cell.alignment = { horizontal: 'right', vertical: 'middle' };
             });
-            ws.mergeCells(typeSum.number, 1, typeSum.number, colCount);
+            doMerge(typeSum.number, 1, typeSum.number, colCount);
 
             if (typeGroupsNo > 0 && !isPlacement) {
               const typeSumNo = ws.addRow([`❌ ${city} - ${type}: לא בוצעו ${typeGroupsNo} פעילויות (כולל השלמות)`]);
+              typeSumNo.height = 24;
               typeSumNo.font = { bold: true, size: 12, color: { argb: 'FFD32F2F' } };
-              typeSumNo.eachCell((cell) => { cell.alignment = { horizontal: 'right' }; });
-              ws.mergeCells(typeSumNo.number, 1, typeSumNo.number, colCount);
+              typeSumNo.eachCell((cell) => { cell.alignment = { horizontal: 'right', vertical: 'middle' }; });
+              doMerge(typeSumNo.number, 1, typeSumNo.number, colCount);
             }
             ws.addRow([]);
             
@@ -1340,26 +1355,29 @@ async function exportToExcel(data, filename, opts = {}) {
                finalTitleStr = finalTitleStr.replace('סופי', `- ${type}`);
             }
             const sumHead = ws.addRow([finalTitleStr]);
+            sumHead.height = 26;
             sumHead.font = { bold: true, size: 12 };
-            sumHead.alignment = { horizontal: 'right' };
-            ws.mergeCells(sumHead.number, 1, sumHead.number, colCount);
+            sumHead.alignment = { horizontal: 'right', vertical: 'middle' };
+            doMerge(sumHead.number, 1, sumHead.number, colCount);
 
             summaryRows.forEach(sr => {
               const row = isPlacement ? ws.addRow([sr.label, `${sr.grp} פעילויות`]) : ws.addRow([sr.label, `בוצעו ${sr.grp} פעילויות`, '']);
+              row.height = 22;
               row.eachCell(cell => {
                 cell.border = { top: {style:'thin'}, bottom: {style:'thin'}, left: {style:'thin'}, right: {style:'thin'} };
-                cell.alignment = { horizontal: 'right' };
+                cell.alignment = { horizontal: 'right', vertical: 'middle' };
               });
             });
 
             const totalRow = isPlacement ? ws.addRow(['סה"כ קבוצות בדו"ח', typeGlobalGroups]) : ws.addRow(['₪ סה"כ קבוצות לתשלום (כללי)', '', typeGlobalGroups]);
+            totalRow.height = 24;
             totalRow.font = { bold: true };
             totalRow.eachCell(cell => {
               cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFF00' } };
               cell.border = { top: {style:'thin'}, bottom: {style:'thin'}, left: {style:'thin'}, right: {style:'thin'} };
-              cell.alignment = { horizontal: 'right' };
+              cell.alignment = { horizontal: 'right', vertical: 'middle' };
             });
-            if(!isPlacement) ws.mergeCells(totalRow.number, 1, totalRow.number, isClusterGroup ? 3 : 2);
+            if(!isPlacement) doMerge(totalRow.number, 1, totalRow.number, isClusterGroup ? 3 : 2);
             ws.addRow([]); // Blank row before the next type starts
           }
         });
@@ -1369,17 +1387,33 @@ async function exportToExcel(data, filename, opts = {}) {
         data.forEach(item => ws.addRow(Object.values(item)));
       }
 
-      ws.columns.forEach(col => {
-        let maxLength = 0;
-        col.eachCell({ includeEmpty: true }, cell => {
-          if (cell.isMerged) return; // Skip merged cells like titles
-          const columnLength = cell.value ? cell.value.toString().length : 0;
-          if (columnLength > maxLength) {
-            maxLength = columnLength;
+      ws.columns.forEach((col) => {
+        let maxLen = 0;
+        col.eachCell({ includeEmpty: true }, (cell, rowNumber) => {
+          if (mergedRows.has(rowNumber)) return;
+          if (cell.isMerged) return;
+          if (cell.master && cell.master !== cell) return;
+          
+          let valStr = '';
+          if (cell.value !== null && cell.value !== undefined) {
+            if (typeof cell.value === 'object' && cell.value.text) {
+              valStr = cell.value.text;
+            } else {
+              valStr = String(cell.value);
+            }
           }
+          const lines = valStr.split('\n');
+          lines.forEach(l => {
+            const trimmed = l.trim();
+            if (trimmed.length > maxLen) maxLen = trimmed.length;
+          });
         });
-        // Add padding, minimum width 10, maximum width 60
-        col.width = Math.min(Math.max(maxLength + 2, 10), 60);
+
+        // Hebrew factor: Hebrew Arial glyphs are wider than standard English glyphs.
+        // We multiply maxLen by 1.25 and add 4 padding characters so text has generous breathing room and never touches the cell borders.
+        // Minimum width 12 for clean visibility, max 60.
+        const calculatedWidth = Math.ceil(maxLen * 1.25) + 4;
+        col.width = Math.min(Math.max(calculatedWidth, 12), 60);
       });
       const buffer = await workbook.xlsx.writeBuffer();
       const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
