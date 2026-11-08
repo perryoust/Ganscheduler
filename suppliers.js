@@ -168,36 +168,28 @@ async function doSupExport(){
     
     return true;
   }).sort((a,b)=>{
-    const ga=window.G(a.g),gb=window.G(b.g);
+    const ga=window.G(a.g)||{}, gb=window.G(b.g)||{};
     const cs = (ga.city||'').localeCompare(gb.city||'','he');
     if(cs !== 0) return cs;
-    const ds = a.d.localeCompare(b.d);
+    const ds = (a.d || '').localeCompare(b.d || '');
     if(ds !== 0) return ds;
     
-    if (groupBy === 'clusters') {
-      const getClName = (ev) => {
-        const gCls = window.gardenClusters ? window.gardenClusters(ev.g, ev.d) : [];
-        return (gCls && gCls.length > 0) ? (gCls[0].name || '') : '';
-      };
-      const clA = getClName(a);
-      const clB = getClName(b);
-      if (clA || clB) {
-        if (!clA) return 1;
-        if (!clB) return -1;
-        const clsCmp = clA.localeCompare(clB, 'he', { numeric: true });
-        if (clsCmp !== 0) return clsCmp;
-      }
-      const ts = (a.t || '99:99').localeCompare(b.t || '99:99');
-      if (ts !== 0) return ts;
-      return ga.name.localeCompare(gb.name, 'he');
+    // SSOT: Sort chronologically by TIME (earliest to latest)
+    const ts = (typeof window.compareActivities === 'function') 
+      ? window.compareActivities(a, b) 
+      : (a.t || '99:99').localeCompare(b.t || '99:99');
+    if(ts !== 0) return ts;
+
+    // If same time, group by unit via SSOT (resolveGardenUnit)
+    if (typeof window.resolveGardenUnit === 'function') {
+      const uA = window.resolveGardenUnit(a.g, a.d, { mode: groupBy });
+      const uB = window.resolveGardenUnit(b.g, b.d, { mode: groupBy });
+      const nA = uA ? uA.name : (ga.name || '');
+      const nB = uB ? uB.name : (gb.name || '');
+      const us = nA.localeCompare(nB, 'he', { numeric: true });
+      if (us !== 0) return us;
     }
-    
-    const pA = window.gardenPair(a.g), pB = window.gardenPair(b.g);
-    const nA = pA ? pA.name : ga.name;
-    const nB = pB ? pB.name : gb.name;
-    const ns = nA.localeCompare(nB, 'he');
-    if(ns !== 0) return ns;
-    return (a.t||'99:99').localeCompare(b.t||'99:99');
+    return (ga.name || '').localeCompare(gb.name || '', 'he');
   });
   
   if(!evs.length){

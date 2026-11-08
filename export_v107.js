@@ -1062,36 +1062,27 @@ async function exportToExcel(data, filename, opts = {}) {
           cities.forEach(city => {
             let typeOk = 0, typeNo = 0, typeGroups = 0, typeGroupsNo = 0;
             const typeEvs = byCity[city].sort((a,b) => {
-              const ds = a.d.localeCompare(b.d);
+              const ds = (a.d || '').localeCompare(b.d || '');
               if(ds !== 0) return ds;
               
-              if (isClusterGroup) {
-                const getClName = (ev) => {
-                  const gCls = window.gardenClusters ? window.gardenClusters(ev.g, ev.d) : [];
-                  return (gCls && gCls.length > 0) ? (gCls[0].name || '') : '';
-                };
-                const clA = getClName(a);
-                const clB = getClName(b);
-                if (clA || clB) {
-                  if (!clA) return 1;
-                  if (!clB) return -1;
-                  const clsCmp = clA.localeCompare(clB, 'he', { numeric: true });
-                  if (clsCmp !== 0) return clsCmp;
-                }
-                const ts = (a.t || '99:99').localeCompare(b.t || '99:99');
-                if (ts !== 0) return ts;
-                return window.G(a.g).name.localeCompare(window.G(b.g).name, 'he');
+              // 1. SSOT: Sort chronologically by TIME from earliest to latest!
+              const ts = (typeof window.compareActivities === 'function')
+                ? window.compareActivities(a, b)
+                : (a.t || '99:99').localeCompare(b.t || '99:99');
+              if (ts !== 0) return ts;
+              
+              // 2. If same time, sort by cluster/pair via SSOT
+              if (typeof window.resolveGardenUnit === 'function') {
+                const uA = window.resolveGardenUnit(a.g, a.d, { mode: isClusterGroup ? 'clusters' : 'pairs' });
+                const uB = window.resolveGardenUnit(b.g, b.d, { mode: isClusterGroup ? 'clusters' : 'pairs' });
+                const nA = uA ? uA.name : (window.G(a.g)?.name || '');
+                const nB = uB ? uB.name : (window.G(b.g)?.name || '');
+                const us = nA.localeCompare(nB, 'he', { numeric: true });
+                if (us !== 0) return us;
               }
               
-              // Sort by Pair Name BEFORE Time so pairs stay together
-              const pA = window.gardenPair(a.g), pB = window.gardenPair(b.g);
-              const nA = pA ? pA.name : window.G(a.g).name;
-              const nB = pB ? pB.name : window.G(b.g).name;
-              const ns = nA.localeCompare(nB, 'he');
-              if(ns !== 0) return ns;
-              
-              // Fallback to Time if same pair
-              return (a.t || '99:99').localeCompare(b.t || '99:99');
+              // 3. Fallback to garden name
+              return (window.G(a.g)?.name || '').localeCompare(window.G(b.g)?.name || '', 'he');
             });
 
             let actualName = window._supExName || 'כל הספקים';
@@ -1240,8 +1231,10 @@ async function exportToExcel(data, filename, opts = {}) {
               const dayNames = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
               const dayStr = 'יום ' + dayNames[new Date(s.d).getDay()];
               
-              const gCls = window.gardenClusters ? window.gardenClusters(s.g, s.d) : [];
-              const clusterName = (gCls && gCls.length > 0) ? (gCls[0].name || '') : '';
+              const unit = (typeof window.resolveGardenUnit === 'function')
+                ? window.resolveGardenUnit(s.g, s.d, { mode: 'clusters' })
+                : null;
+              const clusterName = (unit && unit.type === 'cluster') ? unit.name : (unit ? unit.name : '');
 
               const gAge = typeof window.extractGardenAge === 'function' ? window.extractGardenAge(g) : (g.age || '');
               const ageVal = (gAge && gAge !== '***') ? gAge : '—';
