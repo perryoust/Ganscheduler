@@ -1031,7 +1031,7 @@ async function exportToExcel(data, filename, opts = {}) {
         const isClusterGroupOpts = (groupByOpts === 'clusters');
         const colCountOpts = isPlacementOpts ? (isClusterGroupOpts ? 11 : 10) : (isClusterGroupOpts ? 10 : 9);
         const titleRow = ws.addRow([opts.title]);
-        titleRow.height = 32;
+        titleRow.height = 26;
         titleRow.font = { name: 'Arial', size: 16, bold: true };
         titleRow.alignment = { horizontal: 'center', vertical: 'middle' };
         doMerge(1, 1, 1, colCountOpts);
@@ -1106,7 +1106,7 @@ async function exportToExcel(data, filename, opts = {}) {
                 }
             }
             const titleRow = ws.addRow([`${actualName} - ${city} - ${type}`]);
-            titleRow.height = 28;
+            titleRow.height = 24;
             titleRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
                 cell.font = { name: 'Arial', bold: true, size: 14 };
                 if (colNumber <= colCount) {
@@ -1127,7 +1127,7 @@ async function exportToExcel(data, filename, opts = {}) {
                 : ['תאריך', 'יום', 'גן/בי"ס', 'שם ספק החוגים', 'פעילות', 'שעה', 'קבוצות', 'סטטוס', 'הערות'];
             }
             const headRow = ws.addRow(headRowData);
-            headRow.height = 26;
+            headRow.height = 22;
             headRow.font = { bold: true };
             headRow.eachCell((cell, colNumber) => {
                cell.border = { top: {style:'thin'}, bottom: {style:'thin'}, left: {style:'thin'}, right: {style:'thin'} };
@@ -1279,7 +1279,7 @@ async function exportToExcel(data, filename, opts = {}) {
                 }
               }
               const row = ws.addRow(rowData);
-              row.height = 22;
+              row.height = 19;
               row.eachCell((cell, colNumber) => {
                  cell.border = { top: {style:'thin'}, bottom: {style:'thin'}, left: {style:'thin'}, right: {style:'thin'} };
                  if (isPlacement && (colNumber >= 3 && colNumber <= 8)) {
@@ -1313,7 +1313,7 @@ async function exportToExcel(data, filename, opts = {}) {
             // Section Sub-Summary
             const typeSumText = isPlacement ? `📌 ${city} - ${type}: ${typeGroups} פעילויות לביצוע (כולל השלמות)` : `📌 ${city} - ${type}: בוצעו ${typeGroups} פעילויות (כולל השלמות)`;
             const typeSum = ws.addRow([typeSumText]);
-            typeSum.height = 24;
+            typeSum.height = 21;
             typeSum.font = { bold: true, size: 12, color: { argb: 'FF1A237E' } };
             typeSum.eachCell((cell) => {
               cell.alignment = { horizontal: 'right', vertical: 'middle' };
@@ -1322,7 +1322,7 @@ async function exportToExcel(data, filename, opts = {}) {
 
             if (typeGroupsNo > 0 && !isPlacement) {
               const typeSumNo = ws.addRow([`❌ ${city} - ${type}: לא בוצעו ${typeGroupsNo} פעילויות (כולל השלמות)`]);
-              typeSumNo.height = 24;
+              typeSumNo.height = 21;
               typeSumNo.font = { bold: true, size: 12, color: { argb: 'FFD32F2F' } };
               typeSumNo.eachCell((cell) => { cell.alignment = { horizontal: 'right', vertical: 'middle' }; });
               doMerge(typeSumNo.number, 1, typeSumNo.number, colCount);
@@ -1355,14 +1355,14 @@ async function exportToExcel(data, filename, opts = {}) {
                finalTitleStr = finalTitleStr.replace('סופי', `- ${type}`);
             }
             const sumHead = ws.addRow([finalTitleStr]);
-            sumHead.height = 26;
+            sumHead.height = 23;
             sumHead.font = { bold: true, size: 12 };
             sumHead.alignment = { horizontal: 'right', vertical: 'middle' };
             doMerge(sumHead.number, 1, sumHead.number, colCount);
 
             summaryRows.forEach(sr => {
               const row = isPlacement ? ws.addRow([sr.label, `${sr.grp} פעילויות`]) : ws.addRow([sr.label, `בוצעו ${sr.grp} פעילויות`, '']);
-              row.height = 22;
+              row.height = 19;
               row.eachCell(cell => {
                 cell.border = { top: {style:'thin'}, bottom: {style:'thin'}, left: {style:'thin'}, right: {style:'thin'} };
                 cell.alignment = { horizontal: 'right', vertical: 'middle' };
@@ -1370,7 +1370,7 @@ async function exportToExcel(data, filename, opts = {}) {
             });
 
             const totalRow = isPlacement ? ws.addRow(['סה"כ קבוצות בדו"ח', typeGlobalGroups]) : ws.addRow(['₪ סה"כ קבוצות לתשלום (כללי)', '', typeGlobalGroups]);
-            totalRow.height = 24;
+            totalRow.height = 21;
             totalRow.font = { bold: true };
             totalRow.eachCell(cell => {
               cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFF00' } };
@@ -1409,11 +1409,10 @@ async function exportToExcel(data, filename, opts = {}) {
           });
         });
 
-        // Hebrew factor: Hebrew Arial glyphs are wider than standard English glyphs.
-        // We multiply maxLen by 1.25 and add 4 padding characters so text has generous breathing room and never touches the cell borders.
-        // Minimum width 12 for clean visibility, max 60.
-        const calculatedWidth = Math.ceil(maxLen * 1.25) + 4;
-        col.width = Math.min(Math.max(calculatedWidth, 12), 60);
+        // Exact compact AutoFit matching user's Excel expectation:
+        // maxLen + 2.5 character units padding, minimum width 6, maximum width 45
+        const compactWidth = Math.max(maxLen + 2.5, 6);
+        col.width = Math.min(Math.round(compactWidth * 10) / 10, 45);
       });
       const buffer = await workbook.xlsx.writeBuffer();
       const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
