@@ -31,11 +31,15 @@ window.updateSupExportDropdown = function() {
      const fromTime = parseYMD(from);
      const toTime = parseYMD(to);
      window.SCH.forEach(e => {
+        if (e.st === 'can') return;
         const pd = e._isPostponed ? e.pd : e.d;
         if (!pd) return;
+        if (window._supexSelectedGardens && window._supexSelectedGardens.size > 0) {
+           if (!window._supexSelectedGardens.has(String(e.g))) return;
+        }
         const dTime = parseYMD(pd);
         if (dTime >= fromTime && dTime <= toTime && e.a) {
-           const baseSup = window.supBase(e.a);
+           const baseSup = window.supBase ? window.supBase(e.a) : e.a;
            supPlacements[baseSup] = (supPlacements[baseSup] || 0) + 1;
         }
      });
@@ -53,8 +57,13 @@ window.updateSupExportDropdown = function() {
        
   const selectedVals = Array.from(sel.selectedOptions).map(o => o.value);
   
-  sel.innerHTML = '<option value="">-- בחר ספק / כל הספקים --</option>' + sups.map(s => {
-      const baseName = window.supBase(s.name);
+  const activeCount = Object.keys(supPlacements).length;
+  const allLabel = activeCount > 0 
+    ? `🌟 כל הספקים הפעילים (${activeCount} ספקים בטווח זה - קובץ נפרד לכל ספק)`
+    : `-- כל הספקים (קובץ נפרד לכל ספק פעיל) --`;
+
+  sel.innerHTML = `<option value="__all__">${allLabel}</option>` + sups.map(s => {
+      const baseName = window.supBase ? window.supBase(s.name) : s.name;
       const count = supPlacements[baseName] || 0;
       let label = s.name;
       if (count > 0) {
@@ -65,9 +74,16 @@ window.updateSupExportDropdown = function() {
       return `<option value="${s.name.replace(/"/g, '&quot;')}">${label}</option>`;
   }).join('');
   
+  let hasSelection = false;
   Array.from(sel.options).forEach(o => {
-    if (selectedVals.includes(o.value)) o.selected = true;
+    if (selectedVals.includes(o.value) || (selectedVals.includes('') && o.value === '__all__')) {
+      o.selected = true;
+      hasSelection = true;
+    }
   });
+  if (!hasSelection && sel.options.length > 0) {
+    sel.options[0].selected = true;
+  }
 };
 
 function openSupExport(supName){
@@ -131,18 +147,20 @@ async function doSupExport(){
   
   const selWrap = document.getElementById('supex-supplier-wrap');
   let selectedSups = [];
+  let isAllSelected = false;
+
   if(selWrap && selWrap.style.display !== 'none') {
     const selElement = document.getElementById('supex-supplier-sel');
     if(selElement) {
-      selectedSups = Array.from(selElement.selectedOptions).map(o => o.value).filter(v => v);
+      const rawVals = Array.from(selElement.selectedOptions).map(o => o.value);
+      if (rawVals.includes('__all__') || rawVals.includes('') || rawVals.length === 0) {
+        isAllSelected = true;
+      } else {
+        selectedSups = rawVals.filter(v => v && v !== '__all__');
+      }
     }
   } else if (window._supExName) {
     selectedSups = [window._supExName];
-  }
-  
-  if(_supExType==='place' && selectedSups.length === 0) {
-    window._spAlertDialog('לצורך הפקת דוח שיבוצים, חובה לבחור לפחות ספק אחד מהרשימה.');
-    return;
   }
 
   const from=document.getElementById('supex-from').value;
@@ -150,10 +168,45 @@ async function doSupExport(){
   const groupBy = (document.querySelector('input[name="supex-group-by"]:checked')?.value) || 'pairs';
   if(!from||!to){_spAlertDialog('בחר תאריכים');return;}
 
-  if (selectedSups.length === 0) {
-    selectedSups = [null]; // null means "all suppliers" if not required
+  if (isAllSelected) {
+    const sups = (typeof window.getAllSup === 'function' ? window.getAllSup() : [])
+      .filter(s => window.isActSupplier ? window.isActSupplier(s.name) : true);
+    const activeSupBases = new Set();
+    const activeList = [];
+
+    (window.SCH || []).forEach(s => {
+      if (s.d < from || s.d > to || s.st === 'can') return;
+      if (window._supexSelectedGardens && window._supexSelectedGardens.size > 0) {
+        if (!window._supexSelectedGardens.has(String(s.g))) return;
+      }
+      const base = window.supBase ? window.supBase(s.a) : (s.a || '');
+      if (base && !activeSupBases.has(base)) {
+        activeSupBases.add(base);
+        const found = sups.find(x => (window.supBase ? window.supBase(x.name) : x.name) === base);
+        const dispName = found ? found.name : ((window.supDisplayName ? window.supDisplayName(s.a) : (s.n || base)) || base);
+        activeList.push({ base, name: dispName });
+      }
+    });
+
+    if (activeList.length === 0) {
+      window._spAlertDialog('לא נמצאו ספקים עם פעילויות/שיבוצים בטווח התאריכים שנבחר.');
+      return;
+    }
+
+    activeList.sort((a, b) => a.name.localeCompare(b.name, 'he'));
+    selectedSups = activeList.map(item => item.name);
+
+    if (typeof window.showToast === 'function') {
+      window.showToast(`🚀 מייצא ${selectedSups.length} קבצי ספקים נפרדים...`, 4000);
+    }
   }
 
+  if (selectedSups.length === 0) {
+    window._spAlertDialog('חובה לבחור לפחות ספק אחד מהרשימה.');
+    return;
+  }
+
+  let exportedCount = 0;
   for (let i = 0; i < selectedSups.length; i++) {
     const actualSupName = selectedSups[i];
     const evs=window.SCH.filter(s=>{
@@ -209,7 +262,10 @@ async function doSupExport(){
     sumTitle = actualSupName ? `ריכוז פעילות לספק: ${actualSupName} (טווח: ${window.fD(from)} - ${window.fD(to)})` : `ריכוז פעילות כל הספקים (טווח: ${window.fD(from)} - ${window.fD(to)})`;
   }
   
-  
+  if (selectedSups.length > 1 && typeof window.showToast === 'function') {
+    window.showToast(`📥 מייצא קובץ (${i + 1}/${selectedSups.length}): ${actualSupName}...`, 1200);
+  }
+
   await window.exportToExcel(evs, `דו"ח_${_supExType==='place'?'שיבוצים':'פעילויות'}_${actualSupName||'כל_הספקים'}_${from}_${to}`, {
     type: exportTypeStr,
     title: title,
@@ -217,9 +273,14 @@ async function doSupExport(){
     groupBy: groupBy
   });
 
+  exportedCount++;
   if (i < selectedSups.length - 1) {
-    await new Promise(r => setTimeout(r, 1000));
+    await new Promise(r => setTimeout(r, 600));
   }
+  }
+
+  if (exportedCount > 1 && typeof window.showToast === 'function') {
+    window.showToast(`✅ כל ${exportedCount} דוחות הספקים הורדו בהצלחה בקבצים נפרדים!`, 5000);
   }
 
   window.CM('supexm');
