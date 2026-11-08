@@ -345,7 +345,7 @@
                   <label style="display:block; font-weight:800; color:#1e293b; font-size:0.83rem; margin-bottom:4px;">📦 חלוקת שורות בטבלה:</label>
                   <select id="gexp-group-mode" onchange="window.onGridExpGroupModeChange()" style="width:100%; padding:7px 10px; border:1px solid #94a3b8; border-radius:7px; font-size:0.83rem; font-weight:700; color:#1e293b; background:#fff;">
                     <option value="clusters">📦 לפי אשכולות (מפורט לפי גנים)</option>
-                    <option value="cluster_matrix">🏢 מרוכז לפי אשכולות (מס' מדריכים ליום)</option>
+                    <option value="cluster_matrix">🏢 מרוכז לפי אשכולות (בוקר/צהרון)</option>
                     <option value="pairs">⚖️ לפי זוגות</option>
                     <option value="flat">📋 רשימה לפי עיר (ללא קבוצות)</option>
                   </select>
@@ -535,7 +535,7 @@
         <div id="gexp-footer-grid" style="background:#f8fafc; border-top:1px solid #e2e8f0; padding:11px 18px; display:flex; flex-wrap:wrap; gap:8px; justify-content:space-between; align-items:center; direction:rtl;">
           <div style="display:flex; flex-wrap:wrap; gap:7px; flex:1;">
             <button type="button" class="btn bg" data-tip="העתק הודעת טקסט מפורטת לוואטסאפ של כל הלו״ז המלא בטווח ובסינון שנבחרו" onclick="window.doGridExportWhatsAppText()" style="background:#0d9488; border-color:#0f766e; color:#fff; font-weight:800; padding:7px 12px; font-size:0.81rem;">📲 העתק לו"ז מלא בהודעה</button>
-            <button type="button" class="btn bg" data-tip="הורד דוח שבועי מרוכז של אשכולות ומדריכים (בדיוק כמו בתמונה: מס' מדריכים ליום)" onclick="window.doClusterMatrixExportExcel()" style="background:#0284c7; border-color:#0369a1; color:#fff; font-weight:800; padding:7px 12px; font-size:0.81rem;">📑 מס' מדריכים (אשכולות)</button>
+            <button type="button" class="btn bg" data-tip="הורד לוח שיבוץ שבועי מרוכז לפי אשכולות (בוקר וצהרון)" onclick="window.doClusterMatrixExportExcel()" style="background:#0284c7; border-color:#0369a1; color:#fff; font-weight:800; padding:7px 12px; font-size:0.81rem;">📑 לוח שיבוץ אשכולות (אקסל)</button>
             <button type="button" class="btn bg" data-tip="הורד דוח ריכוז מדריכים לפי עיר ויום (מפעילי חוגים, ערים וימים - גיליון אקסל מלא)" onclick="window.doInstExportExcel()" style="background:#059669; border-color:#047857; color:#fff; font-weight:800; padding:7px 12px; font-size:0.81rem;">📊 ריכוז מדריכים לפי עיר ויום</button>
             <button type="button" class="btn bg" data-tip="הורד קובץ אקסל מעוצב (RTL) של טבלת השיבוצים בטווח שנבחר" onclick="window.doGridExportExcel()" style="background:#15803d; border-color:#166534; color:#fff; font-weight:800; padding:7px 12px; font-size:0.81rem;">📊 אקסל גריד (Excel)</button>
             <button type="button" class="btn bp" data-tip="פתח תצוגת הדפסה ושמירה ל-PDF מותאמת לרוחב עמוד A4" onclick="window.doGridExportPDF()" style="background:#1d4ed8; border-color:#1e40af; color:#fff; font-weight:800; padding:7px 12px; font-size:0.81rem;">🖨️ PDF / הדפסה</button>
@@ -551,7 +551,7 @@
             <button type="button" class="btn bg" data-tip="העתק הודעת טקסט מוכנה לוואטסאפ עם הלו״ז המלא והמפורט לספק (תאריכים, ערים, אשכולות, גנים, כתובות ושעות)" onclick="window.doInstExportFullScheduleWA()" style="background:#0d9488; border-color:#0f766e; color:#fff; font-weight:800; padding:7px 12px; font-size:0.81rem;">📲 העתק לו"ז מלא בהודעה</button>
             <button type="button" class="btn bg" data-tip="העתק הודעת טקסט מרוכזת לוואטסאפ עם כמות המדריכים הנדרשת ליום לפי עיר" onclick="window.doInstExportWhatsAppText()" style="background:#16a34a; border-color:#15803d; color:#fff; font-weight:800; padding:7px 12px; font-size:0.81rem;">💬 הודעת כמות מדריכים</button>
             <button type="button" class="btn bg" data-tip="הורד קובץ אקסל מלא: ריכוז מדריכים לפי עיר ויום, בקרת עומסים וחוסרים" onclick="window.doInstExportExcel()" style="background:#15803d; border-color:#166534; color:#fff; font-weight:800; padding:7px 11px; font-size:0.8rem;">📊 ריכוז מדריכים לפי עיר ויום (Excel)</button>
-            <button type="button" class="btn bg" data-tip="הורד דוח שבועי מרוכז של אשכולות ומדריכים (בדיוק כמו בתמונה: מס' מדריכים ליום)" onclick="window.doClusterMatrixExportExcel()" style="background:#0284c7; border-color:#0369a1; color:#fff; font-weight:800; padding:7px 11px; font-size:0.8rem;">📑 מס' מדריכים (אשכולות)</button>
+            <button type="button" class="btn bg" data-tip="הורד לוח שיבוץ שבועי מרוכז לפי אשכולות (בוקר וצהרון)" onclick="window.doClusterMatrixExportExcel()" style="background:#0284c7; border-color:#0369a1; color:#fff; font-weight:800; padding:7px 11px; font-size:0.8rem;">📑 לוח שיבוץ אשכולות (אקסל)</button>
             <button type="button" class="btn bp" data-tip="פתח דוח היערכות מדריכים להדפסה או שמירה כ-PDF" onclick="window.doInstExportPDF()" style="background:#1d4ed8; border-color:#1e40af; color:#fff; font-weight:800; padding:7px 11px; font-size:0.8rem;">🖨️ PDF / הדפסה</button>
             <button type="button" class="btn bo" data-tip="הורד כרטיס תמונה מעוצב (JPG) של היערכות המדריכים" onclick="window.doInstExportImage('download')" style="background:#fdf2f8; border:1px solid #f472b6; color:#9d174d; font-weight:800; padding:7px 10px; font-size:0.79rem;">🖼️ תמונה (JPG)</button>
             <button type="button" class="btn bo" data-tip="העתק כרטיס היערכות מדריכים כתמונה ללוח להדבקה ב-Ctrl+V בוואטסאפ" onclick="window.doInstExportImage('copy')" style="background:#ecfdf5; border:1px solid #34d399; color:#065f46; font-weight:800; padding:7px 10px; font-size:0.79rem;">📋 העתק תמונה</button>
@@ -4144,7 +4144,7 @@
       wb.creator = 'טומשין קידס';
       wb.created = new Date();
 
-      const ws = wb.addWorksheet("מס' מדריכים ליום", {
+      const ws = wb.addWorksheet("לוח שיבוץ אשכולות", {
         views: [{ rightToLeft: true, state: 'frozen', ySplit: 2, xSplit: 1 }],
         pageSetup: {
           paperSize: 9,
@@ -4167,8 +4167,8 @@
         right: { style: 'thin', color: { argb: 'FF000000' } }
       };
 
-      // Row 1: Title (מס' מדריכים ליום')
-      const tRow = ws.addRow(["מס' מדריכים ליום'"]);
+      // Row 1: Title
+      const tRow = ws.addRow(["לוח שיבוץ אשכולות שבועי (בוקר / צהרון)"]);
       tRow.height = 28;
       ws.mergeCells(1, 1, 1, totalCols);
       const tCell = tRow.getCell(1);
@@ -4453,14 +4453,14 @@
 
       const buffer = await wb.xlsx.writeBuffer();
       const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-      const fName = `מס_מדריכים_ליום_אשכולות (${minDs}${minDs !== maxDs ? '_' + maxDs : ''}).xlsx`;
+      const fName = `לוח_שיבוץ_אשכולות (${minDs}${minDs !== maxDs ? '_' + maxDs : ''}).xlsx`;
 
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url; a.download = fName; document.body.appendChild(a); a.click(); document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
-      if (window.showToast) window.showToast(`📊 דוח מס' מדריכים ליום הורד בהצלחה: ${fName}`);
+      if (window.showToast) window.showToast(`📊 לוח שיבוץ אשכולות הורד בהצלחה: ${fName}`);
     } catch (err) {
       console.error('[ClusterMatrix Excel]', err);
       window.spAlert('שגיאה בייצוא לאקסל: ' + err.message);
