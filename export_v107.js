@@ -1896,15 +1896,29 @@ window.exportBulkAnnualSchedule = async function() {
   
   // Deduplicate by ID, prioritizing _GARDENS_EXTRA (which come later in the array) to keep merged info like 'age'
   const ganMap = new Map();
-  rawAllGans.forEach(g => ganMap.set(Number(g.id), g));
+  rawAllGans.forEach(g => {
+    if (g && g.id !== undefined && g.id !== null) {
+      ganMap.set(String(g.id).trim(), g);
+    }
+  });
+  (window.SCH || []).forEach(s => {
+    const gKey = String(s.g ?? '').trim();
+    if (gKey && !ganMap.has(gKey)) {
+      const fallbackG = typeof window.G === 'function' ? window.G(s.g) : null;
+      if (fallbackG && fallbackG.id !== undefined) ganMap.set(gKey, fallbackG);
+    }
+  });
   const allGans = Array.from(ganMap.values()).sort((a,b)=>(a.city||'').localeCompare(b.city||'','he')||(a.name||'').localeCompare(b.name||'','he'));
 
   // Group events by date and garden for quick lookup
   const schByDateAndGan = {};
-  window.SCH.forEach(s => {
-    if (!schByDateAndGan[s.d]) schByDateAndGan[s.d] = {};
-    if (!schByDateAndGan[s.d][s.g]) schByDateAndGan[s.d][s.g] = [];
-    schByDateAndGan[s.d][s.g].push(s);
+  (window.SCH || []).forEach(s => {
+    const dKey = String(s.d || '').trim();
+    const gKey = String(s.g ?? '').trim();
+    if (!dKey || !gKey) return;
+    if (!schByDateAndGan[dKey]) schByDateAndGan[dKey] = {};
+    if (!schByDateAndGan[dKey][gKey]) schByDateAndGan[dKey][gKey] = [];
+    schByDateAndGan[dKey][gKey].push(s);
   });
 
   // Pre-calculate coordinator names (with phone) for each garden
@@ -1988,9 +2002,10 @@ window.exportBulkAnnualSchedule = async function() {
     const isWeekend = (d.getDay() === 5 || d.getDay() === 6);
     
     allGans.forEach(g => {
-      const gEvs = (schByDateAndGan[dateStr] && schByDateAndGan[dateStr][g.id]) || [];
-      const mgrName = mgrByGan[g.id] || '';
-      const cls = g.cls || 'גנים';
+      const gKey = String(g.id ?? '').trim();
+      const gEvs = (schByDateAndGan[dateStr] && (schByDateAndGan[dateStr][gKey] || schByDateAndGan[dateStr][g.id])) || [];
+      const mgrName = mgrByGan[g.id] || mgrByGan[gKey] || '';
+      const cls = (typeof window.gcls === 'function' ? window.gcls(g) : g.cls) || 'גנים';
       
       const hol = typeof window.getHolidayInfo === 'function' ? window.getHolidayInfo(dateStr, g.city, window.getGardenClass ? window.getGardenClass(g) : cls) : null;
       const holName = hol ? (typeof window.cleanHolName === 'function' ? window.cleanHolName(hol.name) : hol.name) : '';
@@ -2008,13 +2023,9 @@ window.exportBulkAnnualSchedule = async function() {
              if (sObj && sObj.phone) phone = sObj.phone;
            }
 
-           const cName = clusterByGanForDate[g.id] || g.cluster || '';
+           const cName = clusterByGanForDate[g.id] || clusterByGanForDate[gKey] || g.cluster || '';
            
            let finalTp = ev.tp || 'חוג';
-           if (finalTp === 'חוג') {
-             if (cls && cls.includes('צהרון')) finalTp = 'חוג צהרון';
-             else finalTp = 'חוג בוקר';
-           }
            let fullActName = ev.a || '';
            if (ev.act && ev.act.trim()) {
              fullActName += ' - ' + ev.act.trim();
@@ -2029,9 +2040,18 @@ window.exportBulkAnnualSchedule = async function() {
            
            if (!fullActName) fullActName = finalTp; // fallback if it was entirely just 'יום ארוך'
 
-           // User request: If it's a holiday and it was marked as 'חוג', override it to the holiday name
-           if (finalTp === 'חוג' && holName) {
+           // 1. User request: If it's a holiday/camp and marked as 'חוג', override to holiday/camp name (e.g. 'קייטנת חנוכה')
+           if ((finalTp === 'חוג' || finalTp === 'חוג בוקר' || finalTp === 'חוג צהרון' || finalTp === 'קייטנה') && holName) {
              finalTp = holName;
+           } else if (finalTp === 'חוג') {
+             // 2. On regular non-holiday days, distinguish morning vs afternoon class by hour/note
+             const hour = ev.t ? parseInt(ev.t, 10) : 0;
+             const rawNt = (ev.nt || '').toLowerCase();
+             if (rawNt.includes('בוקר') || (hour > 0 && hour < 13)) {
+               finalTp = 'חוג בוקר';
+             } else {
+               finalTp = 'חוג צהרון';
+             }
            }
 
            // Status logic mapping
@@ -2086,7 +2106,7 @@ window.exportBulkAnnualSchedule = async function() {
            });
         });
       } else {
-        const cName = clusterByGanForDate[g.id] || g.cluster || '';
+        const cName = clusterByGanForDate[g.id] || clusterByGanForDate[gKey] || g.cluster || '';
         const rVals = [
             cls, g.city || '', (g.st || g.add || g.address || ''), g.name || '', window.extractGardenAge(g),
             formattedDate, dayName, holName || '', '', '', '', '', '', cName, mgrName
@@ -2099,7 +2119,7 @@ window.exportBulkAnnualSchedule = async function() {
           operator: '',
           street: (g.st || g.add || g.address || ''),
           time: '',
-          isWeekend, finalTp: '', cls, finalGrp: 0, holName,
+          isWeekend, finalTp: holName || '', cls, finalGrp: 0, holName,
           status: ''
         });
       }
