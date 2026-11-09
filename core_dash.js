@@ -15,6 +15,12 @@ function refreshAppUI(){
   try { if(typeof window.renderSched === 'function') window.renderSched(); } catch(e){ console.error("renderSched failed", e); }
   try { if(typeof window.renderCal === 'function') window.renderCal(); } catch(e){ console.error("renderCal failed", e); }
   try { if(typeof window.renderGardens === 'function') window.renderGardens(); } catch(e){ console.error("renderGardens failed", e); }
+  try {
+    const gexpM = document.getElementById('grid-export-m');
+    if (gexpM && gexpM.classList.contains('open') && typeof window.updateGridExportSummary === 'function') {
+      window.updateGridExportSummary();
+    }
+  } catch(e){ console.error("gexp refresh failed", e); }
 }
 window.refreshAppUI = refreshAppUI;
 

@@ -2734,13 +2734,38 @@
   };
 
   window.instScheduleMissed = function (clId, gid, ds) {
-    window.CM('grid-export-m');
     if (typeof window.openNewSched === 'function') {
       if (clId) {
         window.openNewSched(null, { grpId: 'cl_' + clId, date: ds, focusGid: gid });
       } else {
         window.openNewSched(gid, { date: ds });
       }
+      const nsm = document.getElementById('nsm');
+      if (nsm) nsm.style.zIndex = '10025';
+    }
+  };
+
+  window.instQuickAddOnCell = function (gid, ds, clId) {
+    if (window.isReadOnly) {
+      if (typeof window.spAlert === 'function') window.spAlert('משתמש זה מוגדר לצפייה בלבד.');
+      return;
+    }
+    if (typeof window.openNewSched === 'function') {
+      if (clId) {
+        window.openNewSched(null, { grpId: 'cl_' + clId, date: ds, focusGid: Number(gid) });
+      } else {
+        window.openNewSched(Number(gid), { date: ds });
+      }
+      const nsm = document.getElementById('nsm');
+      if (nsm) nsm.style.zIndex = '10025';
+    }
+  };
+
+  window.instQuickEditEv = function (evId) {
+    if (typeof window.openSP === 'function') {
+      window.openSP(evId);
+      const spm = document.getElementById('spm');
+      if (spm) spm.style.zIndex = '10025';
     }
   };
 
@@ -3095,8 +3120,14 @@
 
         const dayTds = audit.days.map(ds => {
           const items = r.dayCells[ds] || [];
+          const safeClId = _esc(r.clusterId || '');
           if (items.length === 0) {
-            return `<td style="padding:4px 5px; border:1px solid #e2e8f0; text-align:center; color:#cbd5e1; font-size:0.73rem;">—</td>`;
+            return `<td style="padding:4px 5px; border:1px solid #e2e8f0; text-align:center; vertical-align:middle;">
+              ${window.isReadOnly
+                ? `<span style="color:#cbd5e1; font-size:0.73rem;">—</span>`
+                : `<button type="button" data-clid="${safeClId}" onclick="window.instQuickAddOnCell(${r.gid}, '${ds}', this.dataset.clid)" data-tip="לחץ להוספת שיבוץ ל${_esc(r.name)} בתאריך ${window.fD(ds)}" style="width:100%; min-height:30px; border:1px dashed #cbd5e1; border-radius:6px; background:#f8fafc; color:#64748b; font-size:0.85rem; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:3px; transition:all 0.15s;" onmouseover="this.style.background='#eef2ff';this.style.borderColor='#6366f1';this.style.color='#1e3a8a';" onmouseout="this.style.background='#f8fafc';this.style.borderColor='#cbd5e1';this.style.color='#64748b';">➕</button>`
+              }
+            </td>`;
           }
           const pills = items.map(it => {
             const isM = it.slotInfo.isMorning;
@@ -3108,7 +3139,10 @@
               ? `<b>${_esc(it.slotInfo.timeStr)}</b>`
               : (it.slotInfo.isIdea ? '' : `<b style="color:#dc2626;">⚠️ ללא שעה</b>`);
             const slotTag = isM ? '☀️ בוקר' : '🌙 צהרון';
-            return `<div style="background:${pillBg}; border:1px solid ${pillBdr}; color:${pillCol}; border-radius:5px; padding:2px 5px; margin-bottom:2px; font-size:0.71rem; line-height:1.25; text-align:right;">
+            const evIdAttr = (it.ev && it.ev.id && !window.isReadOnly)
+              ? `onclick="window.instQuickEditEv('${_esc(it.ev.id)}')" data-tip="לחץ לעריכת השיבוץ או השעה"`
+              : '';
+            return `<div ${evIdAttr} style="${evIdAttr ? 'cursor:pointer;' : ''} background:${pillBg}; border:1px solid ${pillBdr}; color:${pillCol}; border-radius:5px; padding:2px 5px; margin-bottom:2px; font-size:0.71rem; line-height:1.25; text-align:right;">
               <div style="display:flex; justify-content:space-between; align-items:center; gap:4px;">
                 <span style="font-weight:800;">${_esc(it.dispSup)}</span>
                 <span style="font-size:0.65rem; opacity:0.9; white-space:nowrap;">${slotTag}</span>
@@ -3116,7 +3150,10 @@
               ${timeBadge ? `<div style="font-size:0.68rem; margin-top:1px;">⏰ ${timeBadge}</div>` : ''}
             </div>`;
           }).join('');
-          return `<td style="padding:4px 5px; border:1px solid #e2e8f0; vertical-align:top;">${pills}</td>`;
+          const miniAddBtn = window.isReadOnly
+            ? ''
+            : `<button type="button" data-clid="${safeClId}" onclick="window.instQuickAddOnCell(${r.gid}, '${ds}', this.dataset.clid)" data-tip="הוסף שיבוץ נוסף ביום זה (למשל בוקר + צהרון)" style="width:100%; border:1px dashed #e2e8f0; border-radius:4px; background:transparent; color:#94a3b8; font-size:0.66rem; font-weight:800; padding:1px 0; cursor:pointer;" onmouseover="this.style.background='#eef2ff';this.style.borderColor='#6366f1';this.style.color='#1e3a8a';" onmouseout="this.style.background='transparent';this.style.borderColor='#e2e8f0';this.style.color='#94a3b8';">➕</button>`;
+          return `<td style="padding:4px 5px; border:1px solid #e2e8f0; vertical-align:top;">${pills}${miniAddBtn}</td>`;
         }).join('');
 
         const mBadgeBg = r.mCount < audit.targetM ? '#fee2e2' : (r.mCount > audit.targetM ? '#ffedd5' : '#f0fdf4');
