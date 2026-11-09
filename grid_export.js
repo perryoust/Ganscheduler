@@ -2805,7 +2805,7 @@
     if (mode === 'routine') {
       if (mWrap) mWrap.style.display = 'none';
       if (mInput) mInput.value = '0';
-      if (tInput && (tInput.value === '0' || !tInput.value)) tInput.value = '1';
+      if (tInput) tInput.value = '2';
       if (targetTitle) targetTitle.textContent = '🎯 יעד חוג צהרון שבועי לגן:';
       if (campBtn) { campBtn.style.background = 'transparent'; campBtn.style.color = '#475569'; campBtn.style.boxShadow = 'none'; }
       if (routineBtn) { routineBtn.style.background = '#ffffff'; routineBtn.style.color = '#1e3a8a'; routineBtn.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)'; }
@@ -2968,7 +2968,7 @@
         const scheduledRows = rawRows.filter(r => r.tCount > 0);
         if (scheduledRows.length > 0) {
           const freqMap = new Map();
-          let bestT = 1;
+          let bestT = 2;
           let bestFreq = 0;
           scheduledRows.forEach(r => {
             const f = (freqMap.get(r.tCount) || 0) + 1;
@@ -2977,7 +2977,7 @@
           });
           tInput.value = String(bestT);
         } else {
-          tInput.value = '1';
+          tInput.value = '2';
         }
       } else {
         const scheduledRows = rawRows.filter(r => r.totalCount > 0);
@@ -3003,7 +3003,7 @@
     }
 
     const targetM = isRoutine ? 0 : Math.max(0, parseInt(mInput?.value ?? '3', 10) || 0);
-    const targetT = Math.max(0, parseInt(tInput?.value ?? '1', 10) || 0);
+    const targetT = Math.max(0, parseInt(tInput?.value ?? (isRoutine ? '2' : '1'), 10) || 0);
 
     // Evaluate each garden row against targetM, targetT, unhandled shortages, and reqHour
     let okCount = 0;

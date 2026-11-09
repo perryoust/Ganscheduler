@@ -1153,13 +1153,13 @@ window.openSP = function(id) {
         <span>🏠 פירוט גנים ושיבוצים - ${window.fD(s.d)} (${window.dayN(s.d)})</span>
         ${hasCluster && hasPair ? `
           <div style="display:inline-flex;background:#eef2ff;border:1px solid #c7d2fe;border-radius:6px;padding:2px;gap:2px;">
-            <button type="button" onclick="window.spSetGroupMode('pairs')" style="border:none;border-radius:4px;padding:2px 8px;font-size:0.72rem;font-weight:800;cursor:pointer;background:${activeGroupMode==='pairs'?'#1a237e':'transparent'};color:${activeGroupMode==='pairs'?'#fff':'#475569'};transition:all 0.15s;">⚖️ זוג (${pairUnit.gids.length})</button>
-            <button type="button" onclick="window.spSetGroupMode('clusters')" style="border:none;border-radius:4px;padding:2px 8px;font-size:0.72rem;font-weight:800;cursor:pointer;background:${activeGroupMode==='clusters'?'#1a237e':'transparent'};color:${activeGroupMode==='clusters'?'#fff':'#475569'};transition:all 0.15s;">📦 אשכול: ${(clusterUnit.name||'').replace(/"/g, '&quot;')} (${clusterUnit.gids.length})</button>
+            <button type="button" onclick="window.spSetGroupMode('pairs')" style="border:none;border-radius:4px;padding:2px 8px;font-size:0.72rem;font-weight:800;cursor:pointer;background:${activeGroupMode==='pairs'?'#1a237e':'transparent'};color:${activeGroupMode==='pairs'?'#fff':'#475569'};transition:all 0.15s;">⚖️ זוג (${pairUnit.gids.length} גנים)</button>
+            <button type="button" onclick="window.spSetGroupMode('clusters')" style="border:none;border-radius:4px;padding:2px 8px;font-size:0.72rem;font-weight:800;cursor:pointer;background:${activeGroupMode==='clusters'?'#1a237e':'transparent'};color:${activeGroupMode==='clusters'?'#fff':'#475569'};transition:all 0.15s;">📦 אשכול: ${(clusterUnit.name||'').replace(/"/g, '&quot;')} (${clusterUnit.gids.length} גנים)</button>
           </div>
         ` : (hasCluster && !hasPair ? `
-          <span style="font-size:0.72rem;font-weight:800;color:#1e3a8a;background:#e0e7ff;border:1px solid #c7d2fe;padding:2px 8px;border-radius:5px;">📦 אשכול: ${(clusterUnit.name||'').replace(/"/g, '&quot;')} (${clusterUnit.gids.length})</span>
+          <span style="font-size:0.72rem;font-weight:800;color:#1e3a8a;background:#e0e7ff;border:1px solid #c7d2fe;padding:2px 8px;border-radius:5px;">📦 אשכול: ${(clusterUnit.name||'').replace(/"/g, '&quot;')} (${clusterUnit.gids.length} גנים)</span>
         ` : (hasPair ? `
-          <span style="font-size:0.72rem;font-weight:800;color:#4338ca;background:#eef2ff;border:1px solid #c7d2fe;padding:2px 8px;border-radius:5px;">⚖️ זוג (${pairUnit.gids.length})</span>
+          <span style="font-size:0.72rem;font-weight:800;color:#4338ca;background:#eef2ff;border:1px solid #c7d2fe;padding:2px 8px;border-radius:5px;">⚖️ זוג (${pairUnit.gids.length} גנים)</span>
         ` : ''))}
       </div>
       <div style="display:flex;gap:8px;align-items:center">
