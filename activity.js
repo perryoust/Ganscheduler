@@ -2775,6 +2775,13 @@ function refresh(){
   }
 
   if (typeof window.calRefSup === 'function') window.calRefSup();
+  // If grid export / traffic light is open, live refresh it
+  try {
+    const gexp = document.getElementById('grid-export-m');
+    if (gexp && gexp.classList.contains('open') && typeof window.onTrafficTargetChange === 'function') {
+      window.onTrafficTargetChange();
+    }
+  } catch(e) {}
   // Also refresh SP modal if it is open to keep details in sync!
   const spm = document.getElementById('sp-m');
   if(spm && spm.classList.contains('open') && window.selEv) {

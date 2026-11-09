@@ -2744,7 +2744,10 @@
         window.openNewSched(gid, { date: ds });
       }
       const nsm = document.getElementById('nsm');
-      if (nsm) nsm.style.zIndex = '10025';
+      if (nsm) {
+        nsm.style.zIndex = '10030';
+        nsm._fromGridExport = true;
+      }
     }
   };
 
@@ -2760,15 +2763,21 @@
         window.openNewSched(Number(gid), { date: ds });
       }
       const nsm = document.getElementById('nsm');
-      if (nsm) nsm.style.zIndex = '10025';
+      if (nsm) {
+        nsm.style.zIndex = '10030';
+        nsm._fromGridExport = true;
+      }
     }
   };
 
   window.instQuickEditEv = function (evId) {
     if (typeof window.openSP === 'function') {
       window.openSP(evId);
-      const spm = document.getElementById('spm');
-      if (spm) spm.style.zIndex = '10025';
+      const spm = document.getElementById('sp-m') || document.getElementById('spm');
+      if (spm) {
+        spm.style.zIndex = '10030';
+        spm._fromGridExport = true;
+      }
     }
   };
 

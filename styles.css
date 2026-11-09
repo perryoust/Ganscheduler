@@ -1401,7 +1401,7 @@ hr{border:none;border-top:1px solid #e8eaf6;margin:10px 0}
 .sp-sys-dialog-overlay {
   position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
   background: rgba(0,0,0,0.5); backdrop-filter: blur(4px);
-  z-index: 10000; display: flex; align-items: center; justify-content: center;
+  z-index: 20000; display: flex; align-items: center; justify-content: center;
   opacity: 0; transition: opacity 0.2s; pointer-events: none;
 }
 .sp-sys-dialog-overlay.show { opacity: 1; pointer-events: auto; }

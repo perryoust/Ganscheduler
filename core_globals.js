@@ -995,7 +995,7 @@ window.OM = function(id) {
   if (el) el.classList.add('open');
 };
 window.CM = function(id) {
-  if (id === 'spm') window._currentCustomGroup = null;
+  if (id === 'spm' || id === 'sp-m') window._currentCustomGroup = null;
   if (id === 'sum') {
     try {
       const name = document.getElementById('su-name')?.value?.trim();
@@ -1014,6 +1014,14 @@ window.CM = function(id) {
   }
   const el = document.getElementById(id);
   if (el) {
+    if (el._fromGridExport) {
+      el.style.zIndex = '';
+      el._fromGridExport = false;
+      const gexp = document.getElementById('grid-export-m');
+      if (gexp && gexp.classList.contains('open') && typeof window.onTrafficTargetChange === 'function') {
+        try { window.onTrafficTargetChange(); } catch(e) {}
+      }
+    }
     if (el._fromDup) { el.style.zIndex = ''; el._fromDup = false; }
     el.classList.remove('open');
   }
