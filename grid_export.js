@@ -3365,20 +3365,6 @@
           </table>
         </div>
       </div>`;
-                <th style="padding:7px 8px; border:1px solid #cbd5e1; text-align:right;">אשכול</th>
-                <th style="padding:7px 8px; border:1px solid #cbd5e1; text-align:right; min-width:130px;">שם הגן וכתובת</th>
-                ${dayThsHtml}
-                <th style="padding:7px 8px; border:1px solid #cbd5e1; text-align:center;">בפועל מול יעד</th>
-                <th style="padding:7px 8px; border:1px solid #cbd5e1; text-align:right;">סטטוס שלמות</th>
-                <th style="padding:7px 6px; border:1px solid #cbd5e1; text-align:center;">פעולה</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${rowsHtml}
-            </tbody>
-          </table>
-        </div>
-      </div>`;
 
     let sectionsHtml = '';
 
