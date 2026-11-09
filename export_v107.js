@@ -1996,8 +1996,8 @@ window.exportBulkAnnualSchedule = async function() {
       }
     });
 
-    // Format date as Excel Date object to enable hierarchical date filtering
-    const formattedDate = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 12, 0, 0); 
+    // Format date as pure UTC midnight Excel Date object (exact integer serial, no hour/time sub-nodes in Excel filter)
+    const formattedDate = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0)); 
     const dayName = `יום ${HEB_DAYS[d.getDay()]}`;
     const isWeekend = (d.getDay() === 5 || d.getDay() === 6);
     
