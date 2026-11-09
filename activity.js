@@ -3732,6 +3732,7 @@ window.spSaveMakeup = async function() {
 
   if(!await window.spConfirm(confirmMsg)) return;
 
+  const _newMakeupIds = [];
   targets.forEach(tgt => {
     // Find the original activity for this specific target garden, or fallback to sid if not found
     let targetOrigEv = null;
@@ -3748,7 +3749,7 @@ window.spSaveMakeup = async function() {
     const correctOrigId = targetOrigEv ? targetOrigEv.id : sid;
     const grpCount = tgt.grp || (targetOrigEv ? targetOrigEv.grp : origEv.grp) || customGrp || 1;
 
-    window.createMakeupActivity({
+    const newId = window.createMakeupActivity({
       g: tgt.g,
       d: newDate,
       t: tgt.t,
@@ -3759,10 +3760,23 @@ window.spSaveMakeup = async function() {
       origId: correctOrigId,
       grp: grpCount
     });
+    if (newId) _newMakeupIds.push(String(newId));
   });
   
-  window.saveAndRefresh('sp', true);
+  await window.saveAndRefresh('sp', true);
   window.showToast('✅ שיבוץ ההשלמה בוצע בהצלחה');
+
+  // Offer to jump to the new makeup activity and export it as a message
+  if (_newMakeupIds.length && await window.spConfirm('📤 האם לעבור לפעילות ההשלמה (' + window.fD(newDate) + ') ולייצא להודעה?')) {
+    try { if (window.CM) window.CM('sp-m'); } catch(e) {}
+    try {
+      if (window.ST) window.ST('cal');
+      if (window.goDate) window.goDate(newDate);
+    } catch(e) {}
+    setTimeout(() => {
+      if (typeof window.openExportForEvents === 'function') window.openExportForEvents(_newMakeupIds);
+    }, 250);
+  }
 }
 
 window.createMakeupActivity = function(data) {
