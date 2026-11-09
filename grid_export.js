@@ -537,9 +537,12 @@
                 <div style="display:flex; align-items:center; gap:6px;">
                   <label style="font-size:0.79rem; font-weight:800; color:#1e293b; white-space:nowrap;">🔎 הצג:</label>
                   <select id="gexp-gaps-filter" onchange="window.onTrafficTargetChange()" style="padding:4px 8px; border:1px solid #cbd5e1; border-radius:7px; font-size:0.8rem; font-weight:700; background:#fff;">
-                    <option value="all" selected>כל הגנים (מלא)</option>
-                    <option value="issues">🔴 רק גנים עם חוסר / חריגה / ללא שעה</option>
+                    <option value="all" selected>📋 כל הגנים (מלא)</option>
                     <option value="ok">🟢 רק גנים תקינים (100%)</option>
+                    <option value="missing">🔴 רק גנים בחסר שיבוץ מול היעד</option>
+                    <option value="nohour">🟡 רק גנים עם שיבוץ ללא שעה</option>
+                    <option value="excess">🟠 רק שיבוץ עודף / ללא אשכול</option>
+                    <option value="issues">⚠️ כל החריגים יחד (🔴+🟡+🟠)</option>
                   </select>
                 </div>
               </div>
@@ -2974,8 +2977,11 @@
     });
 
     const filteredRows = rawRows.filter(r => {
-      if (viewFilter === 'issues') return r.severity !== 'ok';
       if (viewFilter === 'ok') return r.severity === 'ok';
+      if (viewFilter === 'missing') return (r.diffM > 0 || r.diffT > 0);
+      if (viewFilter === 'nohour') return (reqHour && r.missingHoursCount > 0);
+      if (viewFilter === 'excess') return ((r.diffM < 0 || r.diffT < 0) || (r.isUnclustered && r.totalCount > 0));
+      if (viewFilter === 'issues') return r.severity !== 'ok';
       return true;
     });
 
@@ -3078,22 +3084,27 @@
     const audit = _collectTrafficLightAudit(data);
     const counts = _countGapIssues(data);
 
-    // 1. Top 4 Traffic-Light KPI Cards
+    // 1. Top 5 Traffic-Light KPI Cards (All Gardens + 4 Status Filters)
+    const vf = audit.viewFilter || 'all';
     const kpisHtml = `
-      <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:8px; margin-bottom:10px;">
-        <div onclick="document.getElementById('gexp-gaps-filter').value='ok'; window.onTrafficTargetChange();" style="cursor:pointer; background:${audit.okCount > 0 ? '#f0fdf4' : '#f8fafc'}; border:1px solid ${audit.okCount > 0 ? '#86efac' : '#e2e8f0'}; border-radius:8px; padding:8px; text-align:center;">
+      <div style="display:grid; grid-template-columns:repeat(5, 1fr); gap:8px; margin-bottom:10px;">
+        <div onclick="document.getElementById('gexp-gaps-filter').value='all'; window.onTrafficTargetChange();" style="cursor:pointer; background:${vf === 'all' ? '#eff6ff' : '#f8fafc'}; border:${vf === 'all' ? '2px solid #2563eb' : '1px solid #cbd5e1'}; border-radius:8px; padding:8px; text-align:center; box-shadow:${vf === 'all' ? '0 2px 8px rgba(37,99,235,0.15)' : 'none'};">
+          <div style="font-size:1.15rem; font-weight:800; color:#1e3a8a;">📋 ${audit.allRows.length}</div>
+          <div style="font-size:0.72rem; font-weight:800; color:#1e40af;">כל הגנים (הצג הכל)</div>
+        </div>
+        <div onclick="document.getElementById('gexp-gaps-filter').value=(document.getElementById('gexp-gaps-filter').value==='ok'?'all':'ok'); window.onTrafficTargetChange();" style="cursor:pointer; background:${audit.okCount > 0 ? '#f0fdf4' : '#f8fafc'}; border:${vf === 'ok' ? '2px solid #16a34a' : '1px solid ' + (audit.okCount > 0 ? '#86efac' : '#e2e8f0')}; border-radius:8px; padding:8px; text-align:center; box-shadow:${vf === 'ok' ? '0 2px 8px rgba(22,163,74,0.15)' : 'none'};">
           <div style="font-size:1.15rem; font-weight:800; color:#166534;">🟢 ${audit.okCount}</div>
           <div style="font-size:0.72rem; font-weight:700; color:#15803d;">גנים עומדים ביעד (${audit.targetM} בוקר + ${audit.targetT} צהרון)</div>
         </div>
-        <div onclick="document.getElementById('gexp-gaps-filter').value='issues'; window.onTrafficTargetChange();" style="cursor:pointer; background:${audit.missingSlotCount > 0 ? '#fef2f2' : '#f8fafc'}; border:1px solid ${audit.missingSlotCount > 0 ? '#fca5a5' : '#e2e8f0'}; border-radius:8px; padding:8px; text-align:center;">
+        <div onclick="document.getElementById('gexp-gaps-filter').value=(document.getElementById('gexp-gaps-filter').value==='missing'?'all':'missing'); window.onTrafficTargetChange();" style="cursor:pointer; background:${audit.missingSlotCount > 0 ? '#fef2f2' : '#f8fafc'}; border:${vf === 'missing' ? '2px solid #dc2626' : '1px solid ' + (audit.missingSlotCount > 0 ? '#fca5a5' : '#e2e8f0')}; border-radius:8px; padding:8px; text-align:center; box-shadow:${vf === 'missing' ? '0 2px 8px rgba(220,38,38,0.15)' : 'none'};">
           <div style="font-size:1.15rem; font-weight:800; color:${audit.missingSlotCount > 0 ? '#dc2626' : '#64748b'};">🔴 ${audit.missingSlotCount}</div>
           <div style="font-size:0.72rem; font-weight:700; color:#475569;">גנים בחסר שיבוץ מול היעד</div>
         </div>
-        <div onclick="document.getElementById('gexp-gaps-filter').value='issues'; window.onTrafficTargetChange();" style="cursor:pointer; background:${audit.missingHourGardensCount > 0 ? '#fffbeb' : '#f8fafc'}; border:1px solid ${audit.missingHourGardensCount > 0 ? '#fde68a' : '#e2e8f0'}; border-radius:8px; padding:8px; text-align:center;">
+        <div onclick="document.getElementById('gexp-gaps-filter').value=(document.getElementById('gexp-gaps-filter').value==='nohour'?'all':'nohour'); window.onTrafficTargetChange();" style="cursor:pointer; background:${audit.missingHourGardensCount > 0 ? '#fffbeb' : '#f8fafc'}; border:${vf === 'nohour' ? '2px solid #d97706' : '1px solid ' + (audit.missingHourGardensCount > 0 ? '#fde68a' : '#e2e8f0')}; border-radius:8px; padding:8px; text-align:center; box-shadow:${vf === 'nohour' ? '0 2px 8px rgba(217,119,6,0.15)' : 'none'};">
           <div style="font-size:1.15rem; font-weight:800; color:${audit.missingHourGardensCount > 0 ? '#d97706' : '#64748b'};">🟡 ${audit.missingHourGardensCount}</div>
           <div style="font-size:0.72rem; font-weight:700; color:#475569;">גנים עם שיבוץ ללא שעה</div>
         </div>
-        <div onclick="document.getElementById('gexp-gaps-filter').value='issues'; window.onTrafficTargetChange();" style="cursor:pointer; background:${(audit.excessSlotCount + counts.unclusteredCnt) > 0 ? '#fff7ed' : '#f8fafc'}; border:1px solid ${(audit.excessSlotCount + counts.unclusteredCnt) > 0 ? '#fed7aa' : '#e2e8f0'}; border-radius:8px; padding:8px; text-align:center;">
+        <div onclick="document.getElementById('gexp-gaps-filter').value=(document.getElementById('gexp-gaps-filter').value==='excess'?'all':'excess'); window.onTrafficTargetChange();" style="cursor:pointer; background:${(audit.excessSlotCount + counts.unclusteredCnt) > 0 ? '#fff7ed' : '#f8fafc'}; border:${vf === 'excess' ? '2px solid #ea580c' : '1px solid ' + ((audit.excessSlotCount + counts.unclusteredCnt) > 0 ? '#fed7aa' : '#e2e8f0')}; border-radius:8px; padding:8px; text-align:center; box-shadow:${vf === 'excess' ? '0 2px 8px rgba(234,88,12,0.15)' : 'none'};">
           <div style="font-size:1.15rem; font-weight:800; color:${(audit.excessSlotCount + counts.unclusteredCnt) > 0 ? '#ea580c' : '#64748b'};">🟠 ${audit.excessSlotCount + counts.unclusteredCnt}</div>
           <div style="font-size:0.72rem; font-weight:700; color:#475569;">שיבוץ עודף / ללא אשכול</div>
         </div>
