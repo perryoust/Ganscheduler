@@ -307,7 +307,7 @@
             🧑‍🏫 ריכוז מדריכים לפי עיר ויום
           </button>
           <button type="button" id="gexp-tab-btn-gaps" onclick="window.setGridExportTab('gaps')" style="padding:10px 10px; border:none; border-bottom:3px solid transparent; background:transparent; color:#475569; font-weight:800; font-size:0.84rem; cursor:pointer; transition:all 0.15s; display:inline-flex; align-items:center; justify-content:center; gap:5px;">
-            <span>🚦 רמזור בקרת קייטנה וחוסרים</span>
+            <span id="gexp-tab-gaps-title">🚦 רמזור שיבוצים וחוסרים</span>
             <span id="gexp-gaps-badge"></span>
           </button>
         </div>
@@ -549,19 +549,25 @@
               <button type="button" onclick="window.instOpenClustersMgmt()" style="background:#eef2ff; border:1px solid #a5b4fc; color:#1e3a8a; border-radius:7px; padding:5px 11px; font-size:0.76rem; font-weight:800; cursor:pointer; white-space:nowrap;">🔗 ניהול אשכולות</button>
             </div>
 
-            <!-- Target Configuration Strip (יעד הקייטנה / הטווח) -->
+            <!-- Target Configuration Strip (יעד הקייטנה / השגרה) -->
             <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; background:linear-gradient(135deg,#fffbeb,#fef3c7); border:1px solid #fcd34d; border-radius:10px; padding:9px 14px; margin-bottom:10px;">
               <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-                <span style="font-size:0.81rem; font-weight:800; color:#92400e;">🎯 יעד שיבוץ לגן בטווח:</span>
-                <label style="display:inline-flex; align-items:center; gap:5px; background:#ffffff; border:1px solid #f59e0b; border-radius:7px; padding:3px 9px; font-size:0.79rem; font-weight:800; color:#b45309;">
+                <!-- Mode Selector: Camp vs Routine -->
+                <div style="display:inline-flex; background:#e2e8f0; border:1px solid #cbd5e1; border-radius:8px; padding:2px; gap:2px;">
+                  <button type="button" id="gexp-mode-camp" onclick="window.setTrafficMode('camp')" style="border:none; border-radius:6px; padding:4px 10px; font-size:0.77rem; font-weight:800; cursor:pointer; background:#ffffff; color:#92400e; box-shadow:0 1px 3px rgba(0,0,0,0.1); transition:all 0.15s;">☀️ קייטנה (בוקר + צהרון)</button>
+                  <button type="button" id="gexp-mode-routine" onclick="window.setTrafficMode('routine')" style="border:none; border-radius:6px; padding:4px 10px; font-size:0.77rem; font-weight:800; cursor:pointer; background:transparent; color:#475569; transition:all 0.15s;">🏫 שגרה שנתית (חוג שבועי)</button>
+                </div>
+
+                <span id="gexp-target-title" style="font-size:0.81rem; font-weight:800; color:#92400e;">🎯 יעד שיבוץ לגן בטווח:</span>
+                <label id="gexp-target-morning-wrap" style="display:inline-flex; align-items:center; gap:5px; background:#ffffff; border:1px solid #f59e0b; border-radius:7px; padding:3px 9px; font-size:0.79rem; font-weight:800; color:#b45309;">
                   <span>☀️ חוגי בוקר:</span>
                   <input type="number" id="gexp-target-morning" min="0" max="30" value="3" onchange="window.onTrafficTargetChange(true)" style="width:44px; padding:2px 4px; border:1px solid #cbd5e1; border-radius:5px; font-weight:800; text-align:center; font-size:0.82rem;">
                 </label>
-                <label style="display:inline-flex; align-items:center; gap:5px; background:#ffffff; border:1px solid #3b82f6; border-radius:7px; padding:3px 9px; font-size:0.79rem; font-weight:800; color:#1d4ed8;">
+                <label id="gexp-target-tzaharon-wrap" style="display:inline-flex; align-items:center; gap:5px; background:#ffffff; border:1px solid #3b82f6; border-radius:7px; padding:3px 9px; font-size:0.79rem; font-weight:800; color:#1d4ed8;">
                   <span>🌙 חוגי צהרון:</span>
                   <input type="number" id="gexp-target-tzaharon" min="0" max="30" value="1" onchange="window.onTrafficTargetChange(true)" style="width:44px; padding:2px 4px; border:1px solid #cbd5e1; border-radius:5px; font-weight:800; text-align:center; font-size:0.82rem;">
                 </label>
-                <button type="button" onclick="window.autoDetectTrafficTarget()" data-tip="מזהה אוטומטית כמה חוגי בוקר וכמה חוגי צהרון שובצו לרוב הגנים בטווח שנבחר ומעדכן את היעד" style="background:#ffffff; border:1px solid #d97706; color:#92400e; border-radius:7px; padding:4px 10px; font-size:0.75rem; font-weight:800; cursor:pointer;">✨ זהה יעד אוטומטית מהשיבוצים</button>
+                <button type="button" onclick="window.autoDetectTrafficTarget()" data-tip="מזהה אוטומטית כמה חוגי בוקר וצהרון שובצו לרוב הגנים בטווח שנבחר ומעדכן את היעד" style="background:#ffffff; border:1px solid #d97706; color:#92400e; border-radius:7px; padding:4px 10px; font-size:0.75rem; font-weight:800; cursor:pointer;">✨ זהה יעד אוטומטית</button>
               </div>
               <label style="display:inline-flex; align-items:center; gap:5px; font-size:0.78rem; font-weight:800; color:#78350f; cursor:pointer;">
                 <input type="checkbox" id="gexp-target-req-hour" checked onchange="window.onTrafficTargetChange(true)">
@@ -604,7 +610,7 @@
         <!-- Footer Export Actions (Tab 3: Clusters & Gaps Control) -->
         <div id="gexp-footer-gaps" style="display:none; background:#f8fafc; border-top:1px solid #e2e8f0; padding:11px 18px; flex-wrap:wrap; gap:8px; justify-content:space-between; align-items:center; direction:rtl;">
           <div style="display:flex; flex-wrap:wrap; gap:8px; flex:1;">
-            <button type="button" class="btn bg" data-tip="הורד טבלת אקסל מלאה וצבועה של רמזור בקרת הקייטנה: גנים, אשכולות, ימים, שעות, חוגי בוקר/צהרון וסטטוס שלמות עם חצי סינון" onclick="window.doCampTrafficLightExcel()" style="background:#15803d; border-color:#166534; color:#fff; font-weight:800; padding:8px 15px; font-size:0.84rem;">🚦 הורד אקסל רמזור בקרת קייטנה (Excel)</button>
+            <button type="button" class="btn bg" id="gexp-btn-traffic-excel" data-tip="הורד טבלת אקסל מלאה וצבועה של רמזור בקרת השיבוצים: גנים, אשכולות, ימים, שעות, חוגי בוקר/צהרון וסטטוס שלמות עם חצי סינון" onclick="window.doCampTrafficLightExcel()" style="background:#15803d; border-color:#166534; color:#fff; font-weight:800; padding:8px 15px; font-size:0.84rem;"><span id="gexp-btn-traffic-excel-lbl">🚦 הורד אקסל רמזור שיבוצים (Excel)</span></button>
             <button type="button" class="btn bg" data-tip="הורד לוח שיבוץ שבועי מרוכז לפי אשכולות (בוקר וצהרון)" onclick="window.doClusterMatrixExportExcel()" style="background:#0284c7; border-color:#0369a1; color:#fff; font-weight:800; padding:8px 13px; font-size:0.82rem;">📑 לוח שיבוץ אשכולות (אקסל)</button>
             <button type="button" class="btn bo" data-tip="הורד לאקסל את דוח ריכוז המדריכים ובקרת האשכולות" onclick="window.doInstExportExcel()" style="background:#eef2ff; border:1px solid #a5b4fc; color:#1e3a8a; font-weight:800; padding:8px 13px; font-size:0.81rem;">📊 ריכוז מדריכים וחריגי אשכולות (Excel)</button>
           </div>
@@ -2783,10 +2789,41 @@
     }
   };
 
+  let _trafficMode = 'camp'; // 'camp' | 'routine'
   let _trafficTargetEdited = false;
 
-  // SSOT Collector for Camp / Weekly Traffic-Light Audit (טבלת רמזור בקרת קייטנה ושיבוצים)
+  window.setTrafficMode = function (mode) {
+    _trafficMode = mode;
+    _trafficTargetEdited = false;
+    const mWrap = document.getElementById('gexp-target-morning-wrap');
+    const mInput = document.getElementById('gexp-target-morning');
+    const tInput = document.getElementById('gexp-target-tzaharon');
+    const targetTitle = document.getElementById('gexp-target-title');
+    const campBtn = document.getElementById('gexp-mode-camp');
+    const routineBtn = document.getElementById('gexp-mode-routine');
+
+    if (mode === 'routine') {
+      if (mWrap) mWrap.style.display = 'none';
+      if (mInput) mInput.value = '0';
+      if (tInput && (tInput.value === '0' || !tInput.value)) tInput.value = '1';
+      if (targetTitle) targetTitle.textContent = '🎯 יעד חוג צהרון שבועי לגן:';
+      if (campBtn) { campBtn.style.background = 'transparent'; campBtn.style.color = '#475569'; campBtn.style.boxShadow = 'none'; }
+      if (routineBtn) { routineBtn.style.background = '#ffffff'; routineBtn.style.color = '#1e3a8a'; routineBtn.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)'; }
+    } else {
+      if (mWrap) mWrap.style.display = 'inline-flex';
+      if (targetTitle) targetTitle.textContent = '🎯 יעד שיבוץ לגן בטווח:';
+      if (campBtn) { campBtn.style.background = '#ffffff'; campBtn.style.color = '#92400e'; campBtn.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)'; }
+      if (routineBtn) { routineBtn.style.background = 'transparent'; routineBtn.style.color = '#475569'; routineBtn.style.boxShadow = 'none'; }
+    }
+
+    if (typeof window.onTrafficTargetChange === 'function') {
+      window.onTrafficTargetChange();
+    }
+  };
+
+  // SSOT Collector for Camp / Weekly Traffic-Light Audit (טבלת רמזור בקרת שיבוצים)
   function _collectTrafficLightAudit(data) {
+    const isRoutine = (_trafficMode === 'routine');
     const days = data.days || [];
     const minDs = data.minDs || (days[0] || '');
     const maxDs = data.maxDs || (days[days.length - 1] || '');
@@ -2807,12 +2844,33 @@
       return true;
     });
 
-    // Index valid events by "${gid}_${ds}"
+    // Index valid events and routine shortages by "${gid}_${ds}"
     const evsByGidDay = new Map();
+    const routineShortagesByGid = new Map();
+
     (window.SCH || []).forEach(s => {
       if (!s || !s.d || !daysSet.has(s.d)) return;
-      if (s.st === 'can' || s.st === 'post' || s.st === 'nohap') return;
-      const key = `${Number(s.g)}_${s.d}`;
+      const gid = Number(s.g);
+      const isShortage = (s.st === 'can' || s.st === 'post' || s.st === 'nohap');
+
+      if (isShortage) {
+        if (isRoutine) {
+          // Check if handled by makeup
+          const isHandled = !!(s._compByMakeup && s._compByMakeup !== "false") ||
+            !!((s.nt && /הוקדם ל|נדחה ל|הוזז ל|הקדמה ל|דחייה ל|עבר ל|עובר ל|הועבר ל/i.test(s.nt)) ||
+               (s.n && /הוקדם ל|נדחה ל|הוזז ל|הקדמה ל|דחייה ל|עבר ל|עובר ל|הועבר ל/i.test(s.n)));
+          if (!isHandled) {
+            const key = `${gid}_${s.d}`;
+            if (!evsByGidDay.has(key)) evsByGidDay.set(key, []);
+            evsByGidDay.get(key).push({ ...s, _isRoutineShortage: true });
+            if (!routineShortagesByGid.has(gid)) routineShortagesByGid.set(gid, []);
+            routineShortagesByGid.get(gid).push(s);
+          }
+        }
+        return;
+      }
+
+      const key = `${gid}_${s.d}`;
       if (!evsByGidDay.has(key)) evsByGidDay.set(key, []);
       evsByGidDay.get(key).push(s);
     });
@@ -2825,7 +2883,7 @@
       });
     });
 
-    // First pass: compute raw counts per garden so we can auto-detect dominant target if not user-edited
+    // First pass: compute raw counts per garden
     const rawRows = allActiveGardens.map(g => {
       const gid = Number(g.id);
       const city = g.city || 'אחר';
@@ -2846,6 +2904,18 @@
       days.forEach(ds => {
         const evs = evsByGidDay.get(`${gid}_${ds}`) || [];
         const parsed = evs.map(ev => {
+          if (ev._isRoutineShortage) {
+            const dispSup = _resolveSupplierAlias(ev.a) || (window.supBase ? window.supBase(ev.a) : (ev.a || ''));
+            const stLabel = ev.st === 'nohap' ? 'לא התקיים' : (ev.st === 'post' ? 'נדחה' : 'בוטל');
+            return {
+              ev,
+              dispSup,
+              act: ev.act || (window.supAct ? window.supAct(ev.a) : '') || '',
+              slotInfo: { isMorning: false, isTzaharon: true, hasHour: !!ev.t, timeStr: ev.t || '', shortLabel: stLabel, isIdea: false },
+              isShortage: true,
+              shortageLabel: stLabel
+            };
+          }
           const slotInfo = typeof window.classifyActivitySlot === 'function'
             ? window.classifyActivitySlot(ev)
             : { isMorning: false, isTzaharon: true, hasHour: !!ev.t, timeStr: ev.t || '', shortLabel: 'צהרון', isIdea: false };
@@ -2866,6 +2936,8 @@
         dayCells[ds] = parsed;
       });
 
+      const unhandledShortages = (routineShortagesByGid.get(gid) || []).length;
+
       return {
         g,
         gid,
@@ -2880,41 +2952,60 @@
         mCount,
         tCount,
         totalCount: mCount + tCount,
+        unhandledShortages,
         missingHoursCount,
         missingHourDays,
         dayCells
       };
     });
 
-    // Auto-detect dominant target (mode of scheduled gardens > 0) when not manually edited by user
+    // Auto-detect dominant target when not manually edited by user
     const mInput = document.getElementById('gexp-target-morning');
     const tInput = document.getElementById('gexp-target-tzaharon');
     if (!_trafficTargetEdited && mInput && tInput) {
-      const scheduledRows = rawRows.filter(r => r.totalCount > 0);
-      if (scheduledRows.length > 0) {
-        const freqMap = new Map();
-        let bestPair = null;
-        let bestFreq = 0;
-        scheduledRows.forEach(r => {
-          const k = `${r.mCount}_${r.tCount}`;
-          const f = (freqMap.get(k) || 0) + 1;
-          freqMap.set(k, f);
-          if (f > bestFreq) {
-            bestFreq = f;
-            bestPair = [r.mCount, r.tCount];
+      if (isRoutine) {
+        mInput.value = '0';
+        const scheduledRows = rawRows.filter(r => r.tCount > 0);
+        if (scheduledRows.length > 0) {
+          const freqMap = new Map();
+          let bestT = 1;
+          let bestFreq = 0;
+          scheduledRows.forEach(r => {
+            const f = (freqMap.get(r.tCount) || 0) + 1;
+            freqMap.set(r.tCount, f);
+            if (f > bestFreq) { bestFreq = f; bestT = r.tCount; }
+          });
+          tInput.value = String(bestT);
+        } else {
+          tInput.value = '1';
+        }
+      } else {
+        const scheduledRows = rawRows.filter(r => r.totalCount > 0);
+        if (scheduledRows.length > 0) {
+          const freqMap = new Map();
+          let bestPair = null;
+          let bestFreq = 0;
+          scheduledRows.forEach(r => {
+            const k = `${r.mCount}_${r.tCount}`;
+            const f = (freqMap.get(k) || 0) + 1;
+            freqMap.set(k, f);
+            if (f > bestFreq) {
+              bestFreq = f;
+              bestPair = [r.mCount, r.tCount];
+            }
+          });
+          if (bestPair) {
+            mInput.value = String(bestPair[0]);
+            tInput.value = String(bestPair[1]);
           }
-        });
-        if (bestPair) {
-          mInput.value = String(bestPair[0]);
-          tInput.value = String(bestPair[1]);
         }
       }
     }
 
-    const targetM = Math.max(0, parseInt(mInput?.value ?? '3', 10) || 0);
+    const targetM = isRoutine ? 0 : Math.max(0, parseInt(mInput?.value ?? '3', 10) || 0);
     const targetT = Math.max(0, parseInt(tInput?.value ?? '1', 10) || 0);
 
-    // Evaluate each garden row against targetM, targetT, and reqHour
+    // Evaluate each garden row against targetM, targetT, unhandled shortages, and reqHour
     let okCount = 0;
     let missingSlotCount = 0;
     let missingHourGardensCount = 0;
@@ -2929,7 +3020,7 @@
       const issues = [];
       let severity = 'ok'; // 'ok' | 'warn' | 'err'
 
-      if (diffM > 0) {
+      if (!isRoutine && diffM > 0) {
         issues.push(`חסר ${diffM} בוקר`);
         severity = 'err';
       }
@@ -2937,7 +3028,11 @@
         issues.push(`חסר ${diffT} צהרון`);
         severity = 'err';
       }
-      if (diffM < 0) {
+      if (isRoutine && r.unhandledShortages > 0) {
+        issues.push(`⚠️ ${r.unhandledShortages} לא התקיים`);
+        severity = 'err';
+      }
+      if (!isRoutine && diffM < 0) {
         issues.push(`עודף ${Math.abs(diffM)} בוקר`);
         if (severity === 'ok') severity = 'warn';
       }
@@ -2957,7 +3052,9 @@
       r.severity = severity;
       r.issues = issues;
       if (severity === 'ok') {
-        r.statusText = `✅ תקין (${r.mCount}/${targetM} בוקר · ${r.tCount}/${targetT} צהרון)`;
+        r.statusText = isRoutine
+          ? `✅ תקין (${r.tCount}/${targetT} צהרון לשבוע)`
+          : `✅ תקין (${r.mCount}/${targetM} בוקר · ${r.tCount}/${targetT} צהרון)`;
         okCount++;
       } else if (severity === 'err') {
         r.statusText = `🔴 ${issues.join(' + ')}`;
@@ -2989,7 +3086,7 @@
 
     const filteredRows = rawRows.filter(r => {
       if (viewFilter === 'ok') return r.severity === 'ok';
-      if (viewFilter === 'missing') return (r.diffM > 0 || r.diffT > 0);
+      if (viewFilter === 'missing') return (r.diffM > 0 || r.diffT > 0 || (isRoutine && r.unhandledShortages > 0));
       if (viewFilter === 'nohour') return (reqHour && r.missingHoursCount > 0);
       if (viewFilter === 'excess') return ((r.diffM < 0 || r.diffT < 0) || (r.isUnclustered && r.totalCount > 0));
       if (viewFilter === 'issues') return r.severity !== 'ok';
@@ -2997,6 +3094,7 @@
     });
 
     return {
+      isRoutine,
       days,
       minDs,
       maxDs,
@@ -3030,7 +3128,11 @@
     _updateGapsBadge(fullData);
     _renderGapsTab(fullData);
     if (window.showToast) {
-      window.showToast(`🎯 היעד עודכן אוטומטית לפי הרוב: ${audit.targetM} חוגי בוקר + ${audit.targetT} חוגי צהרון`);
+      if (audit.isRoutine) {
+        window.showToast(`🎯 היעד עודכן אוטומטית לשגרה: ${audit.targetT} חוג צהרון לשבוע`);
+      } else {
+        window.showToast(`🎯 היעד עודכן אוטומטית לפי הרוב: ${audit.targetM} חוגי בוקר + ${audit.targetT} חוגי צהרון`);
+      }
     }
   };
 
@@ -3097,19 +3199,20 @@
 
     // 1. Top 5 Traffic-Light KPI Cards (All Gardens + 4 Status Filters)
     const vf = audit.viewFilter || 'all';
+    const isRoutine = !!audit.isRoutine;
     const kpisHtml = `
       <div style="display:grid; grid-template-columns:repeat(5, 1fr); gap:8px; margin-bottom:10px;">
         <div onclick="document.getElementById('gexp-gaps-filter').value='all'; window.onTrafficTargetChange();" style="cursor:pointer; background:${vf === 'all' ? '#eff6ff' : '#f8fafc'}; border:${vf === 'all' ? '2px solid #2563eb' : '1px solid #cbd5e1'}; border-radius:8px; padding:8px; text-align:center; box-shadow:${vf === 'all' ? '0 2px 8px rgba(37,99,235,0.15)' : 'none'};">
           <div style="font-size:1.15rem; font-weight:800; color:#1e3a8a;">📋 ${audit.allRows.length}</div>
-          <div style="font-size:0.72rem; font-weight:800; color:#1e40af;">כל הגנים (הצג הכל)</div>
+          <div style="font-size:0.72rem; font-weight:800; color:#1e40af;">כל המוסדות (הצג הכל)</div>
         </div>
         <div onclick="document.getElementById('gexp-gaps-filter').value=(document.getElementById('gexp-gaps-filter').value==='ok'?'all':'ok'); window.onTrafficTargetChange();" style="cursor:pointer; background:${audit.okCount > 0 ? '#f0fdf4' : '#f8fafc'}; border:${vf === 'ok' ? '2px solid #16a34a' : '1px solid ' + (audit.okCount > 0 ? '#86efac' : '#e2e8f0')}; border-radius:8px; padding:8px; text-align:center; box-shadow:${vf === 'ok' ? '0 2px 8px rgba(22,163,74,0.15)' : 'none'};">
           <div style="font-size:1.15rem; font-weight:800; color:#166534;">🟢 ${audit.okCount}</div>
-          <div style="font-size:0.72rem; font-weight:700; color:#15803d;">גנים עומדים ביעד (${audit.targetM} בוקר + ${audit.targetT} צהרון)</div>
+          <div style="font-size:0.72rem; font-weight:700; color:#15803d;">${isRoutine ? `עומדים ביעד (${audit.targetT} צהרון לשבוע)` : `עומדים ביעד (${audit.targetM} בוקר + ${audit.targetT} צהרון)`}</div>
         </div>
         <div onclick="document.getElementById('gexp-gaps-filter').value=(document.getElementById('gexp-gaps-filter').value==='missing'?'all':'missing'); window.onTrafficTargetChange();" style="cursor:pointer; background:${audit.missingSlotCount > 0 ? '#fef2f2' : '#f8fafc'}; border:${vf === 'missing' ? '2px solid #dc2626' : '1px solid ' + (audit.missingSlotCount > 0 ? '#fca5a5' : '#e2e8f0')}; border-radius:8px; padding:8px; text-align:center; box-shadow:${vf === 'missing' ? '0 2px 8px rgba(220,38,38,0.15)' : 'none'};">
           <div style="font-size:1.15rem; font-weight:800; color:${audit.missingSlotCount > 0 ? '#dc2626' : '#64748b'};">🔴 ${audit.missingSlotCount}</div>
-          <div style="font-size:0.72rem; font-weight:700; color:#475569;">גנים בחסר שיבוץ מול היעד</div>
+          <div style="font-size:0.72rem; font-weight:700; color:#475569;">${isRoutine ? 'בחסר צהרון / לא התקיים' : 'גנים בחסר שיבוץ מול היעד'}</div>
         </div>
         <div onclick="document.getElementById('gexp-gaps-filter').value=(document.getElementById('gexp-gaps-filter').value==='nohour'?'all':'nohour'); window.onTrafficTargetChange();" style="cursor:pointer; background:${audit.missingHourGardensCount > 0 ? '#fffbeb' : '#f8fafc'}; border:${vf === 'nohour' ? '2px solid #d97706' : '1px solid ' + (audit.missingHourGardensCount > 0 ? '#fde68a' : '#e2e8f0')}; border-radius:8px; padding:8px; text-align:center; box-shadow:${vf === 'nohour' ? '0 2px 8px rgba(217,119,6,0.15)' : 'none'};">
           <div style="font-size:1.15rem; font-weight:800; color:${audit.missingHourGardensCount > 0 ? '#d97706' : '#64748b'};">🟡 ${audit.missingHourGardensCount}</div>
@@ -3117,7 +3220,7 @@
         </div>
         <div onclick="document.getElementById('gexp-gaps-filter').value=(document.getElementById('gexp-gaps-filter').value==='excess'?'all':'excess'); window.onTrafficTargetChange();" style="cursor:pointer; background:${(audit.excessSlotCount + counts.unclusteredCnt) > 0 ? '#fff7ed' : '#f8fafc'}; border:${vf === 'excess' ? '2px solid #ea580c' : '1px solid ' + ((audit.excessSlotCount + counts.unclusteredCnt) > 0 ? '#fed7aa' : '#e2e8f0')}; border-radius:8px; padding:8px; text-align:center; box-shadow:${vf === 'excess' ? '0 2px 8px rgba(234,88,12,0.15)' : 'none'};">
           <div style="font-size:1.15rem; font-weight:800; color:${(audit.excessSlotCount + counts.unclusteredCnt) > 0 ? '#ea580c' : '#64748b'};">🟠 ${audit.excessSlotCount + counts.unclusteredCnt}</div>
-          <div style="font-size:0.72rem; font-weight:700; color:#475569;">שיבוץ עודף / ללא אשכול</div>
+          <div style="font-size:0.72rem; font-weight:700; color:#475569;">${isRoutine ? `שיבוץ עודף (${audit.targetT}+) / ללא אשכול` : 'שיבוץ עודף / ללא אשכול'}</div>
         </div>
       </div>`;
 
@@ -3152,6 +3255,18 @@
             </td>`;
           }
           const pills = items.map(it => {
+            if (it.isShortage) {
+              const evIdAttr = (it.ev && it.ev.id && !window.isReadOnly)
+                ? `onclick="window.instQuickEditEv('${_esc(it.ev.id)}')" data-tip="לחץ להשלמת פעילות שלא התקיימה"`
+                : '';
+              return `<div ${evIdAttr} style="${evIdAttr ? 'cursor:pointer;' : ''} background:#fef2f2; border:1px solid #f87171; color:#991b1b; border-radius:5px; padding:2px 5px; margin-bottom:2px; font-size:0.71rem; line-height:1.25; text-align:right;">
+                <div style="display:flex; justify-content:space-between; align-items:center; gap:4px;">
+                  <span style="font-weight:800;">${_esc(it.dispSup)}</span>
+                  <span style="font-size:0.63rem; background:#dc2626; color:#fff; font-weight:800; padding:1px 4px; border-radius:3px; white-space:nowrap;">⚠️ ${it.shortageLabel}</span>
+                </div>
+                ${it.slotInfo.hasHour ? `<div style="font-size:0.68rem; margin-top:1px;">⏰ <b>${_esc(it.slotInfo.timeStr)}</b></div>` : ''}
+              </div>`;
+            }
             const isM = it.slotInfo.isMorning;
             const noHour = audit.reqHour && !it.slotInfo.hasHour && !it.slotInfo.isIdea;
             const pillBg = noHour ? '#fef08a' : (isM ? '#ffedd5' : '#dbeafe');
@@ -3183,6 +3298,11 @@
         const tBadgeBg = r.tCount < audit.targetT ? '#fee2e2' : (r.tCount > audit.targetT ? '#ffedd5' : '#f0fdf4');
         const tBadgeCol = r.tCount < audit.targetT ? '#b91c1c' : (r.tCount > audit.targetT ? '#c2410c' : '#166534');
 
+        const targetPillHtml = isRoutine
+          ? `<span style="display:inline-block; background:${tBadgeBg}; color:${tBadgeCol}; font-weight:800; font-size:0.72rem; padding:2px 8px; border-radius:4px;">🌙 ${r.tCount}/${audit.targetT}</span>`
+          : `<span style="display:inline-block; background:${mBadgeBg}; color:${mBadgeCol}; font-weight:800; font-size:0.72rem; padding:2px 6px; border-radius:4px; margin-left:3px;">☀️ ${r.mCount}/${audit.targetM}</span>
+             <span style="display:inline-block; background:${tBadgeBg}; color:${tBadgeCol}; font-weight:800; font-size:0.72rem; padding:2px 6px; border-radius:4px;">🌙 ${r.tCount}/${audit.targetT}</span>`;
+
         return `<tr style="background:${rowBg};">
           <td style="padding:5px 7px; border:1px solid #e2e8f0; font-weight:700; font-size:0.76rem; color:#334155; white-space:nowrap;">${_esc(r.city)}</td>
           <td style="padding:5px 7px; border:1px solid #e2e8f0; font-weight:700; font-size:0.75rem; color:${r.isUnclustered ? '#b45309' : '#1e3a8a'}; white-space:nowrap;">${_esc(r.clusterName)}</td>
@@ -3192,8 +3312,7 @@
           </td>
           ${dayTds}
           <td style="padding:5px 6px; border:1px solid #e2e8f0; text-align:center; white-space:nowrap;">
-            <span style="display:inline-block; background:${mBadgeBg}; color:${mBadgeCol}; font-weight:800; font-size:0.72rem; padding:2px 6px; border-radius:4px; margin-left:3px;">☀️ ${r.mCount}/${audit.targetM}</span>
-            <span style="display:inline-block; background:${tBadgeBg}; color:${tBadgeCol}; font-weight:800; font-size:0.72rem; padding:2px 6px; border-radius:4px;">🌙 ${r.tCount}/${audit.targetT}</span>
+            ${targetPillHtml}
           </td>
           <td style="padding:5px 7px; border:1px solid #e2e8f0; background:${stBg}; color:${stCol}; font-weight:800; font-size:0.74rem; white-space:nowrap;">
             ${_esc(r.statusText)}
@@ -3205,16 +3324,26 @@
       }).join('');
     }
 
+    const tableTitleText = isRoutine
+      ? `🚦 טבלת רמזור בקרת שיבוצים שבועי לשגרה (${audit.filteredRows.length} מתוך ${audit.allRows.length} מוסדות)`
+      : `🚦 טבלת רמזור בקרת שיבוצים לקייטנה (${audit.filteredRows.length} מתוך ${audit.allRows.length} מוסדות)`;
+
+    const legendBadgesHtml = isRoutine
+      ? `<span style="background:#dbeafe; color:#1e3a8a; padding:2px 7px; border-radius:4px; border:1px solid #93c5fd;">🌙 חוג צהרון</span>
+         <span style="background:#fee2e2; color:#991b1b; padding:2px 7px; border-radius:4px; border:1px solid #ef4444;">⚠️ לא התקיים / נדחה</span>
+         <span style="background:#fef08a; color:#854d0e; padding:2px 7px; border-radius:4px; border:1px solid #eab308;">⏰ חסרה שעה</span>`
+      : `<span style="background:#ffedd5; color:#9a3412; padding:2px 7px; border-radius:4px; border:1px solid #fdba74;">☀️ חוג בוקר</span>
+         <span style="background:#dbeafe; color:#1e3a8a; padding:2px 7px; border-radius:4px; border:1px solid #93c5fd;">🌙 חוג צהרון</span>
+         <span style="background:#fef08a; color:#854d0e; padding:2px 7px; border-radius:4px; border:1px solid #eab308;">⚠️ חסרה שעה</span>`;
+
     const trafficTableHtml = `
       <div style="background:#ffffff; border:1px solid #cbd5e1; border-radius:10px; overflow:hidden; margin-bottom:12px;">
         <div style="background:#f8fafc; padding:8px 12px; border-bottom:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
           <div style="font-weight:800; font-size:0.84rem; color:#0f172a;">
-            🚦 טבלת רמזור בקרת שיבוצים לפי גן (${audit.filteredRows.length} מתוך ${audit.allRows.length} מוסדות)
+            ${tableTitleText}
           </div>
           <div style="display:flex; gap:8px; align-items:center; font-size:0.72rem; font-weight:700;">
-            <span style="background:#ffedd5; color:#9a3412; padding:2px 7px; border-radius:4px; border:1px solid #fdba74;">☀️ חוג בוקר</span>
-            <span style="background:#dbeafe; color:#1e3a8a; padding:2px 7px; border-radius:4px; border:1px solid #93c5fd;">🌙 חוג צהרון</span>
-            <span style="background:#fef08a; color:#854d0e; padding:2px 7px; border-radius:4px; border:1px solid #eab308;">⚠️ חסרה שעה</span>
+            ${legendBadgesHtml}
           </div>
         </div>
         <div style="overflow-x:auto; max-height:42vh; overflow-y:auto;">
@@ -3222,6 +3351,20 @@
             <thead style="position:sticky; top:0; z-index:2;">
               <tr style="background:#e2e8f0; color:#1e293b; font-size:0.75rem; font-weight:800;">
                 <th style="padding:7px 8px; border:1px solid #cbd5e1; text-align:right;">עיר</th>
+                <th style="padding:7px 8px; border:1px solid #cbd5e1; text-align:right;">אשכול</th>
+                <th style="padding:7px 8px; border:1px solid #cbd5e1; text-align:right; min-width:130px;">שם הגן וכתובת</th>
+                ${dayThsHtml}
+                <th style="padding:7px 8px; border:1px solid #cbd5e1; text-align:center;">בפועל מול יעד</th>
+                <th style="padding:7px 8px; border:1px solid #cbd5e1; text-align:right;">סטטוס שלמות</th>
+                <th style="padding:7px 6px; border:1px solid #cbd5e1; text-align:center;">פעולה</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rowsHtml}
+            </tbody>
+          </table>
+        </div>
+      </div>`;
                 <th style="padding:7px 8px; border:1px solid #cbd5e1; text-align:right;">אשכול</th>
                 <th style="padding:7px 8px; border:1px solid #cbd5e1; text-align:right; min-width:130px;">שם הגן וכתובת</th>
                 ${dayThsHtml}
@@ -3322,6 +3465,12 @@
     }
 
     wrap.innerHTML = kpisHtml + trafficTableHtml + sectionsHtml;
+    const btnLbl = document.getElementById('gexp-btn-traffic-excel-lbl');
+    if (btnLbl) {
+      btnLbl.textContent = _trafficMode === 'routine'
+        ? '🚦 הורד אקסל רמזור שיבוצים שבועי (Excel)'
+        : '🚦 הורד אקסל רמזור בקרת קייטנה (Excel)';
+    }
   }
 
   // Collect full chronological schedule (gardens, addresses, hours, clusters) for a single supplier
@@ -4913,7 +5062,8 @@
       wb.creator = 'טומשין קידס';
       wb.created = new Date();
 
-      const ws = wb.addWorksheet('רמזור בקרת קייטנה', {
+      const sheetName = audit.isRoutine ? 'רמזור שיבוצים שבועי - שגרה' : 'רמזור בקרת קייטנה';
+      const ws = wb.addWorksheet(sheetName, {
         views: [{ rightToLeft: true, state: 'frozen', ySplit: 2, xSplit: 3 }],
         pageSetup: {
           paperSize: 9,
@@ -5101,14 +5251,15 @@
 
       const buffer = await wb.xlsx.writeBuffer();
       const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-      const fName = `רמזור_בקרת_קייטנה (${audit.minDs}${audit.minDs !== audit.maxDs ? '_' + audit.maxDs : ''}).xlsx`;
+      const prefix = audit.isRoutine ? 'רמזור_שיבוצים_שבועי' : 'רמזור_בקרת_קייטנה';
+      const fName = `${prefix} (${audit.minDs}${audit.minDs !== audit.maxDs ? '_' + audit.maxDs : ''}).xlsx`;
 
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url; a.download = fName; document.body.appendChild(a); a.click(); document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
-      if (window.showToast) window.showToast(`🚦 אקסל רמזור בקרת קייטנה הורד בהצלחה: ${fName}`);
+      if (window.showToast) window.showToast(`🚦 אקסל ${audit.isRoutine ? 'רמזור שיבוצים שבועי' : 'רמזור בקרת קייטנה'} הורד בהצלחה: ${fName}`);
     } catch (err) {
       console.error('[TrafficLight Excel]', err);
       window.spAlert('שגיאה בייצוא רמזור לאקסל: ' + err.message);
