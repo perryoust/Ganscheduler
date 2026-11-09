@@ -2772,6 +2772,8 @@
 
   window.instQuickEditEv = function (evId) {
     if (typeof window.openSP === 'function') {
+      window._spFromGridExport = true;
+      window._spGroupMode = 'clusters';
       window.openSP(evId);
       const spm = document.getElementById('sp-m') || document.getElementById('spm');
       if (spm) {

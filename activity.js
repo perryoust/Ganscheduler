@@ -1035,7 +1035,35 @@ window.openSP = function(id) {
 
   try { // ← try-catch to prevent silent failures
   const g=window.G(s.g);
-  const spPair = window.getGardenGroup ? window.getGardenGroup(s.g, s.d) : window.gardenPair(s.g, s.d);
+  
+  // Resolve both cluster and pair units for this garden
+  const clusterUnit = (typeof window.resolveGardenUnit === 'function')
+    ? window.resolveGardenUnit(s.g, s.d, { mode: 'clusters' })
+    : null;
+  const pairUnit = (typeof window.resolveGardenUnit === 'function')
+    ? window.resolveGardenUnit(s.g, s.d, { mode: 'pairs' })
+    : null;
+
+  const hasCluster = !!(clusterUnit && !clusterUnit.isSolo && clusterUnit.gids && clusterUnit.gids.length > 0);
+  const hasPair = !!(pairUnit && !pairUnit.isSolo && pairUnit.gids && pairUnit.gids.length > 0);
+
+  // Group Mode: check user preference in window._spGroupMode, or defaults
+  let activeGroupMode = window._spGroupMode;
+  if (!activeGroupMode) {
+    if (window._spFromGridExport && hasCluster) {
+      activeGroupMode = 'clusters';
+    } else if (isClusterMode && hasCluster) {
+      activeGroupMode = 'clusters';
+    } else {
+      activeGroupMode = hasPair ? 'pairs' : (hasCluster ? 'clusters' : 'pairs');
+    }
+  }
+  if (activeGroupMode === 'clusters' && !hasCluster && hasPair) activeGroupMode = 'pairs';
+  if (activeGroupMode === 'pairs' && !hasPair && hasCluster) activeGroupMode = 'clusters';
+
+  const spPair = (activeGroupMode === 'clusters' && hasCluster)
+    ? clusterUnit
+    : (hasPair ? pairUnit : (hasCluster ? clusterUnit : (window.getGardenGroup ? window.getGardenGroup(s.g, s.d) : window.gardenPair(s.g, s.d))));
   const allSups = window.getAllSup ? window.getAllSup().filter(s2=>window.isActSupplier(s2.name)) : [];
   var initialActs = window.getSupActs ? window.getSupActs(s.a) : [];
 
@@ -1120,8 +1148,20 @@ window.openSP = function(id) {
   }
   
   let h = makeupBanner + `<div style="background:#fff;border-radius:10px;padding:12px;border:1px solid #e0e0e0;margin-bottom:12px;box-shadow:0 2px 4px rgba(0,0,0,0.02)">
-    <div style="font-size:0.85rem;font-weight:800;color:#1a237e;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center">
-      <span>🏠 פירוט גנים ושיבוצים - ${window.fD(s.d)} (${window.dayN(s.d)})</span>
+    <div style="font-size:0.85rem;font-weight:800;color:#1a237e;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <span>🏠 פירוט גנים ושיבוצים - ${window.fD(s.d)} (${window.dayN(s.d)})</span>
+        ${hasCluster && hasPair ? `
+          <div style="display:inline-flex;background:#eef2ff;border:1px solid #c7d2fe;border-radius:6px;padding:2px;gap:2px;">
+            <button type="button" onclick="window.spSetGroupMode('pairs')" style="border:none;border-radius:4px;padding:2px 8px;font-size:0.72rem;font-weight:800;cursor:pointer;background:${activeGroupMode==='pairs'?'#1a237e':'transparent'};color:${activeGroupMode==='pairs'?'#fff':'#475569'};transition:all 0.15s;">⚖️ זוג (${pairUnit.gids.length})</button>
+            <button type="button" onclick="window.spSetGroupMode('clusters')" style="border:none;border-radius:4px;padding:2px 8px;font-size:0.72rem;font-weight:800;cursor:pointer;background:${activeGroupMode==='clusters'?'#1a237e':'transparent'};color:${activeGroupMode==='clusters'?'#fff':'#475569'};transition:all 0.15s;">📦 אשכול: ${(clusterUnit.name||'').replace(/"/g, '&quot;')} (${clusterUnit.gids.length})</button>
+          </div>
+        ` : (hasCluster && !hasPair ? `
+          <span style="font-size:0.72rem;font-weight:800;color:#1e3a8a;background:#e0e7ff;border:1px solid #c7d2fe;padding:2px 8px;border-radius:5px;">📦 אשכול: ${(clusterUnit.name||'').replace(/"/g, '&quot;')} (${clusterUnit.gids.length})</span>
+        ` : (hasPair ? `
+          <span style="font-size:0.72rem;font-weight:800;color:#4338ca;background:#eef2ff;border:1px solid #c7d2fe;padding:2px 8px;border-radius:5px;">⚖️ זוג (${pairUnit.gids.length})</span>
+        ` : ''))}
+      </div>
       <div style="display:flex;gap:8px;align-items:center">
         ${typeTag}
         <button onclick="window._exportGardenWA([${allGardens.map(ag=>ag.pg.id).join(',')}], '${s.d}')" class="btn bsm" style="background:#1565c0;color:#fff;padding:2px 6px;border-radius:4px;display:flex;align-items:center;gap:4px;border:none">
@@ -1532,6 +1572,13 @@ window.openSP = function(id) {
   }
 }
 window.openSP = openSP;
+
+window.spSetGroupMode = function(mode) {
+  window._spGroupMode = mode;
+  if (window.selEv && typeof window.openSP === 'function') {
+    window.openSP(window.selEv);
+  }
+};
 
 window.spAddActivityToPartner = function(targetGid) {
   const s = window.SCH.find(x => x.id == window.selEv);
@@ -3298,6 +3345,13 @@ window.setDashTab = setDashTab;
 window.renderDash = renderDash;
 window.renderCanList = renderCanList;
 window.openSP = openSP;
+
+window.spSetGroupMode = function(mode) {
+  window._spGroupMode = mode;
+  if (window.selEv && typeof window.openSP === 'function') {
+    window.openSP(window.selEv);
+  }
+};
 window.closeSP = closeSP;
 window.setStatus = setStatus;
 window.saveNt = saveNt;
