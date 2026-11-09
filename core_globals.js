@@ -386,6 +386,61 @@ window.getNowDateTimeString = function(dateObj = new Date()) {
 };
 
 // ═════════════════════════════════════════════════════════════════════════════
+// SINGLE SOURCE OF TRUTH: ACTIVITY SLOT CLASSIFICATION (בוקר / צהרון / שעה)
+// ═════════════════════════════════════════════════════════════════════════════
+window.classifyActivitySlot = function(ev) {
+  if (!ev) return { slot: 'tzaharon', label: 'חוג צהרון', shortLabel: 'צהרון', isMorning: false, isTzaharon: true, hasHour: false, isIdea: false };
+  const rawSup = ev.a ? String(ev.a).trim() : '';
+  const rawTp = (ev.tp || '').trim();
+  const rawNt = (ev.nt || '').trim();
+  const rawTime = (ev.t || '').trim();
+  const hour = rawTime ? parseInt(rawTime, 10) : 0;
+  const hasHour = !!(rawTime && !isNaN(hour));
+
+  const isIdea = !rawSup ||
+    rawSup === 'בוקר' || rawSup === '* בוקר' ||
+    rawSup === 'צהריים' || rawSup === '* צהריים' || rawSup === 'צהרון' ||
+    rawSup.startsWith('*') ||
+    /רעיון|הצעה|\*/i.test(rawNt);
+
+  let isMorning = false;
+  let isTzaharon = false;
+
+  if (rawTp === 'חוג בוקר' || rawTp.includes('בוקר')) {
+    isMorning = true;
+  } else if (rawTp === 'חוג צהרון' || rawTp.includes('צהרון')) {
+    isTzaharon = true;
+  } else if (/צהרון|צהריים/i.test(rawNt)) {
+    isTzaharon = true;
+  } else if (/בוקר/i.test(rawNt)) {
+    isMorning = true;
+  } else if (hasHour && hour > 0 && hour < 13) {
+    isMorning = true;
+  } else if (hasHour && hour >= 13) {
+    isTzaharon = true;
+  } else if (/בוקר/i.test(rawSup)) {
+    isMorning = true;
+  } else {
+    isTzaharon = true;
+  }
+
+  const slot = isMorning ? 'morning' : 'tzaharon';
+  const shortLabel = isMorning ? 'בוקר' : 'צהרון';
+  const label = (rawTp && rawTp !== 'חוג') ? rawTp : (isMorning ? 'חוג בוקר' : 'חוג צהרון');
+
+  return {
+    slot,
+    label,
+    shortLabel,
+    isMorning,
+    isTzaharon: !isMorning,
+    hasHour,
+    timeStr: hasHour ? (typeof window.fT === 'function' ? window.fT(rawTime) : rawTime.slice(0, 5)) : '',
+    isIdea
+  };
+};
+
+// ═════════════════════════════════════════════════════════════════════════════
 // SINGLE SOURCE OF TRUTH: GARDEN UNITS, CLUSTERS & PAIRS RESOLUTION
 // ═════════════════════════════════════════════════════════════════════════════
 

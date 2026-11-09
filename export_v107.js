@@ -1251,17 +1251,11 @@ async function exportToExcel(data, filename, opts = {}) {
               const gAge = typeof window.extractGardenAge === 'function' ? window.extractGardenAge(g) : (g.age || '');
               const ageVal = (gAge && gAge !== '***') ? gAge : '—';
               
-              // Determine activity type label (חוג בוקר, חוג צהרון, קייטנה, מופע וכו')
-              const getPlacementActType = (ev) => {
-                const rawTp = (ev.tp || '').trim();
-                if (rawTp && rawTp !== 'חוג') return rawTp;
-                const hour = ev.t ? parseInt(ev.t) : 0;
-                const rawNt = (ev.nt || '').toLowerCase();
-                if (rawNt.includes('בוקר') || (hour > 0 && hour < 13)) return 'חוג בוקר';
-                if (rawNt.includes('צהרון') || rawNt.includes('צהריים') || hour >= 13) return 'חוג צהרון';
-                return rawTp || 'חוג צהרון';
-              };
-              const actTypeLabel = getPlacementActType(s);
+              // Determine activity type label via SSOT (window.classifyActivitySlot)
+              const slotInfo = typeof window.classifyActivitySlot === 'function'
+                ? window.classifyActivitySlot(s)
+                : null;
+              const actTypeLabel = slotInfo ? slotInfo.label : ((s.tp && s.tp !== 'חוג') ? s.tp : 'חוג צהרון');
 
               let rowData;
               if (isPlacement) {
@@ -2044,14 +2038,9 @@ window.exportBulkAnnualSchedule = async function() {
            if ((finalTp === 'חוג' || finalTp === 'חוג בוקר' || finalTp === 'חוג צהרון' || finalTp === 'קייטנה') && holName) {
              finalTp = holName;
            } else if (finalTp === 'חוג') {
-             // 2. On regular non-holiday days, distinguish morning vs afternoon class by hour/note
-             const hour = ev.t ? parseInt(ev.t, 10) : 0;
-             const rawNt = (ev.nt || '').toLowerCase();
-             if (rawNt.includes('בוקר') || (hour > 0 && hour < 13)) {
-               finalTp = 'חוג בוקר';
-             } else {
-               finalTp = 'חוג צהרון';
-             }
+             // 2. On regular non-holiday days, distinguish morning vs afternoon class via SSOT
+             const slotInfo = typeof window.classifyActivitySlot === 'function' ? window.classifyActivitySlot(ev) : null;
+             finalTp = (slotInfo && slotInfo.isMorning) ? 'חוג בוקר' : 'חוג צהרון';
            }
 
            // Status logic mapping
