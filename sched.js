@@ -904,7 +904,7 @@ async function saveNewSched(closeModal = true){
       }
       cur.setDate(cur.getDate()+1);
     }
-    saveAndRefresh(closeModal ? 'nsm' : null);
+    await saveAndRefresh(closeModal ? 'nsm' : null);
     showToast(`✅ נוצרו ${count * targets.length} פעילויות קבועות`);
     return;
   }
@@ -1001,7 +1001,7 @@ async function saveNewSched(closeModal = true){
 
   window._makeupOrigId = null; // Clear at the end
   window._nsSelectedDates = []; // Clear selection
-  saveAndRefresh(closeModal ? 'nsm' : null);
+  await saveAndRefresh(closeModal ? 'nsm' : null);
   showToast(`✅ נשמרו ${totalScheduled} שיבוצים בהצלחה`);
 }
 

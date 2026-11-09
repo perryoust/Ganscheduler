@@ -1514,3 +1514,17 @@ window.loadAllInvoices = async function() {
     return [];
   }
 };
+
+// ── In-Flight Save Shield: Protect uncommitted changes from being lost on page reload/exit ──
+window.addEventListener('beforeunload', (e) => {
+  const isLocked = (typeof _isLocked !== 'undefined' && _isLocked);
+  const isPending = (typeof _pendingSave !== 'undefined' && _pendingSave);
+  const isUploading = (typeof _isUploadingToFirebase !== 'undefined' && _isUploadingToFirebase);
+  const isSaving = (typeof window._isSaving !== 'undefined' && window._isSaving);
+  
+  if (isLocked || isPending || isUploading || isSaving) {
+    e.preventDefault();
+    e.returnValue = 'מתבצעת שמירה של נתונים לענן. אם תרענן כעת, שינויים שטרם נשמרו עלולים ללכת לאיבוד!';
+    return e.returnValue;
+  }
+});
