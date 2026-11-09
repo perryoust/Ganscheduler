@@ -1087,10 +1087,10 @@ async function save(immediate){
       if (immediate === true) {
         res = await triggerFirebaseUpload(true);
       } else {
-        // Wait 300ms to batch multiple rapid synchronous saves before hitting Firebase
+        // Wait 120ms to batch multiple rapid synchronous saves before hitting Firebase
         _saveDebounceTimer = setTimeout(() => {
           triggerFirebaseUpload(false);
-        }, 300);
+        }, 120);
       }
     }
     

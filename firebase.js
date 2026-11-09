@@ -630,51 +630,53 @@ async function saveToFirebase(silent = false, force = false) {
       })
     );
 
-    const results = await Promise.all(saves);
-    for (const r of results) {
-      if (!r.ok) throw new Error('HTTP ' + r.status + ' on ' + r.url);
-    }
+    // Invoices / Orders / Deliveries are independent paths — upload them in parallel
+    // with the main payloads (each keeps its own error handling and delta bookkeeping).
+    const extraSaves = [];
 
-    // Save Invoices Separately only if dirty
     if (isDirtyInv && invBodyData) {
-      const invUrl = getFirebaseInvoicesUrl() + authQ;
-      const invResp = await fetch(invUrl, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: invStr });
-      if (!invResp.ok) {
-        console.error('[Sync] ❌ Invoices save FAILED:', invResp.status, invResp.statusText);
-        window.showToast?.('⚠️ שגיאה בשמירת חשבוניות לענן! (' + invResp.status + ')');
-      } else {
-        window._lastSavedPayloads.invoices = invStr;
-        console.log('[Sync] Invoices saved (delta):', window.INVOICES.length);
-      }
+      extraSaves.push((async () => {
+        const invResp = await fetch(getFirebaseInvoicesUrl() + authQ, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: invStr });
+        if (!invResp.ok) {
+          console.error('[Sync] ❌ Invoices save FAILED:', invResp.status, invResp.statusText);
+          window.showToast?.('⚠️ שגיאה בשמירת חשבוניות לענן! (' + invResp.status + ')');
+        } else {
+          window._lastSavedPayloads.invoices = invStr;
+          console.log('[Sync] Invoices saved (delta):', window.INVOICES.length);
+        }
+      })().catch(e => { console.error('[Sync] Failed saving invoices:', e); window.showToast?.('⚠️ שגיאה בשמירת חשבוניות לענן!'); }));
     }
 
-    // Save Orders Separately only if dirty
     if (isDirtyOrd && ordStr) {
-      try {
-        const ordUrl = getFirebaseOrdersUrl() + authQ;
-        const ordResp = await fetch(ordUrl, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: ordStr });
+      extraSaves.push((async () => {
+        const ordResp = await fetch(getFirebaseOrdersUrl() + authQ, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: ordStr });
         if (ordResp.ok) {
           window._lastSavedPayloads.orders = ordStr;
           console.log('[Sync] Orders saved (delta):', window.ORDERS.length);
         } else {
           console.warn('[Sync] Orders save warning HTTP ' + ordResp.status);
         }
-      } catch(ordErr) { console.warn('[Sync] Failed saving orders:', ordErr); }
+      })().catch(ordErr => console.warn('[Sync] Failed saving orders:', ordErr)));
     }
 
-    // Save Deliveries Separately only if dirty
     if (isDirtyDel && delStr) {
-      try {
-        const delUrl = getFirebaseDeliveriesUrl() + authQ;
-        const delResp = await fetch(delUrl, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: delStr });
+      extraSaves.push((async () => {
+        const delResp = await fetch(getFirebaseDeliveriesUrl() + authQ, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: delStr });
         if (delResp.ok) {
           window._lastSavedPayloads.deliveries = delStr;
           console.log('[Sync] Deliveries saved (delta):', window.DELIVERIES.length);
         } else {
           console.warn('[Sync] Deliveries save warning HTTP ' + delResp.status);
         }
-      } catch(delErr) { console.warn('[Sync] Failed saving deliveries:', delErr); }
+      })().catch(delErr => console.warn('[Sync] Failed saving deliveries:', delErr)));
     }
+
+    const _tNet = performance.now();
+    const [results] = await Promise.all([Promise.all(saves), Promise.all(extraSaves)]);
+    for (const r of results) {
+      if (!r.ok) throw new Error('HTTP ' + r.status + ' on ' + r.url);
+    }
+    console.log('[Sync] ⏱ network upload: ' + Math.round(performance.now() - _tNet) + 'ms');
 
     _setSyncState(newSeq, Date.now(), null, false);
     console.log('[Sync] Saved v' + newSeq + ' (delta: sch=' + isDirtySch + ', sup=' + isDirtySup + ', cfg=' + isDirtyCfg + ', inv=' + isDirtyInv + ', ord=' + isDirtyOrd + ')');
