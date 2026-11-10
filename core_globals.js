@@ -385,6 +385,14 @@ window.getNowDateTimeString = function(dateObj = new Date()) {
   return `${dd}/${mm}/${yyyy} ${hh}:${min}`;
 };
 
+window.getNowDateString = function(dateObj = new Date()) {
+  const d = dateObj instanceof Date ? dateObj : new Date(dateObj);
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const yyyy = d.getFullYear();
+  return `${dd}/${mm}/${yyyy}`;
+};
+
 // ═════════════════════════════════════════════════════════════════════════════
 // SINGLE SOURCE OF TRUTH: ACTIVITY SLOT CLASSIFICATION (בוקר / צהרון / שעה)
 // ═════════════════════════════════════════════════════════════════════════════

@@ -759,8 +759,8 @@ function _buildGardenPage(g, gEvs, year, month, monthName, hebYearStr, showPhone
               return `👩‍💼 ${coordLabel}: ${_esc(mgrStr)}`;
             })()}
           </div>
-          <div style="font-size: 11px; font-weight: 600; color: ${isBW ? '#000000' : '#64748b'};" dir="rtl">
-            📅 תאריך הפקה: <span dir="ltr">${(typeof window.getNowDateTimeString === 'function') ? window.getNowDateTimeString() : (new Date().toLocaleDateString('he-IL'))}</span>
+          <div style="font-size: 13.5px; font-weight: 700; color: ${isBW ? '#000000' : '#64748b'};" dir="rtl">
+            📅 תאריך הפקה: <span dir="ltr">${(typeof window.getNowDateString === 'function') ? window.getNowDateString() : (typeof window.getNowDateTimeString === 'function' ? window.getNowDateTimeString().split(' ')[0] : new Date().toLocaleDateString('he-IL'))}</span>
           </div>
         </div>
         <div style="text-align: center; margin-top: 4px;">
