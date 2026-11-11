@@ -2383,18 +2383,53 @@ function genExport(){
       headerTitle = refStr ? `*הוקדם ל${refStr}*\n` : '*הוקדם*\n';
     }
   } else if (isAllMakeup) {
-    const targetStr = rel[0] && refStr ? getTargetDayStr(rel[0].d, rel[0]._postFrom || rel[0]._makeupFrom || rel[0].d) : '';
-    const origDate = rel[0] ? (rel[0]._postFrom || rel[0]._makeupFrom) : null;
+    const s0 = rel[0];
+    let origDate = s0 ? (s0._postFrom || s0._makeupFrom || '') : '';
+    if (!origDate && s0) {
+      const txt = (s0.nt || '') + ' ' + (s0.n || '');
+      const m1 = txt.match(/(\d{4})-(\d{2})-(\d{2})/);
+      if (m1) origDate = m1[0];
+      else {
+        const m2 = txt.match(/(\d{1,2})[./\-](\d{1,2})([./\-]\d{2,4})?/);
+        if (m2) {
+          const rawY = m2[3] ? m2[3].replace(/[./\-]/g, '') : '';
+          const y = rawY ? (rawY.length === 2 ? '20' + rawY : rawY) : (s0.d ? s0.d.split('-')[0] : new Date().getFullYear());
+          origDate = `${y}-${m2[2].padStart(2, '0')}-${m2[1].padStart(2, '0')}`;
+        }
+      }
+    }
+    const targetStr = s0 && refStr ? getTargetDayStr(s0.d, origDate || s0.d) : '';
     const today = typeof window.td === 'function' ? window.td() : new Date().toISOString().split('T')[0];
-    
+
     let currentCalDateStr = '';
     try {
       currentCalDateStr = typeof d2s === 'function' ? d2s(calD) : (typeof window.d2s === 'function' ? window.d2s(window.calD) : new Date(calD).toISOString().split('T')[0]);
     } catch(e) {}
-    
-    if (origDate === today && currentCalDateStr === origDate) {
-      const dNameTarget = typeof window.dayN === 'function' ? window.dayN(rel[0].d) : '';
-      headerTitle = `*לא יתקיים היום חוג*\n*השלמה נקבעה ליום ${dNameTarget}*\n`;
+
+    if (s0 && origDate && origDate === s0.d) {
+      // Same-day replacement makeup: original class missed today/this date, replacement class runs on the same date
+      const origEv = (typeof SCH !== 'undefined') ? SCH.find(x =>
+        (x._compByMakeup && String(x._compByMakeup) === String(s0.id)) ||
+        (Number(x.g) === Number(s0.g) && x.d === origDate && (x.st === 'nohap' || x.st === 'can') && String(x.id) !== String(s0.id))
+      ) : null;
+      const origSupName = origEv && origEv.a ? (typeof supDisplayName === 'function' ? supDisplayName(supBase(origEv.a)) : origEv.a) : '';
+      if (origDate === today) {
+        headerTitle = origSupName
+          ? `*חוג ${origSupName} לא יתקיים היום*\n*במקומו תתקיים השלמה היום*\n`
+          : `*שינוי בחוג להיום – תתקיים השלמה היום (במקום החוג שבוטל)*\n`;
+      } else {
+        headerTitle = origSupName
+          ? `*במקום חוג ${origSupName} תתקיים השלמה*\n`
+          : `*חוג השלמה (במקום החוג שבוטל)*\n`;
+      }
+    } else if (s0 && origDate === today && currentCalDateStr === origDate) {
+      const dNameTarget = typeof window.dayN === 'function' ? window.dayN(s0.d) : '';
+      let tDateSuffix = '';
+      try {
+        const tDateObj = typeof window.s2d === 'function' ? window.s2d(s0.d) : new Date(s0.d.split('-')[0], s0.d.split('-')[1]-1, s0.d.split('-')[2]);
+        if (!isNaN(tDateObj)) tDateSuffix = ` ${tDateObj.getDate()}/${tDateObj.getMonth()+1}`;
+      } catch(e) {}
+      headerTitle = `*לא יתקיים היום חוג*\n*השלמה נקבעה ליום ${dNameTarget}${tDateSuffix}*\n`;
     } else {
       const formattedTarget = targetStr ? ' תתקיים ' + targetStr.replace('ליום', 'ביום') : '';
       headerTitle = refStr ? `*השלמה מ${refStr}${formattedTarget}*\n` : '*השלמה*\n';
