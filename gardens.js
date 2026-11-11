@@ -2406,30 +2406,11 @@ function genExport(){
       currentCalDateStr = typeof d2s === 'function' ? d2s(calD) : (typeof window.d2s === 'function' ? window.d2s(window.calD) : new Date(calD).toISOString().split('T')[0]);
     } catch(e) {}
 
-    if (s0 && origDate && origDate === s0.d) {
-      // Same-day replacement makeup: original class missed today/this date, replacement class runs on the same date
-      const origEv = (typeof SCH !== 'undefined') ? SCH.find(x =>
-        (x._compByMakeup && String(x._compByMakeup) === String(s0.id)) ||
-        (Number(x.g) === Number(s0.g) && x.d === origDate && (x.st === 'nohap' || x.st === 'can') && String(x.id) !== String(s0.id))
-      ) : null;
-      const origSupName = origEv && origEv.a ? (typeof supDisplayName === 'function' ? supDisplayName(supBase(origEv.a)) : origEv.a) : '';
-      if (origDate === today) {
-        headerTitle = origSupName
-          ? `*חוג ${origSupName} לא יתקיים היום*\n*במקומו תתקיים השלמה היום*\n`
-          : `*שינוי בחוג להיום – תתקיים השלמה היום (במקום החוג שבוטל)*\n`;
-      } else {
-        headerTitle = origSupName
-          ? `*במקום חוג ${origSupName} תתקיים השלמה*\n`
-          : `*חוג השלמה (במקום החוג שבוטל)*\n`;
-      }
+    if (s0 && origDate === today && s0.d === today) {
+      headerTitle = `*היום יתקיים חוג מחליף*\n`;
     } else if (s0 && origDate === today && currentCalDateStr === origDate) {
       const dNameTarget = typeof window.dayN === 'function' ? window.dayN(s0.d) : '';
-      let tDateSuffix = '';
-      try {
-        const tDateObj = typeof window.s2d === 'function' ? window.s2d(s0.d) : new Date(s0.d.split('-')[0], s0.d.split('-')[1]-1, s0.d.split('-')[2]);
-        if (!isNaN(tDateObj)) tDateSuffix = ` ${tDateObj.getDate()}/${tDateObj.getMonth()+1}`;
-      } catch(e) {}
-      headerTitle = `*לא יתקיים היום חוג*\n*השלמה נקבעה ליום ${dNameTarget}${tDateSuffix}*\n`;
+      headerTitle = `*לא יתקיים היום חוג*\n*השלמה נקבעה ליום ${dNameTarget}*\n`;
     } else {
       const formattedTarget = targetStr ? ' תתקיים ' + targetStr.replace('ליום', 'ביום') : '';
       headerTitle = refStr ? `*השלמה מ${refStr}${formattedTarget}*\n` : '*השלמה*\n';
