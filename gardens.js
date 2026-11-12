@@ -2407,7 +2407,7 @@ function genExport(){
     } catch(e) {}
 
     if (s0 && origDate === today && s0.d === today) {
-      headerTitle = `*היום יתקיים חוג מחליף*\n`;
+      headerTitle = `*עדכון להיום – יתקיים חוג חלופי*\n`;
     } else if (s0 && origDate === today && currentCalDateStr === origDate) {
       const dNameTarget = typeof window.dayN === 'function' ? window.dayN(s0.d) : '';
       headerTitle = `*לא יתקיים היום חוג*\n*השלמה נקבעה ליום ${dNameTarget}*\n`;
