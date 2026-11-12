@@ -277,21 +277,15 @@ function exportFullBackup(){
   document.body.appendChild(a);a.click();document.body.removeChild(a);
 }
 
-function downloadSystemZip(){
+async function downloadSystemZip(){
   const ver = window.APP_VERSION || '5.0';
-  if(window.showCopyToast) window.showCopyToast(`📦 מוריד קוד מערכת (ZIP) וקובץ נתוני JSON לגרסה v${ver}...`);
-  else if(window.showToast) window.showToast(`📦 מוריד קוד מערכת (ZIP) וקובץ נתוני JSON לגרסה v${ver}...`);
-  
-  // Download the ZIP (Code)
-  const a = document.createElement('a');
-  a.href = 'https://github.com/perryoust/Ganscheduler/archive/refs/heads/main.zip';
-  a.download = `Ganscheduler_System_v${ver}.zip`;
-  a.target = '_blank';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
+  const toast = (msg) => {
+    if (window.showCopyToast) window.showCopyToast(msg);
+    else if (window.showToast) window.showToast(msg);
+  };
+  toast(`📦 אוסף את כל קבצי המערכת מ-Git (ZIP) וקובץ נתוני JSON לגרסה v${ver}...`);
 
-  // Also download the JSON Data automatically with version tag!
+  // Download the JSON Data automatically with version tag
   setTimeout(() => {
     if (typeof window.exportFullBackup === 'function') {
       window.exportFullBackup();
@@ -299,6 +293,69 @@ function downloadSystemZip(){
       window.exportData();
     }
   }, 1000);
+
+  const now = new Date();
+  const dd = String(now.getDate()).padStart(2, '0');
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  const yy = String(now.getFullYear()).slice(-2);
+  const hh = String(now.getHours()).padStart(2, '0');
+  const min = String(now.getMinutes()).padStart(2, '0');
+  const zipName = `Ganscheduler-${dd}-${mm}-${yy} ${hh}-${min}.zip`;
+
+  try {
+    if (!window.JSZip) {
+      await new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+        s.onload = resolve;
+        s.onerror = () => reject(new Error('JSZip load failed'));
+        document.head.appendChild(s);
+      });
+    }
+
+    const treeRes = await fetch('https://api.github.com/repos/perryoust/Ganscheduler/git/trees/main?recursive=1');
+    if (!treeRes.ok) throw new Error('GitHub tree API error: ' + treeRes.status);
+    const treeData = await treeRes.json();
+    const blobs = (treeData.tree || []).filter(item => item.type === 'blob');
+    if (!blobs.length || treeData.truncated) throw new Error('Empty or truncated GitHub tree');
+
+    const zip = new window.JSZip();
+    const BATCH_SIZE = 15;
+    for (let i = 0; i < blobs.length; i += BATCH_SIZE) {
+      const batch = blobs.slice(i, i + BATCH_SIZE);
+      await Promise.all(batch.map(async (item) => {
+        const encodedPath = item.path.split('/').map(encodeURIComponent).join('/');
+        const fileRes = await fetch(`https://raw.githubusercontent.com/perryoust/Ganscheduler/main/${encodedPath}`);
+        if (!fileRes.ok) throw new Error(`Failed fetching ${item.path}: ${fileRes.status}`);
+        const buf = await fileRes.arrayBuffer();
+        zip.file(`Ganscheduler-main/${item.path}`, buf);
+      }));
+    }
+
+    const zipBlob = await zip.generateAsync({
+      type: 'blob',
+      compression: 'DEFLATE',
+      compressionOptions: { level: 6 }
+    });
+    const url = URL.createObjectURL(zipBlob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = zipName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+    toast(`✅ הורדת ZIP הושלמה: ${zipName} (${blobs.length} קבצים)`);
+  } catch (err) {
+    console.warn('Client-side Git ZIP build failed, falling back to direct GitHub ZIP:', err);
+    const a = document.createElement('a');
+    a.href = 'https://github.com/perryoust/Ganscheduler/archive/refs/heads/main.zip';
+    a.download = zipName;
+    a.target = '_blank';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  }
 }
 window.downloadSystemZip = downloadSystemZip;
 function goToCancelled(){
